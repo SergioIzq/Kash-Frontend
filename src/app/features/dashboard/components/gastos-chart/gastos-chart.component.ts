@@ -11,7 +11,7 @@ import { DashboardStore } from '../../stores/dashboard.store';
     imports: [CommonModule, CardModule, ChartModule, SkeletonModule],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <div class="surface-card shadow-2 border-round p-4">
+        <div class="card surface-card shadow-2 border-round p-4">
             <div class="flex items-center justify-between mb-3">
                 <h5 class="text-900 font-semibold m-0">Gastos por Categoría</h5>
             </div>

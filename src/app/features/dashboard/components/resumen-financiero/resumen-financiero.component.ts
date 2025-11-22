@@ -11,7 +11,6 @@ import { DashboardStore } from '../../stores/dashboard.store';
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-
             @if (dashboardStore.loading()) {
                 @for (item of [1, 2, 3, 4]; track item) {
                     <div>
@@ -27,9 +26,8 @@ import { DashboardStore } from '../../stores/dashboard.store';
                         </div>
                     </div>
                 }
-            }
 
-            @else if (dashboardStore.error()) {
+            } @else if (dashboardStore.error()) {
                 <div class="col-span-full">
                     <div class="surface-card shadow-2 border-round p-4 border-l-4 border-red-500">
                         <div class="flex items-center">
@@ -41,26 +39,23 @@ import { DashboardStore } from '../../stores/dashboard.store';
                         </div>
                     </div>
                 </div>
-            }
 
-            @else {
-                <div>
-                    <div class="surface-card shadow-2 border-round p-4 h-full">
-                        <div class="flex items-center justify-between mb-3">
-                            <div>
-                                <span class="block text-500 font-medium mb-2">Ingresos del Mes</span>
-                                <div class="text-900 font-bold text-3xl">{{ totalIngresos() | currency: 'EUR' : 'symbol' : '1.0-0' }}</div>
-                            </div>
-                            <div class="flex items-center justify-center bg-green-100 rounded" style="width:3rem;height:3rem">
-                                <i class="pi pi-arrow-up text-green-500 text-2xl"></i>
-                            </div>
+            } @else {
+                <div class="card shadow-2 border-round p-4 h-full">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <span class="block text-500 font-medium mb-2">Ingresos del Mes</span>
+                            <div class="text-900 font-bold text-3xl">{{ totalIngresos() | currency: 'EUR' : 'symbol' : '1.0-0' }}</div>
                         </div>
-                        <span class="text-500 text-sm">{{ cantidadIngresos() }} movimientos</span>
+                        <div class="flex items-center justify-center bg-green-100 rounded" style="width:3rem;height:3rem">
+                            <i class="pi pi-arrow-up text-green-500 text-2xl"></i>
+                        </div>
                     </div>
+                    <span class="text-500 text-sm">{{ cantidadIngresos() }} movimientos</span>
                 </div>
 
                 <div>
-                    <div class="surface-card shadow-2 border-round p-4 h-full">
+                    <div class="card shadow-2 border-round p-4 h-full">
                         <div class="flex items-center justify-between mb-3">
                             <div>
                                 <span class="block text-500 font-medium mb-2">Gastos del Mes</span>
@@ -75,7 +70,7 @@ import { DashboardStore } from '../../stores/dashboard.store';
                 </div>
 
                 <div>
-                    <div class="surface-card shadow-2 border-round p-4 h-full">
+                    <div class="card shadow-2 border-round p-4 h-full">
                         <div class="flex items-center justify-between mb-3">
                             <div>
                                 <span class="block text-500 font-medium mb-2">Balance del Mes</span>
@@ -90,7 +85,7 @@ import { DashboardStore } from '../../stores/dashboard.store';
                 </div>
 
                 <div>
-                    <div class="surface-card shadow-2 border-round p-4 h-full">
+                    <div class="card shadow-2 border-round p-4 h-full">
                         <div class="flex items-center justify-between mb-3">
                             <div>
                                 <span class="block text-500 font-medium mb-2">Balance Total</span>
@@ -116,7 +111,7 @@ export class ResumenFinancieroComponent {
     totalGastos = computed(() => this.dashboardStore.gastosMesActual());
     cantidadGastos = computed(() => this.dashboardStore.ultimosMovimientos().filter((m) => m.tipo.toLowerCase() === 'gasto').length);
     balance = computed(() => this.dashboardStore.balanceMesActual());
-    
+
     estadoText = computed(() => {
         const balance = this.balance();
         if (balance > 0) return 'Superávit';

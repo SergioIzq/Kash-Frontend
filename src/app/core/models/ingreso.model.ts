@@ -1,12 +1,30 @@
 export interface Ingreso {
-    id: number;
-    concepto: string;
-    cantidad: number;
+    id: string;
+    importe: number;
     fecha: string;
-    tipo?: string;
-    fuente?: string;
     descripcion?: string;
-    usuarioId?: number;
+    conceptoId: string;
+    conceptoNombre: string;
+    categoriaId: string;
+    categoriaNombre: string;
+    clienteId: string;
+    clienteNombre: string;
+    personaId: string;
+    personaNombre: string;
+    cuentaId: string;
+    cuentaNombre: string;
+    formaPagoId: string;
+    formaPagoNombre: string;
+    usuarioId: string;
+}
+
+export interface PaginatedResponseIngreso<T> {
+    items: T[];
+    page: number;
+    pageSize: number;
+    totalCount: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
 }
 
 export interface ResumenIngresos {

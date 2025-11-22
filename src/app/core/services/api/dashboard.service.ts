@@ -14,12 +14,18 @@ export class DashboardService {
         fechaFin?: string;
         cuentaId?: string;
         categoriaId?: string;
-    }): Observable<DashboardResumen> {
+    }, bypassCache: boolean = false): Observable<DashboardResumen> {
         let httpParams = new HttpParams();
         if (params?.fechaInicio) httpParams = httpParams.set('fechaInicio', params.fechaInicio);
         if (params?.fechaFin) httpParams = httpParams.set('fechaFin', params.fechaFin);
         if (params?.cuentaId) httpParams = httpParams.set('cuentaId', params.cuentaId);
         if (params?.categoriaId) httpParams = httpParams.set('categoriaId', params.categoriaId);
+        
+        // Agregar timestamp para evitar caché cuando se solicita
+        if (bypassCache) {
+            httpParams = httpParams.set('_t', Date.now().toString());
+        }
+        
         return this.http.get<DashboardResumen>(`${this.apiUrl}/resumen`, { 
             params: httpParams,
             withCredentials: true 

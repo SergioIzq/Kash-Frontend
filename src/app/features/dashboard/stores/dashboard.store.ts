@@ -73,15 +73,22 @@ export const DashboardStore = signalStore(
             )
         ),
         refresh() {
+            console.log("Refrescando datos del dashboard...");
             patchState(store, { loading: true, error: null });
-            dashboardService.getResumen(store.filtros()).subscribe({
+            
+            // Usar bypassCache: true para forzar la petición al servidor
+            const subscription = dashboardService.getResumen(store.filtros(), true).subscribe({
                 next: (resumen) => {
+                    console.log("Resumen recibido:", resumen);
                     patchState(store, { resumen, loading: false });
                 },
                 error: (error: any) => {
+                    console.error("Error al cargar resumen:", error);
                     patchState(store, { loading: false, error: error?.message || 'Error al cargar el resumen' });
                 }
             });
+            
+            return subscription;
         },
         setFiltros(filtros: DashboardState['filtros']) {
             patchState(store, { filtros, loading: true, error: null });

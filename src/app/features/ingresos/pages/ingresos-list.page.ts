@@ -1,6 +1,8 @@
-import { Component, inject, ViewChild } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy, ViewChild, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { DialogModule } from 'primeng/dialog';
@@ -15,8 +17,10 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { RippleModule } from 'primeng/ripple';
 import { TextareaModule } from 'primeng/textarea';
 import { DatePickerModule } from 'primeng/datepicker';
+import { SkeletonModule } from 'primeng/skeleton';
 import { MessageService, ConfirmationService } from 'primeng/api';
-import { Ingreso } from '@/core/models';
+import { IngresosStore } from '../stores/ingresos.store';
+import { Ingreso, IngresoCreate } from '@/core/models';
 
 @Component({
     selector: 'app-ingresos-list-page',
@@ -37,15 +41,17 @@ import { Ingreso } from '@/core/models';
         IconFieldModule,
         RippleModule,
         TextareaModule,
-        DatePickerModule
+        DatePickerModule,
+        SkeletonModule
     ],
     providers: [MessageService, ConfirmationService],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <div class="surface-ground px-4 py-5 md:px-6 lg:px-8">
+        <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
             <div class="surface-card shadow-2 border-round p-6">
                 <p-toast></p-toast>
 
-                <p-toolbar styleClass="mb-6 gap-2">
+                <p-toolbar styleClass="mb-6 gap-2 p-6">
                     <ng-template #start>
                         <p-button 
                             label="Nuevo Ingreso" 
@@ -73,18 +79,25 @@ import { Ingreso } from '@/core/models';
 
                 <p-table
                     #dt
-                    [value]="ingresos"
-                    [rows]="10"
+                    [value]="ingresosStore.ingresos()"
+                    [lazy]="true"
+                    (onLazyLoad)="loadIngresosLazy($event)"
+                    [rows]="pageSize"
+                    [totalRecords]="totalRecords"
                     [paginator]="true"
-                    [globalFilterFields]="['concepto', 'tipo', 'fuente', 'descripcion']"
+                    [loading]="ingresosStore.loading()"
+                    [loadingIcon]="'none'"
+                    [globalFilterFields]="['conceptoNombre', 'categoriaNombre', 'clienteNombre', 'descripcion']"
                     [tableStyle]="{ 'min-width': '75rem' }"
-                    styleClass="p-datatable-gridlines"
+                    styleClass="p-datatable-gridlines p-datatable-loading-icon-none"
                     [(selection)]="selectedIngresos"
                     [rowHover]="true"
                     dataKey="id"
                     currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} ingresos"
                     [showCurrentPageReport]="true"
                     [rowsPerPageOptions]="[10, 20, 30]"
+                    sortField="fecha"
+                    [sortOrder]="-1"
                 >
                     <ng-template #caption>
                         <div class="flex items-center justify-between py-3 px-4">
@@ -101,25 +114,25 @@ import { Ingreso } from '@/core/models';
                             <th style="width: 3rem; padding: 1rem">
                                 <p-tableHeaderCheckbox />
                             </th>
-                            <th pSortableColumn="concepto" style="min-width:16rem; padding: 1rem">
+                            <th pSortableColumn="conceptoNombre" style="min-width:16rem; padding: 1rem">
                                 Concepto
-                                <p-sortIcon field="concepto" />
+                                <p-sortIcon field="conceptoNombre" />
                             </th>
-                            <th pSortableColumn="tipo" style="min-width:12rem">
-                                Tipo
-                                <p-sortIcon field="tipo" />
+                            <th pSortableColumn="categoriaNombre" style="min-width:12rem">
+                                Categoría
+                                <p-sortIcon field="categoriaNombre" />
                             </th>
-                            <th pSortableColumn="fuente" style="min-width:12rem">
-                                Fuente
-                                <p-sortIcon field="fuente" />
+                            <th pSortableColumn="clienteNombre" style="min-width:12rem">
+                                Cliente
+                                <p-sortIcon field="clienteNombre" />
                             </th>
                             <th pSortableColumn="fecha" style="min-width:10rem">
                                 Fecha
                                 <p-sortIcon field="fecha" />
                             </th>
-                            <th pSortableColumn="cantidad" style="min-width:10rem">
-                                Cantidad
-                                <p-sortIcon field="cantidad" />
+                            <th pSortableColumn="importe" style="min-width:10rem">
+                                Importe
+                                <p-sortIcon field="importe" />
                             </th>
                             <th style="min-width:10rem">Acciones</th>
                         </tr>
@@ -132,21 +145,21 @@ import { Ingreso } from '@/core/models';
                             </td>
                             <td style="padding: 1rem">
                                 <div class="flex flex-col">
-                                    <span class="font-semibold">{{ ingreso.concepto }}</span>
+                                    <span class="font-semibold">{{ ingreso.conceptoNombre }}</span>
                                     @if (ingreso.descripcion) {
                                         <small class="text-500">{{ ingreso.descripcion }}</small>
                                     }
                                 </div>
                             </td>
-                            <td>
+                            <td style="padding: 1rem">
                                 <p-tag 
-                                    [value]="ingreso.tipo || 'General'" 
-                                    [severity]="getTipoSeverity(ingreso.tipo)" />
+                                    [value]="ingreso.categoriaNombre || 'Sin categoría'" 
+                                    [severity]="getCategorySeverity(ingreso.categoriaNombre)" />
                             </td>
-                            <td>{{ ingreso.fuente || '-' }}</td>
+                            <td>{{ ingreso.clienteNombre || '-' }}</td>
                             <td>{{ ingreso.fecha | date:'dd/MM/yyyy' }}</td>
                             <td>
-                                <span class="font-bold text-green-500">{{ ingreso.cantidad | currency:'EUR':'symbol':'1.2-2' }}</span>
+                                <span class="font-bold text-green-500">{{ ingreso.importe | currency:'EUR':'symbol':'1.2-2' }}</span>
                             </td>
                             <td>
                                 <p-button 
@@ -161,6 +174,28 @@ import { Ingreso } from '@/core/models';
                                     [rounded]="true" 
                                     [outlined]="true" 
                                     (click)="deleteIngreso(ingreso)" />
+                            </td>
+                        </tr>
+                    </ng-template>
+
+                    <ng-template #loadingbody>
+                        <tr>
+                            <td style="padding: 1rem"><p-skeleton /></td>
+                            <td style="padding: 1rem">
+                                <div class="flex flex-col gap-2">
+                                    <p-skeleton width="80%" />
+                                    <p-skeleton width="60%" height=".8rem" />
+                                </div>
+                            </td>
+                            <td style="padding: 1rem"><p-skeleton width="6rem" height="2rem" /></td>
+                            <td><p-skeleton width="70%" /></td>
+                            <td><p-skeleton width="6rem" /></td>
+                            <td><p-skeleton width="5rem" /></td>
+                            <td>
+                                <div class="flex gap-2">
+                                    <p-skeleton shape="circle" size="2.5rem" />
+                                    <p-skeleton shape="circle" size="2.5rem" />
+                                </div>
                             </td>
                         </tr>
                     </ng-template>
@@ -193,27 +228,27 @@ import { Ingreso } from '@/core/models';
                                     type="text" 
                                     pInputText 
                                     id="concepto" 
-                                    [(ngModel)]="currentIngreso.concepto" 
+                                    [(ngModel)]="currentIngreso.conceptoNombre" 
                                     required 
                                     autofocus 
                                     fluid />
-                                <small class="text-red-500" *ngIf="submitted && !currentIngreso.concepto">
+                                <small class="text-red-500" *ngIf="submitted && !currentIngreso.conceptoNombre">
                                     El concepto es requerido.
                                 </small>
                             </div>
 
                             <div>
-                                <label for="cantidad" class="block font-bold mb-3">Cantidad</label>
+                                <label for="importe" class="block font-bold mb-3">Importe</label>
                                 <p-inputnumber 
-                                    id="cantidad" 
-                                    [(ngModel)]="currentIngreso.cantidad" 
+                                    id="importe" 
+                                    [(ngModel)]="currentIngreso.importe" 
                                     mode="currency" 
                                     currency="EUR" 
                                     locale="es-ES"
                                     [min]="0"
                                     fluid />
-                                <small class="text-red-500" *ngIf="submitted && !currentIngreso.cantidad">
-                                    La cantidad es requerida.
+                                <small class="text-red-500" *ngIf="submitted && !currentIngreso.importe">
+                                    El importe es requerido.
                                 </small>
                             </div>
 
@@ -227,22 +262,22 @@ import { Ingreso } from '@/core/models';
                             </div>
 
                             <div>
-                                <label for="tipo" class="block font-bold mb-3">Tipo</label>
+                                <label for="categoriaNombre" class="block font-bold mb-3">Categoría</label>
                                 <input 
                                     type="text" 
                                     pInputText 
-                                    id="tipo" 
-                                    [(ngModel)]="currentIngreso.tipo" 
+                                    id="categoriaNombre" 
+                                    [(ngModel)]="currentIngreso.categoriaNombre" 
                                     fluid />
                             </div>
 
                             <div>
-                                <label for="fuente" class="block font-bold mb-3">Fuente</label>
+                                <label for="clienteNombre" class="block font-bold mb-3">Cliente</label>
                                 <input 
                                     type="text" 
                                     pInputText 
-                                    id="fuente" 
-                                    [(ngModel)]="currentIngreso.fuente" 
+                                    id="clienteNombre" 
+                                    [(ngModel)]="currentIngreso.clienteNombre" 
                                     fluid />
                             </div>
 
@@ -270,7 +305,8 @@ import { Ingreso } from '@/core/models';
         </div>
     `
 })
-export class IngresosListPage {
+export class IngresosListPage implements OnDestroy {
+    ingresosStore = inject(IngresosStore);
     private messageService = inject(MessageService);
     private confirmationService = inject(ConfirmationService);
 
@@ -280,49 +316,89 @@ export class IngresosListPage {
     selectedIngresos: Ingreso[] = [];
     currentIngreso: Partial<Ingreso> = {};
     submitted: boolean = false;
+    
+    pageSize: number = 10;
+    pageNumber: number = 1;
+    searchTerm: string = '';
+    sortColumn: string = 'fecha';
+    sortOrder: string = 'desc';
+    
+    // Subject para manejar búsqueda con debounce
+    private searchSubject = new Subject<string>();
+    
+    constructor() {
+        // Configurar búsqueda con debounce de 500ms
+        this.searchSubject.pipe(
+            debounceTime(500),
+            distinctUntilChanged()
+        ).subscribe(searchValue => {
+            this.searchTerm = searchValue;
+            this.pageNumber = 1; // Resetear a primera página en búsqueda
+            this.reloadIngresos();
+        });
+    }
+    
+    ngOnDestroy() {
+        this.searchSubject.complete();
+    }
+    
+    get totalRecords(): number {
+        return this.ingresosStore.totalRecords();
+    }
+    
+    /**
+     * Recargar ingresos con los filtros actuales
+     */
+    private reloadIngresos() {
+        this.ingresosStore.loadIngresosPaginated({ 
+            page: this.pageNumber, 
+            pageSize: this.pageSize,
+            searchTerm: this.searchTerm || undefined,
+            sortColumn: this.sortColumn || undefined,
+            sortOrder: this.sortOrder || undefined
+        });
+    }
 
-    // Datos de demostración - reemplazar con servicio real
-    ingresos: Ingreso[] = [
-        {
-            id: 1,
-            concepto: 'Salario Mensual',
-            cantidad: 2500,
-            fecha: '2024-11-01',
-            tipo: 'Salario',
-            fuente: 'Empresa ABC',
-            descripcion: 'Pago de salario correspondiente a noviembre 2024'
-        },
-        {
-            id: 2,
-            concepto: 'Freelance Proyecto Web',
-            cantidad: 800,
-            fecha: '2024-11-15',
-            tipo: 'Freelance',
-            fuente: 'Cliente XYZ',
-            descripcion: 'Desarrollo de sitio web corporativo'
-        },
-        {
-            id: 3,
-            concepto: 'Dividendos Inversiones',
-            cantidad: 150,
-            fecha: '2024-11-10',
-            tipo: 'Inversión',
-            fuente: 'Broker Inversiones',
-            descripcion: 'Rendimiento trimestral de inversiones'
+    loadIngresosLazy(event: any) {
+        // Calcular página actual (PrimeNG usa first que es el índice del primer registro)
+        this.pageNumber = Math.floor(event.first / event.rows) + 1;
+        this.pageSize = event.rows;
+        
+        // Capturar ordenamiento si existe
+        if (event.sortField) {
+            this.sortColumn = event.sortField;
+            // event.sortOrder: 1 = ASC, -1 = DESC
+            this.sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
         }
-    ];
+        
+        console.log('loadIngresosLazy llamado - event:', event);
+        console.log('Calculado:', { 
+            page: this.pageNumber, 
+            pageSize: this.pageSize,
+            sortColumn: this.sortColumn,
+            sortOrder: this.sortOrder,
+            searchTerm: this.searchTerm
+        });
+        
+        // Cargar ingresos
+        this.reloadIngresos();
+    }
 
     onGlobalFilter(table: Table, event: Event) {
-        table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
+        const searchValue = (event.target as HTMLInputElement).value;
+        console.log('Input de búsqueda:', searchValue);
+        
+        // Usar Subject para aplicar debounce (esperar 500ms después de dejar de escribir)
+        this.searchSubject.next(searchValue);
     }
 
     openNew() {
         this.currentIngreso = {
-            concepto: '',
-            cantidad: 0,
+            conceptoNombre: '',
+            importe: 0,
             fecha: new Date().toISOString().split('T')[0],
-            tipo: '',
-            fuente: '',
+            categoriaNombre: '',
+            clienteNombre: '',
             descripcion: ''
         };
         this.submitted = false;
@@ -341,14 +417,14 @@ export class IngresosListPage {
 
     deleteIngreso(ingreso: Ingreso) {
         this.confirmationService.confirm({
-            message: `¿Estás seguro de eliminar el ingreso "${ingreso.concepto}"?`,
+            message: `¿Estás seguro de eliminar el ingreso "${ingreso.conceptoNombre}"?`,
             header: 'Confirmar eliminación',
             icon: 'pi pi-exclamation-triangle',
             acceptLabel: 'Sí, eliminar',
             rejectLabel: 'Cancelar',
             acceptButtonStyleClass: 'p-button-danger',
             accept: () => {
-                this.ingresos = this.ingresos.filter(i => i.id !== ingreso.id);
+                this.ingresosStore.deleteIngreso(ingreso.id);
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Éxito',
@@ -368,12 +444,11 @@ export class IngresosListPage {
             rejectLabel: 'Cancelar',
             acceptButtonStyleClass: 'p-button-danger',
             accept: () => {
-                this.ingresos = this.ingresos.filter(i => !this.selectedIngresos.includes(i));
-                this.selectedIngresos = [];
+                // Implementar eliminación múltiple
                 this.messageService.add({
-                    severity: 'success',
-                    summary: 'Éxito',
-                    detail: 'Ingresos eliminados correctamente',
+                    severity: 'info',
+                    summary: 'Info',
+                    detail: 'Función de eliminación múltiple pendiente',
                     life: 3000
                 });
             }
@@ -383,7 +458,7 @@ export class IngresosListPage {
     saveIngreso() {
         this.submitted = true;
 
-        if (!this.currentIngreso.concepto?.trim() || !this.currentIngreso.cantidad) {
+        if (!this.currentIngreso.conceptoNombre?.trim() || !this.currentIngreso.importe) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Advertencia',
@@ -394,35 +469,22 @@ export class IngresosListPage {
 
         if (this.currentIngreso.id) {
             // Actualizar ingreso existente
-            const index = this.ingresos.findIndex(i => i.id === this.currentIngreso.id);
-            if (index !== -1) {
-                this.ingresos[index] = { ...this.ingresos[index], ...this.currentIngreso as Ingreso };
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Éxito',
-                    detail: 'Ingreso actualizado correctamente',
-                    life: 3000
-                });
-            }
-        } else {
-            // Crear nuevo ingreso
-            const nuevoIngreso: Ingreso = {
-                id: Math.max(...this.ingresos.map(i => i.id), 0) + 1,
-                concepto: this.currentIngreso.concepto!,
-                cantidad: this.currentIngreso.cantidad!,
-                fecha: typeof this.currentIngreso.fecha === 'string' 
-                    ? this.currentIngreso.fecha 
-                    : new Date(this.currentIngreso.fecha!).toISOString().split('T')[0],
-                tipo: this.currentIngreso.tipo,
-                fuente: this.currentIngreso.fuente,
-                descripcion: this.currentIngreso.descripcion
-            };
-            
-            this.ingresos = [...this.ingresos, nuevoIngreso];
+            this.ingresosStore.updateIngreso({
+                id: this.currentIngreso.id,
+                ingreso: this.currentIngreso
+            });
             this.messageService.add({
                 severity: 'success',
                 summary: 'Éxito',
-                detail: 'Ingreso creado correctamente',
+                detail: 'Ingreso actualizado correctamente',
+                life: 3000
+            });
+        } else {
+            // Crear nuevo ingreso - requiere catálogos configurados
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Info',
+                detail: 'La creación de ingresos estará disponible una vez configurados los catálogos',
                 life: 3000
             });
         }
@@ -432,7 +494,60 @@ export class IngresosListPage {
     }
 
     exportCSV() {
-        this.dt.exportCSV();
+        // En lazy mode, exportar los datos actuales del store
+        const ingresos = this.ingresosStore.ingresos();
+        if (!ingresos || ingresos.length === 0) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Advertencia',
+                detail: 'No hay datos para exportar'
+            });
+            return;
+        }
+
+        // Crear CSV manualmente con BOM para UTF-8
+        const headers = ['Concepto', 'Categoría', 'Cliente', 'Fecha', 'Importe', 'Descripción'];
+        const csvData = ingresos.map(i => [
+            i.conceptoNombre,
+            i.categoriaNombre || '',
+            i.clienteNombre || '',
+            i.fecha,
+            i.importe,
+            i.descripcion || ''
+        ]);
+
+        // Agregar BOM (Byte Order Mark) para UTF-8
+        let csv = '\uFEFF';
+        csv += headers.join(',') + '\n';
+        csvData.forEach(row => {
+            csv += row.map(field => `"${field}"`).join(',') + '\n';
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `ingresos_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    getCategorySeverity(categoria: string): "success" | "secondary" | "info" | "warn" | "danger" | "contrast" | undefined {
+        const categoryMap: Record<string, "success" | "secondary" | "info" | "warn" | "danger" | "contrast"> = {
+            'Salario': 'success',
+            'Freelance': 'info',
+            'Inversión': 'warn',
+            'Bonificación': 'contrast',
+            'Venta': 'secondary',
+            'Alquiler': 'info',
+            'Intereses': 'warn',
+            'Honorarios': 'info',
+            'Comisiones': 'success'
+        };
+        
+        return categoryMap[categoria] || 'secondary';
     }
 
     getTipoSeverity(tipo: string | undefined): "success" | "secondary" | "info" | "warn" | "danger" | "contrast" | undefined {

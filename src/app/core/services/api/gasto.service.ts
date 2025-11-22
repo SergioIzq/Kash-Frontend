@@ -16,16 +16,31 @@ export class GastoService {
     private resumenCache$?: Observable<ResumenGastos>;
 
     /**
-     * Obtener todos los gastos con paginación
+     * Obtener todos los gastos con paginación, búsqueda y ordenamiento
      */
-    getGastos(page: number = 1, pageSize: number = 10): Observable<PaginatedResponse<Gasto>> {
-        const params = new HttpParams()
+    getGastos(
+        page: number = 1, 
+        pageSize: number = 10,
+        searchTerm?: string,
+        sortColumn?: string,
+        sortOrder?: string
+    ): Observable<PaginatedResponse<Gasto>> {
+        let params = new HttpParams()
             .set('page', page.toString())
             .set('pageSize', pageSize.toString());
         
-        return this.http.get<PaginatedResponse<Gasto>>(this.apiUrl, { params }).pipe(
-            shareReplay({ bufferSize: 1, refCount: true })
-        );
+        if (searchTerm) {
+            params = params.set('searchTerm', searchTerm);
+        }
+        if (sortColumn) {
+            params = params.set('sortColumn', sortColumn);
+        }
+        if (sortOrder) {
+            params = params.set('sortOrder', sortOrder);
+        }
+        
+        // No usar shareReplay para paginación, cada petición debe ser única
+        return this.http.get<PaginatedResponse<Gasto>>(`${this.apiUrl}/paginated`, { params });
     }
 
     /**

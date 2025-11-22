@@ -2,3 +2,10 @@
 @use './tailwind.css';
 @use './layout/layout.scss';
 @use 'primeicons/primeicons.css';
+
+/* Ocultar el spinner nativo de PrimeNG Table cuando usamos skeleton loading */
+.p-datatable-loading-icon-none {
+    .p-datatable-loading-overlay {
+        display: none !important;
+    }
+}

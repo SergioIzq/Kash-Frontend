@@ -22,8 +22,20 @@ export const cacheInterceptor: HttpInterceptorFn = (req, next) => {
         return next(req);
     }
     
+    // Si la URL contiene el parámetro _t (timestamp), no usar caché
+    if (req.url.includes('_t=') || req.params.has('_t')) {
+        return next(req);
+    }
+    
+    // No cachear peticiones con parámetros de paginación
+    if (req.params.has('page') || req.params.has('pageSize')) {
+        return next(req);
+    }
+    
     const cache = getCache();
-    const cachedResponse = cache.get(req.url);
+    // Crear clave de caché incluyendo parámetros para diferenciar peticiones
+    const cacheKey = req.urlWithParams;
+    const cachedResponse = cache.get(cacheKey);
     
     // Si hay cache válido (menos de 30 segundos), devolverlo
     if (cachedResponse && (Date.now() - cachedResponse.timestamp) < 30000) {
@@ -36,7 +48,7 @@ export const cacheInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req).pipe(
         tap(event => {
             if (event instanceof HttpResponse) {
-                cache.set(req.url, {
+                cache.set(cacheKey, {
                     response: event.clone(),
                     timestamp: Date.now()
                 });

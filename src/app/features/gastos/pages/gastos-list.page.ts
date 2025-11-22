@@ -1,6 +1,8 @@
-import { Component, inject, ChangeDetectionStrategy, signal, ViewChild } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy, signal, ViewChild, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { DialogModule } from 'primeng/dialog';
@@ -15,6 +17,7 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { RippleModule } from 'primeng/ripple';
 import { TextareaModule } from 'primeng/textarea';
 import { DatePickerModule } from 'primeng/datepicker';
+import { SkeletonModule } from 'primeng/skeleton';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { GastosStore } from '../stores/gastos.store';
 import { Gasto, GastoCreate } from '@/core/models';
@@ -38,12 +41,13 @@ import { Gasto, GastoCreate } from '@/core/models';
         IconFieldModule,
         RippleModule,
         TextareaModule,
-        DatePickerModule
+        DatePickerModule,
+        SkeletonModule
     ],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <div class="surface-ground px-4 py-5 md:px-6 lg:px-8">
+        <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
             <div class="surface-card shadow-2 border-round p-6">
                 <p-toast></p-toast>
 
@@ -76,17 +80,24 @@ import { Gasto, GastoCreate } from '@/core/models';
                 <p-table
                     #dt
                     [value]="gastosStore.gastos()"
-                    [rows]="10"
+                    [lazy]="true"
+                    (onLazyLoad)="loadGastosLazy($event)"
+                    [rows]="pageSize"
+                    [totalRecords]="totalRecords"
                     [paginator]="true"
+                    [loading]="gastosStore.loading()"
+                    [loadingIcon]="'none'"
                     [globalFilterFields]="['conceptoNombre', 'categoriaNombre', 'proveedorNombre', 'descripcion']"
                     [tableStyle]="{ 'min-width': '75rem' }"
-                    styleClass="p-datatable-gridlines"
+                    styleClass="p-datatable-gridlines p-datatable-loading-icon-none"
                     [(selection)]="selectedGastos"
                     [rowHover]="true"
                     dataKey="id"
                     currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} gastos"
                     [showCurrentPageReport]="true"
                     [rowsPerPageOptions]="[10, 20, 30]"
+                    sortField="fecha"
+                    [sortOrder]="-1"
                 >
                     <ng-template #caption>
                         <div class="flex items-center justify-between py-3 px-4">
@@ -163,6 +174,28 @@ import { Gasto, GastoCreate } from '@/core/models';
                                     [rounded]="true" 
                                     [outlined]="true" 
                                     (click)="deleteGasto(gasto)" />
+                            </td>
+                        </tr>
+                    </ng-template>
+
+                    <ng-template #loadingbody>
+                        <tr>
+                            <td style="padding: 1rem"><p-skeleton /></td>
+                            <td style="padding: 1rem">
+                                <div class="flex flex-col gap-2">
+                                    <p-skeleton width="80%" />
+                                    <p-skeleton width="60%" height=".8rem" />
+                                </div>
+                            </td>
+                            <td style="padding: 1rem"><p-skeleton width="6rem" height="2rem" /></td>
+                            <td><p-skeleton width="70%" /></td>
+                            <td><p-skeleton width="6rem" /></td>
+                            <td><p-skeleton width="5rem" /></td>
+                            <td>
+                                <div class="flex gap-2">
+                                    <p-skeleton shape="circle" size="2.5rem" />
+                                    <p-skeleton shape="circle" size="2.5rem" />
+                                </div>
                             </td>
                         </tr>
                     </ng-template>
@@ -272,7 +305,7 @@ import { Gasto, GastoCreate } from '@/core/models';
         </div>
     `
 })
-export class GastosListPage {
+export class GastosListPage implements OnDestroy {
     gastosStore = inject(GastosStore);
     private messageService = inject(MessageService);
     private confirmationService = inject(ConfirmationService);
@@ -283,9 +316,71 @@ export class GastosListPage {
     selectedGastos: Gasto[] = [];
     currentGasto: Partial<Gasto> = {};
     submitted: boolean = false;
+    
+    pageSize: number = 10;
+    pageNumber: number = 1;
+    searchTerm: string = '';
+    sortColumn: string = 'fecha';
+    sortOrder: string = 'desc';
+    
+    // Subject para manejar búsqueda con debounce
+    private searchSubject = new Subject<string>();
+    
+    constructor() {
+        // Configurar búsqueda con debounce de 500ms
+        this.searchSubject.pipe(
+            debounceTime(500),
+            distinctUntilChanged()
+        ).subscribe(searchValue => {
+            this.searchTerm = searchValue;
+            this.pageNumber = 1; // Resetear a primera página en búsqueda
+            this.reloadGastos();
+        });
+    }
+    
+    ngOnDestroy() {
+        this.searchSubject.complete();
+    }
+    
+    get totalRecords(): number {
+        return this.gastosStore.totalRecords();
+    }
+    
+    /**
+     * Recargar gastos con los filtros actuales
+     */
+    private reloadGastos() {
+        this.gastosStore.loadGastosPaginated({ 
+            page: this.pageNumber, 
+            pageSize: this.pageSize,
+            searchTerm: this.searchTerm || undefined,
+            sortColumn: this.sortColumn || undefined,
+            sortOrder: this.sortOrder || undefined
+        });
+    }
+
+    loadGastosLazy(event: any) {
+        // Calcular página actual (PrimeNG usa first que es el índice del primer registro)
+        this.pageNumber = Math.floor(event.first / event.rows) + 1;
+        this.pageSize = event.rows;
+        
+        // Capturar ordenamiento si existe
+        if (event.sortField) {
+            this.sortColumn = event.sortField;
+            // event.sortOrder: 1 = ASC, -1 = DESC
+            this.sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
+        }
+        
+        // Cargar gastos
+        this.reloadGastos();
+    }
 
     onGlobalFilter(table: Table, event: Event) {
-        table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
+        const searchValue = (event.target as HTMLInputElement).value;
+        console.log('Input de búsqueda:', searchValue);
+        
+        // Usar Subject para aplicar debounce (esperar 500ms después de dejar de escribir)
+        this.searchSubject.next(searchValue);
     }
 
     openNew() {
@@ -414,7 +509,44 @@ export class GastosListPage {
     }
 
     exportCSV() {
-        this.dt.exportCSV();
+        // En lazy mode, exportar los datos actuales del store
+        const gastos = this.gastosStore.gastos();
+        if (!gastos || gastos.length === 0) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Advertencia',
+                detail: 'No hay datos para exportar'
+            });
+            return;
+        }
+
+        // Crear CSV manualmente con BOM para UTF-8
+        const headers = ['Concepto', 'Categoría', 'Proveedor', 'Fecha', 'Importe', 'Descripción'];
+        const csvData = gastos.map(g => [
+            g.conceptoNombre,
+            g.categoriaNombre || '',
+            g.proveedorNombre || '',
+            g.fecha,
+            g.importe,
+            g.descripcion || ''
+        ]);
+
+        // Agregar BOM (Byte Order Mark) para UTF-8
+        let csv = '\uFEFF';
+        csv += headers.join(',') + '\n';
+        csvData.forEach(row => {
+            csv += row.map(field => `"${field}"`).join(',') + '\n';
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `gastos_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
     getCategorySeverity(categoria: string): "success" | "secondary" | "info" | "warn" | "danger" | "contrast" | undefined {

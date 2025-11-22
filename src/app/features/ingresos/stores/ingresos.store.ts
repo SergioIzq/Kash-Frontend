@@ -12,11 +12,14 @@ interface IngresosState {
     loading: boolean;
     error: string | null;
     totalIngresos: number;
+    totalRecords: number;
     filters: {
         fechaInicio: string;
         fechaFin: string;
         tipo: string;
         searchTerm: string;
+        sortColumn: string;
+        sortOrder: string;
     };
 }
 
@@ -26,11 +29,14 @@ const initialState: IngresosState = {
     loading: false,
     error: null,
     totalIngresos: 0,
+    totalRecords: 0,
     filters: {
         fechaInicio: '',
         fechaFin: '',
         tipo: '',
-        searchTerm: ''
+        searchTerm: '',
+        sortColumn: '',
+        sortOrder: ''
     }
 };
 
@@ -45,7 +51,7 @@ export const IngresosStore = signalStore(
     withComputed((store) => ({
         // Total calculado de ingresos
         total: computed(() =>
-            store.ingresos().reduce((sum, i) => sum + i.cantidad, 0)
+            store.ingresos().reduce((sum, i) => sum + i.importe, 0)
         ),
         
         // Cantidad de ingresos
@@ -59,8 +65,8 @@ export const IngresosStore = signalStore(
             if (!searchTerm) return ingresos;
             
             return ingresos.filter(i =>
-                i.concepto.toLowerCase().includes(searchTerm) ||
-                i.tipo?.toLowerCase().includes(searchTerm) ||
+                i.importe.toString().toLowerCase().includes(searchTerm) ||
+                i.categoriaNombre?.toLowerCase().includes(searchTerm) ||
                 i.descripcion?.toLowerCase().includes(searchTerm)
             );
         }),
@@ -71,11 +77,11 @@ export const IngresosStore = signalStore(
             const tipos: Record<string, { total: number; count: number }> = {};
             
             ingresos.forEach(ingreso => {
-                const tipo = ingreso.tipo || 'Sin tipo';
+                const tipo = ingreso.categoriaNombre || 'Sin tipo';
                 if (!tipos[tipo]) {
                     tipos[tipo] = { total: 0, count: 0 };
                 }
-                tipos[tipo].total += ingreso.cantidad;
+                tipos[tipo].total += ingreso.importe;
                 tipos[tipo].count++;
             });
             
@@ -93,7 +99,7 @@ export const IngresosStore = signalStore(
         promedioIngresos: computed(() => {
             const ingresos = store.ingresos();
             return ingresos.length > 0 
-                ? ingresos.reduce((sum, i) => sum + i.cantidad, 0) / ingresos.length
+                ? ingresos.reduce((sum, i) => sum + i.importe, 0) / ingresos.length
                 : 0;
         })
     })),
@@ -104,7 +110,7 @@ export const IngresosStore = signalStore(
             pipe(
                 tap(() => patchState(store, { loading: true, error: null })),
                 switchMap(() =>
-                    ingresoService.getIngresos().pipe(
+                    ingresoService.getAllIngresos().pipe(
                         tapResponse({
                             next: (ingresos) => {
                                 patchState(store, {
@@ -114,6 +120,44 @@ export const IngresosStore = signalStore(
                                 });
                             },
                             error: (error: any) => {
+                                patchState(store, {
+                                    loading: false,
+                                    error: error.userMessage || 'Error al cargar ingresos'
+                                });
+                            }
+                        })
+                    )
+                )
+            )
+        ),
+        
+        // Cargar ingresos con paginación, búsqueda y ordenamiento
+        loadIngresosPaginated: rxMethod<{ 
+            page: number; 
+            pageSize: number;
+            searchTerm?: string;
+            sortColumn?: string;
+            sortOrder?: string;
+        }>(
+            pipe(
+                tap(({ page, pageSize, searchTerm, sortColumn, sortOrder }) => {
+                    console.log('[STORE] Cargando:', { page, pageSize, searchTerm, sortColumn, sortOrder });
+                    patchState(store, { loading: true, error: null });
+                }),
+                switchMap(({ page, pageSize, searchTerm, sortColumn, sortOrder }) =>
+                    ingresoService.getIngresos(page, pageSize, searchTerm, sortColumn, sortOrder).pipe(
+                        tapResponse({
+                            next: (response) => {
+                                console.log('[STORE] Respuesta recibida:', response);
+                                patchState(store, {
+                                    ingresos: response.items,
+                                    totalRecords: response.totalCount,
+                                    loading: false,
+                                    error: null
+                                });
+                            },
+                            error: (error: any) => {
+                                console.error('[STORE] Error al cargar ingresos:', error);
                                 patchState(store, {
                                     loading: false,
                                     error: error.userMessage || 'Error al cargar ingresos'
@@ -177,7 +221,7 @@ export const IngresosStore = signalStore(
         ),
         
         // Actualizar ingreso
-        updateIngreso: rxMethod<{ id: number; ingreso: Partial<Ingreso> }>(
+        updateIngreso: rxMethod<{ id: string; ingreso: Partial<Ingreso> }>(
             pipe(
                 tap(() => patchState(store, { loading: true, error: null })),
                 switchMap(({ id, ingreso }) =>
@@ -202,7 +246,7 @@ export const IngresosStore = signalStore(
         ),
         
         // Eliminar ingreso
-        deleteIngreso: rxMethod<number>(
+        deleteIngreso: rxMethod<string>(
             pipe(
                 tap(() => patchState(store, { loading: true, error: null })),
                 switchMap((id) =>
@@ -252,12 +296,5 @@ export const IngresosStore = signalStore(
         clearError() {
             patchState(store, { error: null });
         }
-    })),
-    
-    withHooks({
-        onInit(store) {
-            // Cargar ingresos al inicializar
-            store.loadIngresos();
-        }
     })
-);
+));

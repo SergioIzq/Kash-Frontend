@@ -12,11 +12,14 @@ interface GastosState {
     loading: boolean;
     error: string | null;
     totalGastos: number;
+    totalRecords: number;
     filters: {
         fechaInicio: string;
         fechaFin: string;
         categoria: string;
         searchTerm: string;
+        sortColumn: string;
+        sortOrder: string;
     };
 }
 
@@ -26,11 +29,14 @@ const initialState: GastosState = {
     loading: false,
     error: null,
     totalGastos: 0,
+    totalRecords: 0,
     filters: {
         fechaInicio: '',
         fechaFin: '',
         categoria: '',
-        searchTerm: ''
+        searchTerm: '',
+        sortColumn: '',
+        sortOrder: ''
     }
 };
 
@@ -119,6 +125,44 @@ export const GastosStore = signalStore(
                                 });
                             },
                             error: (error: any) => {
+                                patchState(store, {
+                                    loading: false,
+                                    error: error.userMessage || 'Error al cargar gastos'
+                                });
+                            }
+                        })
+                    )
+                )
+            )
+        ),
+        
+        // Cargar gastos con paginación, búsqueda y ordenamiento
+        loadGastosPaginated: rxMethod<{ 
+            page: number; 
+            pageSize: number;
+            searchTerm?: string;
+            sortColumn?: string;
+            sortOrder?: string;
+        }>(
+            pipe(
+                tap(({ page, pageSize, searchTerm, sortColumn, sortOrder }) => {
+                    console.log('[STORE] Cargando:', { page, pageSize, searchTerm, sortColumn, sortOrder });
+                    patchState(store, { loading: true, error: null });
+                }),
+                switchMap(({ page, pageSize, searchTerm, sortColumn, sortOrder }) =>
+                    gastoService.getGastos(page, pageSize, searchTerm, sortColumn, sortOrder).pipe(
+                        tapResponse({
+                            next: (response) => {
+                                console.log('[STORE] Respuesta recibida:', response);
+                                patchState(store, {
+                                    gastos: response.items,
+                                    totalRecords: response.totalCount,
+                                    loading: false,
+                                    error: null
+                                });
+                            },
+                            error: (error: any) => {
+                                console.error('[STORE] Error al cargar gastos:', error);
                                 patchState(store, {
                                     loading: false,
                                     error: error.userMessage || 'Error al cargar gastos'
@@ -258,11 +302,5 @@ export const GastosStore = signalStore(
             patchState(store, { error: null });
         }
     })),
-    
-    withHooks({
-        onInit(store) {
-            // Cargar gastos al inicializar
-            store.loadGastos();
-        }
-    })
+
 );
