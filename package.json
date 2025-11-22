@@ -19,6 +19,8 @@
         "@angular/platform-browser": "^20",
         "@angular/platform-browser-dynamic": "^20",
         "@angular/router": "^20",
+        "@ngrx/operators": "^20.1.0",
+        "@ngrx/signals": "^20.1.0",
         "@primeuix/themes": "^1.2.1",
         "@tailwindcss/postcss": "^4.1.11",
         "chart.js": "4.4.2",

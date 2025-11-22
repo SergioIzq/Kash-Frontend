@@ -1,0 +1,134 @@
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { shareReplay, map } from 'rxjs/operators';
+import { environment } from '../../../../environments/environment';
+import { Gasto, ResumenGastos, GastoCreate, PaginatedResponse } from '../../models';
+
+@Injectable({
+    providedIn: 'root'
+})
+export class GastoService {
+    private readonly http = inject(HttpClient);
+    private readonly apiUrl = `${environment.apiUrl}/api/gastos`;
+    
+    // Cache para resumen
+    private resumenCache$?: Observable<ResumenGastos>;
+
+    /**
+     * Obtener todos los gastos con paginación
+     */
+    getGastos(page: number = 1, pageSize: number = 10): Observable<PaginatedResponse<Gasto>> {
+        const params = new HttpParams()
+            .set('page', page.toString())
+            .set('pageSize', pageSize.toString());
+        
+        return this.http.get<PaginatedResponse<Gasto>>(this.apiUrl, { params }).pipe(
+            shareReplay({ bufferSize: 1, refCount: true })
+        );
+    }
+
+    /**
+     * Obtener todos los gastos sin paginación (para compatibilidad)
+     */
+    getAllGastos(): Observable<Gasto[]> {
+        return this.http.get<PaginatedResponse<Gasto>>(this.apiUrl, {
+            params: new HttpParams().set('pageSize', '1000')
+        }).pipe(
+            map(response => response.items),
+            shareReplay({ bufferSize: 1, refCount: true })
+        );
+    }
+
+    /**
+     * Obtener gastos por período
+     */
+    getGastosPorPeriodo(fechaInicio: string, fechaFin: string): Observable<Gasto[]> {
+        const params = new HttpParams()
+            .set('fechaInicio', fechaInicio)
+            .set('fechaFin', fechaFin)
+            .set('pageSize', '1000');
+        
+        return this.http.get<PaginatedResponse<Gasto>>(`${this.apiUrl}/periodo`, { params }).pipe(
+            map(response => response.items),
+            shareReplay({ bufferSize: 1, refCount: true })
+        );
+    }
+
+    /**
+     * Obtener resumen de gastos con cache
+     */
+    getResumen(fechaInicio?: string, fechaFin?: string): Observable<ResumenGastos> {
+        let params = new HttpParams();
+        if (fechaInicio) params = params.set('fechaInicio', fechaInicio);
+        if (fechaFin) params = params.set('fechaFin', fechaFin);
+        
+        // Usar cache solo si no hay parámetros de fecha
+        if (!fechaInicio && !fechaFin && this.resumenCache$) {
+            return this.resumenCache$;
+        }
+        
+        this.resumenCache$ = this.http.get<ResumenGastos>(`${this.apiUrl}/resumen`, { params }).pipe(
+            shareReplay({ bufferSize: 1, refCount: true })
+        );
+        
+        return this.resumenCache$;
+    }
+
+    /**
+     * Alias para mantener compatibilidad
+     */
+    getResumenGastos(fechaInicio: string, fechaFin: string): Observable<ResumenGastos> {
+        return this.getResumen(fechaInicio, fechaFin);
+    }
+
+    /**
+     * Obtener gasto por ID
+     */
+    getById(id: string): Observable<Gasto> {
+        return this.http.get<Gasto>(`${this.apiUrl}/${id}`);
+    }
+
+    /**
+     * Crear gasto
+     */
+    create(gasto: GastoCreate): Observable<Gasto> {
+        return this.http.post<Gasto>(this.apiUrl, gasto).pipe(
+            map(response => {
+                this.invalidateCache();
+                return response;
+            })
+        );
+    }
+
+    /**
+     * Actualizar gasto
+     */
+    update(id: string, gasto: Partial<Gasto>): Observable<Gasto> {
+        return this.http.put<Gasto>(`${this.apiUrl}/${id}`, gasto).pipe(
+            map(response => {
+                this.invalidateCache();
+                return response;
+            })
+        );
+    }
+
+    /**
+     * Eliminar gasto
+     */
+    delete(id: string): Observable<void> {
+        return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
+            map(response => {
+                this.invalidateCache();
+                return response;
+            })
+        );
+    }
+
+    /**
+     * Invalidar cache
+     */
+    private invalidateCache(): void {
+        this.resumenCache$ = undefined;
+    }
+}

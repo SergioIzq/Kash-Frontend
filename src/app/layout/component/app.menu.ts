@@ -27,34 +27,18 @@ export class AppMenu {
                 ]
             },
             {
-                label: 'Páginas',
-                icon: 'pi pi-fw pi-briefcase',
+                label: 'Finanzas',
+                icon: 'pi pi-fw pi-wallet',
                 items: [
                     {
-                        label: 'Auth',
-                        icon: 'pi pi-fw pi-user',
-                        items: [
-                            {
-                                label: 'Login',
-                                icon: 'pi pi-fw pi-sign-in',
-                                routerLink: ['/auth/login']
-                            },
-                            {
-                                label: 'Error',
-                                icon: 'pi pi-fw pi-times-circle',
-                                routerLink: ['/auth/error']
-                            },
-                            {
-                                label: 'Access Denied',
-                                icon: 'pi pi-fw pi-lock',
-                                routerLink: ['/auth/access']
-                            }
-                        ]
+                        label: 'Gastos',
+                        icon: 'pi pi-fw pi-arrow-down',
+                        routerLink: ['/gastos']
                     },
                     {
-                        label: 'Not Found',
-                        icon: 'pi pi-fw pi-exclamation-circle',
-                        routerLink: ['/notfound']
+                        label: 'Ingresos',
+                        icon: 'pi pi-fw pi-arrow-up',
+                        routerLink: ['/ingresos']
                     }
                 ]
             }
