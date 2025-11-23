@@ -3,7 +3,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { shareReplay, map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
-import { Gasto, ResumenGastos, GastoCreate, PaginatedResponse } from '../../models';
+import { Gasto, ResumenGastos, GastoCreate } from '../../models';
+import { ApiResponse, PaginatedResponse } from '@/core/models/common.model';
 
 @Injectable({
     providedIn: 'root'
@@ -39,18 +40,19 @@ export class GastoService {
             params = params.set('sortOrder', sortOrder);
         }
         
-        // No usar shareReplay para paginación, cada petición debe ser única
-        return this.http.get<PaginatedResponse<Gasto>>(`${this.apiUrl}/paginated`, { params });
+        // API devuelve ApiResponse<PaginatedResponse<Gasto>>, extraer data
+        return this.http.get<ApiResponse<PaginatedResponse<Gasto>>>(`${this.apiUrl}/paginated`, { params })
+            .pipe(map(response => response.data));
     }
 
     /**
      * Obtener todos los gastos sin paginación (para compatibilidad)
      */
     getAllGastos(): Observable<Gasto[]> {
-        return this.http.get<PaginatedResponse<Gasto>>(this.apiUrl, {
+        return this.http.get<ApiResponse<PaginatedResponse<Gasto>>>(this.apiUrl, {
             params: new HttpParams().set('pageSize', '1000')
         }).pipe(
-            map(response => response.items),
+            map(response => response.data.items),
             shareReplay({ bufferSize: 1, refCount: true })
         );
     }
@@ -64,8 +66,8 @@ export class GastoService {
             .set('fechaFin', fechaFin)
             .set('pageSize', '1000');
         
-        return this.http.get<PaginatedResponse<Gasto>>(`${this.apiUrl}/periodo`, { params }).pipe(
-            map(response => response.items),
+        return this.http.get<ApiResponse<PaginatedResponse<Gasto>>>(`${this.apiUrl}/periodo`, { params }).pipe(
+            map(response => response.data.items),
             shareReplay({ bufferSize: 1, refCount: true })
         );
     }
@@ -101,17 +103,18 @@ export class GastoService {
      * Obtener gasto por ID
      */
     getById(id: string): Observable<Gasto> {
-        return this.http.get<Gasto>(`${this.apiUrl}/${id}`);
+        return this.http.get<ApiResponse<Gasto>>(`${this.apiUrl}/${id}`)
+            .pipe(map(response => response.data));
     }
 
     /**
      * Crear gasto
      */
     create(gasto: GastoCreate): Observable<Gasto> {
-        return this.http.post<Gasto>(this.apiUrl, gasto).pipe(
+        return this.http.post<ApiResponse<Gasto>>(this.apiUrl, gasto).pipe(
             map(response => {
                 this.invalidateCache();
-                return response;
+                return response.data;
             })
         );
     }
@@ -120,10 +123,10 @@ export class GastoService {
      * Actualizar gasto
      */
     update(id: string, gasto: Partial<Gasto>): Observable<Gasto> {
-        return this.http.put<Gasto>(`${this.apiUrl}/${id}`, gasto).pipe(
+        return this.http.put<ApiResponse<Gasto>>(`${this.apiUrl}/${id}`, gasto).pipe(
             map(response => {
                 this.invalidateCache();
-                return response;
+                return response.data;
             })
         );
     }
@@ -132,10 +135,10 @@ export class GastoService {
      * Eliminar gasto
      */
     delete(id: string): Observable<void> {
-        return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
+        return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${id}`).pipe(
             map(response => {
                 this.invalidateCache();
-                return response;
+                return response.data;
             })
         );
     }

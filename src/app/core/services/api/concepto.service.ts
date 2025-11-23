@@ -1,0 +1,48 @@
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { environment } from '../../../../environments/environment';
+import { ApiResponse, ListResponse } from '@/core/models/common.model';
+
+export interface ConceptoItem {
+    id: string;
+    nombre: string;
+}
+
+@Injectable({
+    providedIn: 'root'
+})
+export class ConceptoService {
+    private http = inject(HttpClient);
+    private apiUrl = `${environment.apiUrl}/api/conceptos`;
+
+    /**
+     * Búsqueda ligera de conceptos por nombre
+     * Solo devuelve {id, nombre} para rendimiento óptimo
+     */
+    search(search: string, limit: number = 10): Observable<ConceptoItem[]> {
+        let params = new HttpParams().set('search', search).set('limit', limit.toString());
+
+        return this.http.get<ApiResponse<ListResponse<ConceptoItem>>>(`${this.apiUrl}/search`, { params })
+            .pipe(map(response => response.data.items));
+    }
+
+    /**
+     * Obtener los conceptos más usados recientemente
+     */
+    getRecent(limit: number = 5): Observable<ConceptoItem[]> {
+        let params = new HttpParams().set('limit', limit.toString());
+
+        return this.http.get<ApiResponse<ListResponse<ConceptoItem>>>(`${this.apiUrl}/recent`, { params })
+            .pipe(map(response => response.data.items));
+    }
+
+    /**
+     * Crear un nuevo concepto
+     */
+    create(nombre: string, tipo: 'GASTO' | 'INGRESO'): Observable<ConceptoItem> {
+        return this.http.post<ApiResponse<ConceptoItem>>(this.apiUrl, { nombre, tipo })
+            .pipe(map(response => response.data));
+    }
+}

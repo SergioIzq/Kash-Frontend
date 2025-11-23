@@ -3,7 +3,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { shareReplay, map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
-import { Ingreso, ResumenIngresos, IngresoCreate, PaginatedResponseIngreso } from '../../models';
+import { Ingreso, ResumenIngresos, IngresoCreate } from '../../models';
+import { ApiResponse, PaginatedResponse } from '@/core/models/common.model';
 
 @Injectable({
     providedIn: 'root'
@@ -24,7 +25,7 @@ export class IngresoService {
         searchTerm?: string,
         sortColumn?: string,
         sortOrder?: string
-    ): Observable<PaginatedResponseIngreso<Ingreso>> {
+    ): Observable<PaginatedResponse<Ingreso>> {
         let params = new HttpParams()
             .set('page', page.toString())
             .set('pageSize', pageSize.toString());
@@ -39,18 +40,19 @@ export class IngresoService {
             params = params.set('sortOrder', sortOrder);
         }
         
-        // No usar shareReplay para paginación, cada petición debe ser única
-        return this.http.get<PaginatedResponseIngreso<Ingreso>>(this.apiUrl, { params });
+        // API devuelve ApiResponse<PaginatedResponse<Ingreso>>, extraer data
+        return this.http.get<ApiResponse<PaginatedResponse<Ingreso>>>(`${this.apiUrl}/paginated`, { params })
+            .pipe(map(response => response.data));
     }
 
     /**
      * Obtener todos los ingresos sin paginación (para compatibilidad)
      */
     getAllIngresos(): Observable<Ingreso[]> {
-        return this.http.get<PaginatedResponseIngreso<Ingreso>>(this.apiUrl, {
+        return this.http.get<ApiResponse<PaginatedResponse<Ingreso>>>(this.apiUrl, {
             params: new HttpParams().set('pageSize', '1000')
         }).pipe(
-            map(response => response.items),
+            map(response => response.data.items),
             shareReplay({ bufferSize: 1, refCount: true })
         );
     }
@@ -64,8 +66,8 @@ export class IngresoService {
             .set('fechaFin', fechaFin)
             .set('pageSize', '1000');
         
-        return this.http.get<PaginatedResponseIngreso<Ingreso>>(`${this.apiUrl}/periodo`, { params }).pipe(
-            map(response => response.items),
+        return this.http.get<ApiResponse<PaginatedResponse<Ingreso>>>(`${this.apiUrl}/periodo`, { params }).pipe(
+            map(response => response.data.items),
             shareReplay({ bufferSize: 1, refCount: true })
         );
     }
@@ -101,17 +103,18 @@ export class IngresoService {
      * Obtener ingreso por ID
      */
     getById(id: number): Observable<Ingreso> {
-        return this.http.get<Ingreso>(`${this.apiUrl}/${id}`);
+        return this.http.get<ApiResponse<Ingreso>>(`${this.apiUrl}/${id}`)
+            .pipe(map(response => response.data));
     }
 
     /**
      * Crear ingreso
      */
     create(ingreso: IngresoCreate): Observable<Ingreso> {
-        return this.http.post<Ingreso>(this.apiUrl, ingreso).pipe(
+        return this.http.post<ApiResponse<Ingreso>>(this.apiUrl, ingreso).pipe(
             map(response => {
                 this.invalidateCache();
-                return response;
+                return response.data;
             })
         );
     }
@@ -120,10 +123,10 @@ export class IngresoService {
      * Actualizar ingreso
      */
     update(id: string, ingreso: Partial<Ingreso>): Observable<Ingreso> {
-        return this.http.put<Ingreso>(`${this.apiUrl}/${id}`, ingreso).pipe(
+        return this.http.put<ApiResponse<Ingreso>>(`${this.apiUrl}/${id}`, ingreso).pipe(
             map(response => {
                 this.invalidateCache();
-                return response;
+                return response.data;
             })
         );
     }
@@ -132,10 +135,10 @@ export class IngresoService {
      * Eliminar ingreso
      */
     delete(id: string): Observable<void> {
-        return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
+        return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${id}`).pipe(
             map(response => {
                 this.invalidateCache();
-                return response;
+                return response.data;
             })
         );
     }

@@ -22,3 +22,8 @@ export interface PaginatedResponse<T> {
     page: number;
     pageSize: number;
 }
+
+export interface ListResponse<T> {
+    items: T[];
+    count: number;
+}

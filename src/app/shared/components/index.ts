@@ -1,3 +1,2 @@
-// Componentes UI compartidos
-// export * from './ui/card/card.component';
-export * from './ui/loader/loader.component';
+export * from './base-page.component';
+export * from './base-page-template.component';

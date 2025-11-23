@@ -9,7 +9,6 @@ import { appRoutes } from './app.routes';
 import { authInterceptor } from './app/core/interceptors/auth.interceptor';
 import { errorInterceptor } from './app/core/interceptors/error.interceptor';
 import { loadingInterceptor } from './app/core/interceptors/loading.interceptor';
-import { cacheInterceptor } from './app/core/interceptors/cache.interceptor';
 
 export const appConfig: ApplicationConfig = {
     providers: [
@@ -24,7 +23,6 @@ export const appConfig: ApplicationConfig = {
             withInterceptors([
                 loadingInterceptor,
                 authInterceptor,
-                cacheInterceptor,
                 errorInterceptor
             ])
         ),

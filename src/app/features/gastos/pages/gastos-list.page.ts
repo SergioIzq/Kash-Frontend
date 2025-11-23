@@ -5,8 +5,6 @@ import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { DialogModule } from 'primeng/dialog';
-import { InputNumberModule } from 'primeng/inputnumber';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { Table, TableModule } from 'primeng/table';
@@ -14,13 +12,12 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { TagModule } from 'primeng/tag';
 import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
-import { RippleModule } from 'primeng/ripple';
-import { TextareaModule } from 'primeng/textarea';
-import { DatePickerModule } from 'primeng/datepicker';
 import { SkeletonModule } from 'primeng/skeleton';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { GastosStore } from '../stores/gastos.store';
-import { Gasto, GastoCreate } from '@/core/models';
+import { Gasto } from '@/core/models';
+import { GastoFormModalComponent } from '../components/gasto-form-modal.component';
+import { BasePageComponent } from '@/shared/components';
 
 @Component({
     selector: 'app-gastos-list-page',
@@ -30,8 +27,6 @@ import { Gasto, GastoCreate } from '@/core/models';
         FormsModule,
         ButtonModule,
         InputTextModule,
-        DialogModule,
-        InputNumberModule,
         ToastModule,
         ConfirmDialogModule,
         TableModule,
@@ -39,10 +34,8 @@ import { Gasto, GastoCreate } from '@/core/models';
         TagModule,
         InputIconModule,
         IconFieldModule,
-        RippleModule,
-        TextareaModule,
-        DatePickerModule,
-        SkeletonModule
+        SkeletonModule,
+        GastoFormModalComponent
     ],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -213,109 +206,28 @@ import { Gasto, GastoCreate } from '@/core/models';
                     </ng-template>
                 </p-table>
 
-                <p-dialog 
-                    [(visible)]="gastoDialog" 
-                    [style]="{ width: '550px' }" 
-                    header="Detalles del Gasto" 
-                    [modal]="true"
-                    [contentStyle]="{ padding: '2rem' }"
-                    styleClass="p-fluid">
-                    <ng-template #content>
-                        <div class="flex flex-col gap-6">
-                            <div>
-                                <label for="conceptoNombre" class="block font-bold mb-3">Concepto</label>
-                                <input 
-                                    type="text" 
-                                    pInputText 
-                                    id="conceptoNombre" 
-                                    [(ngModel)]="currentGasto.conceptoNombre" 
-                                    required 
-                                    autofocus 
-                                    fluid />
-                                <small class="text-red-500" *ngIf="submitted && !currentGasto.conceptoNombre">
-                                    El concepto es requerido.
-                                </small>
-                            </div>
-
-                            <div>
-                                <label for="importe" class="block font-bold mb-3">Importe</label>
-                                <p-inputnumber 
-                                    id="importe" 
-                                    [(ngModel)]="currentGasto.importe" 
-                                    mode="currency" 
-                                    currency="EUR" 
-                                    locale="es-ES"
-                                    [min]="0"
-                                    fluid />
-                                <small class="text-red-500" *ngIf="submitted && !currentGasto.importe">
-                                    El importe es requerido.
-                                </small>
-                            </div>
-
-                            <div>
-                                <label for="fecha" class="block font-bold mb-3">Fecha</label>
-                                <p-datepicker 
-                                    [(ngModel)]="currentGasto.fecha" 
-                                    dateFormat="dd/mm/yy"
-                                    iconDisplay="input"
-                                    fluid />
-                            </div>
-
-                            <div>
-                                <label for="categoriaNombre" class="block font-bold mb-3">Categoría</label>
-                                <input 
-                                    type="text" 
-                                    pInputText 
-                                    id="categoriaNombre" 
-                                    [(ngModel)]="currentGasto.categoriaNombre" 
-                                    fluid />
-                            </div>
-
-                            <div>
-                                <label for="proveedorNombre" class="block font-bold mb-3">Proveedor</label>
-                                <input 
-                                    type="text" 
-                                    pInputText 
-                                    id="proveedorNombre" 
-                                    [(ngModel)]="currentGasto.proveedorNombre" 
-                                    fluid />
-                            </div>
-
-                            <div>
-                                <label for="descripcion" class="block font-bold mb-3">Descripción</label>
-                                <textarea 
-                                    id="descripcion" 
-                                    pTextarea 
-                                    [(ngModel)]="currentGasto.descripcion" 
-                                    rows="3" 
-                                    fluid>
-                                </textarea>
-                            </div>
-                        </div>
-                    </ng-template>
-
-                    <ng-template #footer>
-                        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideDialog()" />
-                        <p-button label="Guardar" icon="pi pi-check" (click)="saveGasto()" />
-                    </ng-template>
-                </p-dialog>
+                <!-- Nuevo componente de formulario modal con autocomplete -->
+                <app-gasto-form-modal
+                    [visible]="gastoDialog"
+                    [gasto]="currentGasto"
+                    (visibleChange)="gastoDialog = $event"
+                    (save)="onSaveGasto($event)"
+                    (cancel)="hideDialog()"
+                />
 
                 <p-confirmdialog [style]="{ width: '450px' }" />
             </div>
         </div>
     `
 })
-export class GastosListPage implements OnDestroy {
+export class GastosListPage extends BasePageComponent implements OnDestroy {
     gastosStore = inject(GastosStore);
-    private messageService = inject(MessageService);
-    private confirmationService = inject(ConfirmationService);
 
     @ViewChild('dt') dt!: Table;
 
     gastoDialog: boolean = false;
     selectedGastos: Gasto[] = [];
     currentGasto: Partial<Gasto> = {};
-    submitted: boolean = false;
     
     pageSize: number = 10;
     pageNumber: number = 1;
@@ -327,6 +239,7 @@ export class GastosListPage implements OnDestroy {
     private searchSubject = new Subject<string>();
     
     constructor() {
+        super();
         // Configurar búsqueda con debounce de 500ms
         this.searchSubject.pipe(
             debounceTime(500),
@@ -384,19 +297,26 @@ export class GastosListPage implements OnDestroy {
     }
 
     openNew() {
-        this.currentGasto = {
-            conceptoNombre: '',
-            importe: 0,
-            fecha: new Date().toISOString().split('T')[0],
-            descripcion: ''
-        };
-        this.submitted = false;
+        this.currentGasto = {};
         this.gastoDialog = true;
     }
 
     hideDialog() {
         this.gastoDialog = false;
-        this.submitted = false;
+        this.currentGasto = {};
+    }
+
+    onSaveGasto(gasto: Partial<Gasto>) {
+        if (gasto.id) {
+            // Actualizar gasto existente
+            this.gastosStore.updateGasto({ id: gasto.id, gasto });
+            this.showSuccess('Gasto actualizado correctamente');
+        } else {
+            this.showInfo('La creación de gastos estará disponible cuando se conecten los endpoints de catálogos', 'Próximamente');
+        }
+        
+        this.gastoDialog = false;
+        this.currentGasto = {};
     }
 
     editGasto(gasto: Gasto) {
@@ -405,118 +325,43 @@ export class GastosListPage implements OnDestroy {
     }
 
     deleteGasto(gasto: Gasto) {
-        this.confirmationService.confirm({
-            message: `¿Estás seguro de eliminar el gasto "${gasto.conceptoNombre}"?`,
-            header: 'Confirmar eliminación',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Sí, eliminar',
-            rejectLabel: 'Cancelar',
-            acceptButtonStyleClass: 'p-button-danger',
-            accept: () => {
+        this.confirmAction(
+            `¿Estás seguro de eliminar el gasto "${gasto.conceptoNombre}"?`,
+            () => {
                 this.gastosStore.deleteGasto(gasto.id);
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Éxito',
-                    detail: 'Gasto eliminado correctamente',
-                    life: 3000
-                });
+            },
+            {
+                header: 'Confirmar eliminación',
+                acceptLabel: 'Sí, eliminar',
+                rejectLabel: 'Cancelar',
+                successMessage: 'Gasto eliminado correctamente'
             }
-        });
+        );
     }
 
     deleteSelectedGastos() {
-        this.confirmationService.confirm({
-            message: '¿Estás seguro de eliminar los gastos seleccionados?',
-            header: 'Confirmar',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Sí, eliminar',
-            rejectLabel: 'Cancelar',
-            acceptButtonStyleClass: 'p-button-danger',
-            accept: () => {
+        this.confirmAction(
+            '¿Estás seguro de eliminar los gastos seleccionados?',
+            () => {
                 this.selectedGastos.forEach(gasto => {
                     this.gastosStore.deleteGasto(gasto.id);
                 });
                 this.selectedGastos = [];
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Éxito',
-                    detail: 'Gastos eliminados correctamente',
-                    life: 3000
-                });
+            },
+            {
+                header: 'Confirmar',
+                acceptLabel: 'Sí, eliminar',
+                rejectLabel: 'Cancelar',
+                successMessage: 'Gastos eliminados correctamente'
             }
-        });
-    }
-
-    saveGasto() {
-        this.submitted = true;
-
-        if (!this.currentGasto.conceptoNombre?.trim() || !this.currentGasto.importe) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Advertencia',
-                detail: 'Por favor complete los campos requeridos'
-            });
-            return;
-        }
-
-        if (this.currentGasto.id) {
-            // Actualizar gasto existente
-            const gastoUpdate: Partial<Gasto> = {
-                conceptoNombre: this.currentGasto.conceptoNombre,
-                importe: this.currentGasto.importe,
-                fecha: typeof this.currentGasto.fecha === 'string' 
-                    ? this.currentGasto.fecha 
-                    : new Date(this.currentGasto.fecha!).toISOString().split('T')[0],
-                descripcion: this.currentGasto.descripcion,
-                categoriaNombre: this.currentGasto.categoriaNombre,
-                proveedorNombre: this.currentGasto.proveedorNombre
-            };
-            
-            this.gastosStore.updateGasto({ id: this.currentGasto.id, gasto: gastoUpdate });
-            this.messageService.add({
-                severity: 'success',
-                summary: 'Éxito',
-                detail: 'Gasto actualizado correctamente',
-                life: 3000
-            });
-        } else {
-            // Crear nuevo gasto
-            const nuevoGasto: GastoCreate = {
-                importe: this.currentGasto.importe,
-                fecha: typeof this.currentGasto.fecha === 'string' 
-                    ? this.currentGasto.fecha 
-                    : new Date(this.currentGasto.fecha!).toISOString().split('T')[0],
-                descripcion: this.currentGasto.descripcion || '',
-                conceptoId: '', // TODO: Requerirá selección desde catálogo
-                categoriaId: '',
-                proveedorId: '',
-                personaId: '',
-                cuentaId: '',
-                formaPagoId: ''
-            };
-            
-            // Nota: Esto es temporal, requerirá implementación completa con catálogos
-            this.messageService.add({
-                severity: 'info',
-                summary: 'Info',
-                detail: 'La creación de gastos estará disponible una vez configurados los catálogos',
-                life: 3000
-            });
-        }
-
-        this.gastoDialog = false;
-        this.currentGasto = {};
+        );
     }
 
     exportCSV() {
         // En lazy mode, exportar los datos actuales del store
         const gastos = this.gastosStore.gastos();
         if (!gastos || gastos.length === 0) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Advertencia',
-                detail: 'No hay datos para exportar'
-            });
+            this.showWarning('No hay datos para exportar');
             return;
         }
 
@@ -550,20 +395,19 @@ export class GastosListPage implements OnDestroy {
     }
 
     getCategorySeverity(categoria: string): "success" | "secondary" | "info" | "warn" | "danger" | "contrast" | undefined {
-        const categoryMap: Record<string, "success" | "secondary" | "info" | "warn" | "danger" | "contrast"> = {
-            'Alimentación': 'success',
-            'Transporte': 'info',
-            'Vivienda': 'warn',
-            'Salud': 'danger',
-            'Entretenimiento': 'secondary',
-            'Educación': 'info',
-            'Ropa': 'success',
-            'Tecnología': 'contrast',
-            'Servicios': 'warn',
-            'Otros': 'secondary'
-        };
+        if (!categoria) return 'secondary';
         
-        return categoryMap[categoria] || 'secondary';
+        // Generar un hash simple del nombre de categoría para asignar color consistente
+        const severities: Array<"success" | "info" | "warn" | "contrast" | "secondary"> = 
+            ['success', 'info', 'warn', 'contrast', 'secondary'];
+        
+        let hash = 0;
+        for (let i = 0; i < categoria.length; i++) {
+            hash = categoria.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        
+        const index = Math.abs(hash) % severities.length;
+        return severities[index];
     }
 
     selectGasto(gasto: Gasto) {

@@ -5,8 +5,6 @@ import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { DialogModule } from 'primeng/dialog';
-import { InputNumberModule } from 'primeng/inputnumber';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { Table, TableModule } from 'primeng/table';
@@ -14,13 +12,12 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { TagModule } from 'primeng/tag';
 import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
-import { RippleModule } from 'primeng/ripple';
-import { TextareaModule } from 'primeng/textarea';
-import { DatePickerModule } from 'primeng/datepicker';
 import { SkeletonModule } from 'primeng/skeleton';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { IngresosStore } from '../stores/ingresos.store';
-import { Ingreso, IngresoCreate } from '@/core/models';
+import { Ingreso } from '@/core/models';
+import { IngresoFormModalComponent } from '../components/ingreso-form-modal.component';
+import { BasePageComponent } from '@/shared/components';
 
 @Component({
     selector: 'app-ingresos-list-page',
@@ -30,8 +27,6 @@ import { Ingreso, IngresoCreate } from '@/core/models';
         FormsModule,
         ButtonModule,
         InputTextModule,
-        DialogModule,
-        InputNumberModule,
         ToastModule,
         ConfirmDialogModule,
         TableModule,
@@ -39,10 +34,8 @@ import { Ingreso, IngresoCreate } from '@/core/models';
         TagModule,
         InputIconModule,
         IconFieldModule,
-        RippleModule,
-        TextareaModule,
-        DatePickerModule,
-        SkeletonModule
+        SkeletonModule,
+        IngresoFormModalComponent
     ],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -213,109 +206,28 @@ import { Ingreso, IngresoCreate } from '@/core/models';
                     </ng-template>
                 </p-table>
 
-                <p-dialog 
-                    [(visible)]="ingresoDialog" 
-                    [style]="{ width: '550px' }" 
-                    header="Detalles del Ingreso" 
-                    [modal]="true"
-                    [contentStyle]="{ padding: '2rem' }"
-                    styleClass="p-fluid">
-                    <ng-template #content>
-                        <div class="flex flex-col gap-6">
-                            <div>
-                                <label for="concepto" class="block font-bold mb-3">Concepto</label>
-                                <input 
-                                    type="text" 
-                                    pInputText 
-                                    id="concepto" 
-                                    [(ngModel)]="currentIngreso.conceptoNombre" 
-                                    required 
-                                    autofocus 
-                                    fluid />
-                                <small class="text-red-500" *ngIf="submitted && !currentIngreso.conceptoNombre">
-                                    El concepto es requerido.
-                                </small>
-                            </div>
-
-                            <div>
-                                <label for="importe" class="block font-bold mb-3">Importe</label>
-                                <p-inputnumber 
-                                    id="importe" 
-                                    [(ngModel)]="currentIngreso.importe" 
-                                    mode="currency" 
-                                    currency="EUR" 
-                                    locale="es-ES"
-                                    [min]="0"
-                                    fluid />
-                                <small class="text-red-500" *ngIf="submitted && !currentIngreso.importe">
-                                    El importe es requerido.
-                                </small>
-                            </div>
-
-                            <div>
-                                <label for="fecha" class="block font-bold mb-3">Fecha</label>
-                                <p-datepicker 
-                                    [(ngModel)]="currentIngreso.fecha" 
-                                    dateFormat="dd/mm/yy"
-                                    iconDisplay="input"
-                                    fluid />
-                            </div>
-
-                            <div>
-                                <label for="categoriaNombre" class="block font-bold mb-3">Categoría</label>
-                                <input 
-                                    type="text" 
-                                    pInputText 
-                                    id="categoriaNombre" 
-                                    [(ngModel)]="currentIngreso.categoriaNombre" 
-                                    fluid />
-                            </div>
-
-                            <div>
-                                <label for="clienteNombre" class="block font-bold mb-3">Cliente</label>
-                                <input 
-                                    type="text" 
-                                    pInputText 
-                                    id="clienteNombre" 
-                                    [(ngModel)]="currentIngreso.clienteNombre" 
-                                    fluid />
-                            </div>
-
-                            <div>
-                                <label for="descripcion" class="block font-bold mb-3">Descripción</label>
-                                <textarea 
-                                    id="descripcion" 
-                                    pTextarea 
-                                    [(ngModel)]="currentIngreso.descripcion" 
-                                    rows="3" 
-                                    fluid>
-                                </textarea>
-                            </div>
-                        </div>
-                    </ng-template>
-
-                    <ng-template #footer>
-                        <p-button label="Cancelar" icon="pi pi-times" text (click)="hideDialog()" />
-                        <p-button label="Guardar" icon="pi pi-check" (click)="saveIngreso()" />
-                    </ng-template>
-                </p-dialog>
+                <!-- Nuevo componente de formulario modal con autocomplete -->
+                <app-ingreso-form-modal
+                    [visible]="ingresoDialog"
+                    [ingreso]="currentIngreso"
+                    (visibleChange)="ingresoDialog = $event"
+                    (save)="onSaveIngreso($event)"
+                    (cancel)="hideDialog()"
+                />
 
                 <p-confirmdialog [style]="{ width: '450px' }" />
             </div>
         </div>
     `
 })
-export class IngresosListPage implements OnDestroy {
+export class IngresosListPage extends BasePageComponent implements OnDestroy {
     ingresosStore = inject(IngresosStore);
-    private messageService = inject(MessageService);
-    private confirmationService = inject(ConfirmationService);
 
     @ViewChild('dt') dt!: Table;
 
     ingresoDialog: boolean = false;
     selectedIngresos: Ingreso[] = [];
     currentIngreso: Partial<Ingreso> = {};
-    submitted: boolean = false;
     
     pageSize: number = 10;
     pageNumber: number = 1;
@@ -327,6 +239,7 @@ export class IngresosListPage implements OnDestroy {
     private searchSubject = new Subject<string>();
     
     constructor() {
+        super();
         // Configurar búsqueda con debounce de 500ms
         this.searchSubject.pipe(
             debounceTime(500),
@@ -393,21 +306,26 @@ export class IngresosListPage implements OnDestroy {
     }
 
     openNew() {
-        this.currentIngreso = {
-            conceptoNombre: '',
-            importe: 0,
-            fecha: new Date().toISOString().split('T')[0],
-            categoriaNombre: '',
-            clienteNombre: '',
-            descripcion: ''
-        };
-        this.submitted = false;
+        this.currentIngreso = {};
         this.ingresoDialog = true;
     }
 
     hideDialog() {
         this.ingresoDialog = false;
-        this.submitted = false;
+        this.currentIngreso = {};
+    }
+
+    onSaveIngreso(ingreso: Partial<Ingreso>) {
+        if (ingreso.id) {
+            // Actualizar ingreso existente
+            this.ingresosStore.updateIngreso({ id: ingreso.id, ingreso });
+            this.showSuccess('Ingreso actualizado correctamente');
+        } else {
+            this.showInfo('La creación de ingresos estará disponible cuando se conecten los endpoints de catálogos', 'Próximamente');
+        }
+        
+        this.ingresoDialog = false;
+        this.currentIngreso = {};
     }
 
     editIngreso(ingreso: Ingreso) {
@@ -416,92 +334,43 @@ export class IngresosListPage implements OnDestroy {
     }
 
     deleteIngreso(ingreso: Ingreso) {
-        this.confirmationService.confirm({
-            message: `¿Estás seguro de eliminar el ingreso "${ingreso.conceptoNombre}"?`,
-            header: 'Confirmar eliminación',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Sí, eliminar',
-            rejectLabel: 'Cancelar',
-            acceptButtonStyleClass: 'p-button-danger',
-            accept: () => {
+        this.confirmAction(
+            `¿Estás seguro de eliminar el ingreso "${ingreso.conceptoNombre}"?`,
+            () => {
                 this.ingresosStore.deleteIngreso(ingreso.id);
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Éxito',
-                    detail: 'Ingreso eliminado correctamente',
-                    life: 3000
-                });
+            },
+            {
+                header: 'Confirmar eliminación',
+                acceptLabel: 'Sí, eliminar',
+                rejectLabel: 'Cancelar',
+                successMessage: 'Ingreso eliminado correctamente'
             }
-        });
+        );
     }
 
     deleteSelectedIngresos() {
-        this.confirmationService.confirm({
-            message: '¿Estás seguro de eliminar los ingresos seleccionados?',
-            header: 'Confirmar',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Sí, eliminar',
-            rejectLabel: 'Cancelar',
-            acceptButtonStyleClass: 'p-button-danger',
-            accept: () => {
-                // Implementar eliminación múltiple
-                this.messageService.add({
-                    severity: 'info',
-                    summary: 'Info',
-                    detail: 'Función de eliminación múltiple pendiente',
-                    life: 3000
+        this.confirmAction(
+            '¿Estás seguro de eliminar los ingresos seleccionados?',
+            () => {
+                this.selectedIngresos.forEach(ingreso => {
+                    this.ingresosStore.deleteIngreso(ingreso.id);
                 });
+                this.selectedIngresos = [];
+            },
+            {
+                header: 'Confirmar',
+                acceptLabel: 'Sí, eliminar',
+                rejectLabel: 'Cancelar',
+                successMessage: 'Ingresos eliminados correctamente'
             }
-        });
-    }
-
-    saveIngreso() {
-        this.submitted = true;
-
-        if (!this.currentIngreso.conceptoNombre?.trim() || !this.currentIngreso.importe) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Advertencia',
-                detail: 'Por favor complete los campos requeridos'
-            });
-            return;
-        }
-
-        if (this.currentIngreso.id) {
-            // Actualizar ingreso existente
-            this.ingresosStore.updateIngreso({
-                id: this.currentIngreso.id,
-                ingreso: this.currentIngreso
-            });
-            this.messageService.add({
-                severity: 'success',
-                summary: 'Éxito',
-                detail: 'Ingreso actualizado correctamente',
-                life: 3000
-            });
-        } else {
-            // Crear nuevo ingreso - requiere catálogos configurados
-            this.messageService.add({
-                severity: 'info',
-                summary: 'Info',
-                detail: 'La creación de ingresos estará disponible una vez configurados los catálogos',
-                life: 3000
-            });
-        }
-
-        this.ingresoDialog = false;
-        this.currentIngreso = {};
+        );
     }
 
     exportCSV() {
         // En lazy mode, exportar los datos actuales del store
         const ingresos = this.ingresosStore.ingresos();
         if (!ingresos || ingresos.length === 0) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Advertencia',
-                detail: 'No hay datos para exportar'
-            });
+            this.showWarning('No hay datos para exportar');
             return;
         }
 
@@ -535,32 +404,18 @@ export class IngresosListPage implements OnDestroy {
     }
 
     getCategorySeverity(categoria: string): "success" | "secondary" | "info" | "warn" | "danger" | "contrast" | undefined {
-        const categoryMap: Record<string, "success" | "secondary" | "info" | "warn" | "danger" | "contrast"> = {
-            'Salario': 'success',
-            'Freelance': 'info',
-            'Inversión': 'warn',
-            'Bonificación': 'contrast',
-            'Venta': 'secondary',
-            'Alquiler': 'info',
-            'Intereses': 'warn',
-            'Honorarios': 'info',
-            'Comisiones': 'success'
-        };
+        if (!categoria) return 'secondary';
         
-        return categoryMap[categoria] || 'secondary';
-    }
-
-    getTipoSeverity(tipo: string | undefined): "success" | "secondary" | "info" | "warn" | "danger" | "contrast" | undefined {
-        const tipoMap: Record<string, "success" | "secondary" | "info" | "warn" | "danger" | "contrast"> = {
-            'Salario': 'success',
-            'Freelance': 'info',
-            'Inversión': 'warn',
-            'Bonificación': 'contrast',
-            'Venta': 'secondary',
-            'Alquiler': 'info',
-            'Intereses': 'warn'
-        };
+        // Generar un hash simple del nombre de categoría para asignar color consistente
+        const severities: Array<"success" | "info" | "warn" | "contrast" | "secondary"> = 
+            ['success', 'info', 'warn', 'contrast', 'secondary'];
         
-        return tipo ? (tipoMap[tipo] || 'secondary') : 'secondary';
+        let hash = 0;
+        for (let i = 0; i < categoria.length; i++) {
+            hash = categoria.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        
+        const index = Math.abs(hash) % severities.length;
+        return severities[index];
     }
 }

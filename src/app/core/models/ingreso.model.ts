@@ -18,15 +18,6 @@ export interface Ingreso {
     usuarioId: string;
 }
 
-export interface PaginatedResponseIngreso<T> {
-    items: T[];
-    page: number;
-    pageSize: number;
-    totalCount: number;
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
-}
-
 export interface ResumenIngresos {
     total: number;
     cantidad: number;

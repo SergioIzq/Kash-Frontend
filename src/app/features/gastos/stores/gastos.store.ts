@@ -156,7 +156,7 @@ export const GastosStore = signalStore(
                                 console.log('[STORE] Respuesta recibida:', response);
                                 patchState(store, {
                                     gastos: response.items,
-                                    totalRecords: response.totalCount,
+                                    totalRecords: response.total,
                                     loading: false,
                                     error: null
                                 });
