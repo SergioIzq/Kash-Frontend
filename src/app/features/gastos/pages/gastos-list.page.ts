@@ -17,7 +17,8 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { GastosStore } from '../stores/gastos.store';
 import { Gasto } from '@/core/models';
 import { GastoFormModalComponent } from '../components/gasto-form-modal.component';
-import { BasePageComponent } from '';
+import { BasePageComponent } from '@/shared/components';
+import { GastoService } from '@/core/services/api/gasto.service';
 
 @Component({
     selector: 'app-gastos-list-page',
@@ -62,6 +63,13 @@ import { BasePageComponent } from '';
                     </ng-template>
 
                     <ng-template #end>
+                        <p-button 
+                            icon="pi pi-refresh" 
+                            severity="secondary" 
+                            outlined
+                            (onClick)="refreshTable()" 
+                            pTooltip="Actualizar" 
+                            class="mr-2" />
                         <p-button 
                             label="Exportar" 
                             icon="pi pi-upload" 
@@ -222,6 +230,7 @@ import { BasePageComponent } from '';
 })
 export class GastosListPage extends BasePageComponent implements OnDestroy {
     gastosStore = inject(GastosStore);
+    private gastoService = inject(GastoService);
 
     @ViewChild('dt') dt!: Table;
 
@@ -272,6 +281,14 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
         });
     }
 
+    /**
+     * Refrescar la tabla manualmente
+     */
+    refreshTable() {
+        this.reloadGastos();
+        this.showInfo('Datos actualizados', 'Actualización');
+    }
+
     loadGastosLazy(event: any) {
         // Calcular página actual (PrimeNG usa first que es el índice del primer registro)
         this.pageNumber = Math.floor(event.first / event.rows) + 1;
@@ -306,17 +323,27 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
         this.currentGasto = {};
     }
 
-    onSaveGasto(gasto: Partial<Gasto>) {
+    async onSaveGasto(gasto: Partial<Gasto>) {
         if (gasto.id) {
             // Actualizar gasto existente
-            this.gastosStore.updateGasto({ id: gasto.id, gasto });
-            this.showSuccess('Gasto actualizado correctamente');
+            await this.executeWithFeedback(
+                this.gastoService.update(gasto.id, gasto),
+                {
+                    successMessage: 'Gasto actualizado correctamente',
+                    errorMessage: 'Error al actualizar el gasto',
+                    onSuccess: () => {
+                        this.gastoDialog = false;
+                        this.currentGasto = {};
+                        this.reloadGastos();
+                    }
+                }
+            );
         } else {
+            // TODO: Implementar creación cuando el backend esté listo
             this.showInfo('La creación de gastos estará disponible cuando se conecten los endpoints de catálogos', 'Próximamente');
+            this.gastoDialog = false;
+            this.currentGasto = {};
         }
-        
-        this.gastoDialog = false;
-        this.currentGasto = {};
     }
 
     editGasto(gasto: Gasto) {
@@ -327,14 +354,22 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
     deleteGasto(gasto: Gasto) {
         this.confirmAction(
             `¿Estás seguro de eliminar el gasto "${gasto.conceptoNombre}"?`,
-            () => {
-                this.gastosStore.deleteGasto(gasto.id);
+            async () => {
+                await this.executeWithFeedback(
+                    this.gastoService.delete(gasto.id),
+                    {
+                        successMessage: 'Gasto eliminado correctamente',
+                        errorMessage: 'Error al eliminar el gasto',
+                        onSuccess: () => {
+                            this.reloadGastos();
+                        }
+                    }
+                );
             },
             {
                 header: 'Confirmar eliminación',
                 acceptLabel: 'Sí, eliminar',
-                rejectLabel: 'Cancelar',
-                successMessage: 'Gasto eliminado correctamente'
+                rejectLabel: 'Cancelar'
             }
         );
     }
@@ -342,17 +377,27 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
     deleteSelectedGastos() {
         this.confirmAction(
             '¿Estás seguro de eliminar los gastos seleccionados?',
-            () => {
-                this.selectedGastos.forEach(gasto => {
-                    this.gastosStore.deleteGasto(gasto.id);
-                });
-                this.selectedGastos = [];
+            async () => {
+                const deletePromises = this.selectedGastos.map(gasto => 
+                    this.gastoService.delete(gasto.id).toPromise()
+                );
+                
+                await this.executeWithFeedback(
+                    Promise.all(deletePromises),
+                    {
+                        successMessage: 'Gastos eliminados correctamente',
+                        errorMessage: 'Error al eliminar algunos gastos',
+                        onSuccess: () => {
+                            this.selectedGastos = [];
+                            this.reloadGastos();
+                        }
+                    }
+                );
             },
             {
                 header: 'Confirmar',
                 acceptLabel: 'Sí, eliminar',
-                rejectLabel: 'Cancelar',
-                successMessage: 'Gastos eliminados correctamente'
+                rejectLabel: 'Cancelar'
             }
         );
     }

@@ -135,10 +135,11 @@ export class IngresoService {
      * Eliminar ingreso
      */
     delete(id: string): Observable<void> {
-        return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${id}`).pipe(
+        return this.http.delete<void>(`${this.apiUrl}/${id}`, { observe: 'response' }).pipe(
             map(response => {
                 this.invalidateCache();
-                return response.data;
+                // 204 No Content es éxito, no devuelve data
+                return undefined as void;
             })
         );
     }

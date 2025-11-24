@@ -18,6 +18,7 @@ import { IngresosStore } from '../stores/ingresos.store';
 import { Ingreso } from '@/core/models';
 import { IngresoFormModalComponent } from '../components/ingreso-form-modal.component';
 import { BasePageComponent } from '@/shared/components/base-page.component';
+import { IngresoService } from '@/core/services/api/ingreso.service';
 
 @Component({
     selector: 'app-ingresos-list-page',
@@ -62,6 +63,13 @@ import { BasePageComponent } from '@/shared/components/base-page.component';
                     </ng-template>
 
                     <ng-template #end>
+                        <p-button 
+                            icon="pi pi-refresh" 
+                            severity="secondary" 
+                            outlined
+                            (onClick)="refreshTable()" 
+                            pTooltip="Actualizar" 
+                            class="mr-2" />
                         <p-button 
                             label="Exportar" 
                             icon="pi pi-upload" 
@@ -222,6 +230,7 @@ import { BasePageComponent } from '@/shared/components/base-page.component';
 })
 export class IngresosListPage extends BasePageComponent implements OnDestroy {
     ingresosStore: InstanceType<typeof IngresosStore> = inject(IngresosStore);
+    private ingresoService = inject(IngresoService);
 
     @ViewChild('dt') dt!: Table;
 
@@ -272,6 +281,14 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
         });
     }
 
+    /**
+     * Refrescar la tabla manualmente
+     */
+    refreshTable() {
+        this.reloadIngresos();
+        this.showInfo('Datos actualizados', 'Actualización');
+    }
+
     loadIngresosLazy(event: any) {
         // Calcular página actual (PrimeNG usa first que es el índice del primer registro)
         this.pageNumber = Math.floor(event.first / event.rows) + 1;
@@ -315,17 +332,27 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
         this.currentIngreso = {};
     }
 
-    onSaveIngreso(ingreso: Partial<Ingreso>) {
+    async onSaveIngreso(ingreso: Partial<Ingreso>) {
         if (ingreso.id) {
             // Actualizar ingreso existente
-            this.ingresosStore.updateIngreso({ id: ingreso.id, ingreso });
-            this.showSuccess('Ingreso actualizado correctamente');
+            await this.executeWithFeedback(
+                this.ingresoService.update(ingreso.id, ingreso),
+                {
+                    successMessage: 'Ingreso actualizado correctamente',
+                    errorMessage: 'Error al actualizar el ingreso',
+                    onSuccess: () => {
+                        this.ingresoDialog = false;
+                        this.currentIngreso = {};
+                        this.reloadIngresos();
+                    }
+                }
+            );
         } else {
+            // TODO: Implementar creación cuando el backend esté listo
             this.showInfo('La creación de ingresos estará disponible cuando se conecten los endpoints de catálogos', 'Próximamente');
+            this.ingresoDialog = false;
+            this.currentIngreso = {};
         }
-        
-        this.ingresoDialog = false;
-        this.currentIngreso = {};
     }
 
     editIngreso(ingreso: Ingreso) {
@@ -336,14 +363,22 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
     deleteIngreso(ingreso: Ingreso) {
         this.confirmAction(
             `¿Estás seguro de eliminar el ingreso "${ingreso.conceptoNombre}"?`,
-            () => {
-                this.ingresosStore.deleteIngreso(ingreso.id);
+            async () => {
+                await this.executeWithFeedback(
+                    this.ingresoService.delete(ingreso.id),
+                    {
+                        successMessage: 'Ingreso eliminado correctamente',
+                        errorMessage: 'Error al eliminar el ingreso',
+                        onSuccess: () => {
+                            this.reloadIngresos();
+                        }
+                    }
+                );
             },
             {
                 header: 'Confirmar eliminación',
                 acceptLabel: 'Sí, eliminar',
-                rejectLabel: 'Cancelar',
-                successMessage: 'Ingreso eliminado correctamente'
+                rejectLabel: 'Cancelar'
             }
         );
     }
@@ -351,17 +386,27 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
     deleteSelectedIngresos() {
         this.confirmAction(
             '¿Estás seguro de eliminar los ingresos seleccionados?',
-            () => {
-                this.selectedIngresos.forEach(ingreso => {
-                    this.ingresosStore.deleteIngreso(ingreso.id);
-                });
-                this.selectedIngresos = [];
+            async () => {
+                const deletePromises = this.selectedIngresos.map(ingreso => 
+                    this.ingresoService.delete(ingreso.id).toPromise()
+                );
+                
+                await this.executeWithFeedback(
+                    Promise.all(deletePromises),
+                    {
+                        successMessage: 'Ingresos eliminados correctamente',
+                        errorMessage: 'Error al eliminar algunos ingresos',
+                        onSuccess: () => {
+                            this.selectedIngresos = [];
+                            this.reloadIngresos();
+                        }
+                    }
+                );
             },
             {
                 header: 'Confirmar',
                 acceptLabel: 'Sí, eliminar',
-                rejectLabel: 'Cancelar',
-                successMessage: 'Ingresos eliminados correctamente'
+                rejectLabel: 'Cancelar'
             }
         );
     }
