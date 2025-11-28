@@ -9,7 +9,7 @@ import { ApiResponse, ListResponse } from '../../models/common.model';
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = `${environment.apiUrl}/api/dashboard`;
+    private readonly apiUrl = `${environment.apiUrl}/dashboard`;
 
     getResumen(params?: {
         fechaInicio?: string;

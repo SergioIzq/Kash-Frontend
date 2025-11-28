@@ -11,7 +11,7 @@ import { ApiResponse, PaginatedResponse } from '@/core/models/common.model';
 })
 export class IngresoService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = `${environment.apiUrl}/api/ingresos`;
+    private readonly apiUrl = `${environment.apiUrl}/ingresos`;
     
     // Cache para resumen
     private resumenCache$?: Observable<ResumenIngresos>;

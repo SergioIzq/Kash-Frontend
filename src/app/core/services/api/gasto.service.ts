@@ -11,7 +11,7 @@ import { ApiResponse, PaginatedResponse } from '@/core/models/common.model';
 })
 export class GastoService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = `${environment.apiUrl}/api/gastos`;
+    private readonly apiUrl = `${environment.apiUrl}/gastos`;
     
     // Cache para resumen
     private resumenCache$?: Observable<ResumenGastos>;

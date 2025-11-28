@@ -10,15 +10,15 @@ import { AuthResponse, LoginCredentials, Usuario } from '../../models';
 })
 export class AuthService {
     private readonly http = inject(HttpClient);
-    private readonly apiUrl = `${environment.apiUrl}/api/auth`;
-    
+    private readonly apiUrl = `${environment.apiUrl}/auth`;
+
     private readonly TOKEN_KEY = 'auth_token';
     private readonly EXPIRES_KEY = 'token_expires_at';
     private readonly USER_KEY = 'user_data';
-    
+
     private currentUserSubject = new BehaviorSubject<Usuario | null>(this.getUserFromStorage());
     public currentUser$ = this.currentUserSubject.asObservable();
-    
+
     private isAuthenticatedSubject = new BehaviorSubject<boolean>(this.hasValidToken());
     public isAuthenticated$ = this.isAuthenticatedSubject.asObservable();
 
@@ -35,16 +35,31 @@ export class AuthService {
     login(credentials: LoginCredentials): Observable<AuthResponse> {
         console.log('AuthService - Enviando credenciales de login:', credentials);
         return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials, { withCredentials: true }).pipe(
-            tap(response => {
+            tap((response) => {
                 console.log('AuthService - Login exitoso:', response);
                 this.handleAuthSuccess(response);
             }),
-            catchError(error => {
+            catchError((error) => {
                 console.error('AuthService - Error en login:', error);
                 return this.handleAuthError(error);
             }),
             shareReplay(1)
         );
+    }
+
+    /**
+     * Registrar del usuario
+     */
+    register(payload: { correo: string; contrasena: string }) {
+        return this.http.post<void>(`${this.apiUrl}/register`, payload);
+    }
+
+    confirmEmail(token: string) {
+        return this.http.get<{ mensaje: string }>(`${this.apiUrl}/confirmar-correo?token=${token}`);
+    }
+
+    resendConfirmation(email: string) {
+        return this.http.post<void>(`${this.apiUrl}/resend-confirmation`, { correo: email });
     }
 
     /**
@@ -54,8 +69,6 @@ export class AuthService {
         this.clearAuthData();
         return of(undefined);
     }
-
-
 
     /**
      * Obtener usuario actual
@@ -79,8 +92,6 @@ export class AuthService {
         }
         return null;
     }
-
-
 
     /**
      * Verificar si el usuario está autenticado
@@ -149,7 +160,7 @@ export class AuthService {
     private hasValidToken(): boolean {
         const token = this.getAccessToken();
         if (!token) return false;
-        
+
         try {
             // Decodificar JWT para verificar expiración
             const payload = JSON.parse(atob(token.split('.')[1]));
@@ -159,8 +170,6 @@ export class AuthService {
             return false;
         }
     }
-
-
 
     /**
      * Limpiar datos de autenticación

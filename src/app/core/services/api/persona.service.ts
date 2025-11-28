@@ -15,7 +15,7 @@ export interface PersonaItem {
 })
 export class PersonaService {
     private http = inject(HttpClient);
-    private apiUrl = `${environment.apiUrl}/api/personas`;
+    private apiUrl = `${environment.apiUrl}/personas`;
 
     /**
      * Búsqueda ligera de personas por nombre

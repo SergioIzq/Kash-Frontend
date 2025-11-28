@@ -5,7 +5,8 @@ import { pipe, switchMap, tap } from 'rxjs';
 import { tapResponse } from '@ngrx/operators';
 import { inject } from '@angular/core';
 import { AuthService } from '@/core/services/api/auth.service';
-import { Usuario } from '../models';
+import { LoginCredentials, Usuario } from '../models';
+import { ErrorResponse } from '../models/error-response.model';
 
 interface AuthState {
     user: Usuario | null;
@@ -28,7 +29,7 @@ const initialState: AuthState = {
 export const AuthStore = signalStore(
     { providedIn: 'root' },
     withState(initialState),
-    
+
     withComputed((store) => ({
         isLoggedIn: computed(() => store.isAuthenticated() && store.user() !== null),
         userName: computed(() => {
@@ -43,17 +44,17 @@ export const AuthStore = signalStore(
             return `${firstInitial}${lastInitial}`.toUpperCase();
         })
     })),
-    
+
     withMethods((store, authService = inject(AuthService)) => ({
         // Login reactivo
-        login: rxMethod<{ email: string; password: string }>(
+        login: rxMethod<LoginCredentials>(
             pipe(
                 tap(() => patchState(store, { loading: true, error: null })),
                 switchMap((credentials) => {
                     // Convertir a PascalCase para el backend C#
                     const loginCredentials = {
-                        correo: credentials.email,
-                        contrasena: credentials.password
+                        correo: credentials.correo,
+                        contrasena: credentials.contrasena
                     };
                     return authService.login(loginCredentials).pipe(
                         tapResponse({
@@ -66,10 +67,10 @@ export const AuthStore = signalStore(
                                     error: null
                                 });
                             },
-                            error: (error: any) => {
+                            error: (error: ErrorResponse) => {
                                 patchState(store, {
                                     loading: false,
-                                    error: error.userMessage || 'Error al iniciar sesión'
+                                    error: error.detail || 'Error al iniciar sesión'
                                 });
                             }
                         })
@@ -77,7 +78,71 @@ export const AuthStore = signalStore(
                 })
             )
         ),
-        
+
+        register: rxMethod<{ correo: string; contrasena: string }>(
+            pipe(
+                tap(() => patchState(store, { loading: true, error: null })),
+                switchMap((payload) =>
+                    authService.register(payload).pipe(
+                        tapResponse({
+                            next: () => {
+                                patchState(store, {
+                                    loading: false
+                                });
+                            },
+                            error: (err: ErrorResponse) => {
+                                patchState(store, {
+                                    loading: false,
+                                    error: err.detail || 'Error al registrar usuario'
+                                });
+                            }
+                        })
+                    )
+                )
+            )
+        ),
+
+        confirmEmail: rxMethod<string>(
+            pipe(
+                tap(() => patchState(store, { loading: true, error: null })),
+                switchMap((token) =>
+                    authService.confirmEmail(token).pipe(
+                        tapResponse({
+                            next: (res) =>
+                                patchState(store, {
+                                    loading: false
+                                }),
+                            error: (err: ErrorResponse) =>
+                                patchState(store, {
+                                    loading: false,
+                                    error: err.detail || 'Error al confirmar correo'
+                                })
+                        })
+                    )
+                )
+            )
+        ),
+
+        resendConfirmationEmail: rxMethod<string>(
+            pipe(
+                tap(() => patchState(store, { loading: true, error: null })),
+                switchMap((email) =>
+                    authService.resendConfirmation(email).pipe(
+                        tapResponse({
+                            next: () => {
+                                patchState(store, { loading: false });
+                            },
+                            error: (err: ErrorResponse) =>
+                                patchState(store, {
+                                    loading: false,
+                                    error: err.detail || 'Error al reenviar correo'
+                                })
+                        })
+                    )
+                )
+            )
+        ),
+
         // Logout
         logout: rxMethod<void>(
             pipe(
@@ -106,18 +171,18 @@ export const AuthStore = signalStore(
                 )
             )
         ),
-        
+
         // Actualizar usuario
         setUser(user: Usuario | null) {
             patchState(store, { user, isAuthenticated: user !== null });
         },
-        
+
         // Limpiar error
         clearError() {
             patchState(store, { error: null });
         }
     })),
-    
+
     withHooks({
         onInit(store, authService = inject(AuthService)) {
             // Sincronizar con AuthService al iniciar

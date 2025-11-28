@@ -15,7 +15,7 @@ export interface ConceptoItem {
 })
 export class ConceptoService {
     private http = inject(HttpClient);
-    private apiUrl = `${environment.apiUrl}/api/conceptos`;
+    private apiUrl = `${environment.apiUrl}/conceptos`;
 
     /**
      * Búsqueda ligera de conceptos por nombre

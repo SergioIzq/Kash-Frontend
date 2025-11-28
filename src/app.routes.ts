@@ -24,7 +24,6 @@ export const appRoutes: Routes = [
     },
     { 
         path: 'auth', 
-        canActivate: [noAuthGuard],
         loadChildren: () => import('./app/features/auth/auth.routes')
     },
     { 

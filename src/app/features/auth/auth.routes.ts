@@ -1,7 +1,22 @@
+import { noAuthGuard } from '@/core/guards/auth.guard';
 import { Routes } from '@angular/router';
 
 export default [
-    { path: 'login', loadComponent: () => import('./pages/login.page').then((m) => m.LoginPage) },
+    { 
+        path: 'login', 
+        canActivate: [noAuthGuard],
+        loadComponent: () => import('./pages/login.page').then((m) => m.LoginPage) 
+    },
+    { 
+        path: 'register', 
+        canActivate: [noAuthGuard],
+        loadComponent: () => import('./pages/register.page').then((m) => m.RegisterPage) 
+    },
+    { 
+        path: 'confirmar-correo', 
+        canActivate: [noAuthGuard],
+        loadComponent: () => import('./pages/confirm-email.page').then((m) => m.ConfirmEmail) 
+    },
     { path: 'error', loadComponent: () => import('./pages/error.page').then((m) => m.ErrorPage) },
     { path: 'access', loadComponent: () => import('./pages/access.page').then((m) => m.AccessPage) },
     { path: '', redirectTo: 'login', pathMatch: 'full' }

@@ -15,7 +15,7 @@ export interface CategoriaItem {
 })
 export class CategoriaService {
     private http = inject(HttpClient);
-    private apiUrl = `${environment.apiUrl}/api/categorias`;
+    private apiUrl = `${environment.apiUrl}/categorias`;
 
     /**
      * Búsqueda ligera de categorías por nombre

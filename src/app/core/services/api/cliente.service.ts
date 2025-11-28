@@ -15,7 +15,7 @@ export interface ClienteItem {
 })
 export class ClienteService {
     private http = inject(HttpClient);
-    private apiUrl = `${environment.apiUrl}/api/clientes`;
+    private apiUrl = `${environment.apiUrl}/clientes`;
 
     /**
      * Búsqueda ligera de clientes por nombre
