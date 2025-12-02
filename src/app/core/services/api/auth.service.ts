@@ -63,6 +63,24 @@ export class AuthService {
     }
 
     /**
+     * Solicitud de recuperación de contraseña (envío de email)
+     */
+    forgotPassword(email: string) {
+        return this.http.post<{ mensaje: string }>(`${this.apiUrl}/forgot-password`, { email });
+    }
+
+    /**
+     * Restablecimiento de contraseña con token
+     */
+    resetPassword(email: string, token: string, newPassword: string) {
+        return this.http.post<{ mensaje: string }>(`${this.apiUrl}/reset-password`, {
+            email,
+            token,
+            newPassword
+        });
+    }
+
+    /**
      * Logout del usuario
      */
     logout(): Observable<void> {

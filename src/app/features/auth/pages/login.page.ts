@@ -43,7 +43,7 @@ import { ToastModule } from 'primeng/toast';
                         <p-checkbox [(ngModel)]="rememberMe" id="rememberme" binary="true" class="mr-2" [disabled]="authStore.loading()"></p-checkbox>
                         <label for="rememberme">Recordarme</label>
                     </div>
-                    <span class="font-medium no-underline ml-2 text-right cursor-pointer text-primary">¿Olvidaste tu contraseña?</span>
+                    <a routerLink="/auth/forgot-password" class="font-medium no-underline ml-2 text-right cursor-pointer text-primary hover:underline"> ¿Olvidaste tu contraseña? </a>
                 </div>
 
                 <p-button label="Iniciar Sesión" styleClass="w-full" [loading]="authStore.loading()" [disabled]="!email || !password" (onClick)="onLogin()"></p-button>
@@ -96,7 +96,7 @@ export class LoginPage {
                 summary: 'Email requerido',
                 detail: 'Por favor, escribe tu correo en el campo de arriba para reenviarte el enlace.'
             });
-            
+
             return;
         }
 

@@ -4,6 +4,7 @@ import { ButtonModule } from 'primeng/button';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { AuthStore } from '../../../core/stores/auth.store';
 import { AuthWrapperComponent } from '../components/auth-wrapper.component';
+import { BasePageComponent } from '@/shared/components';
 
 @Component({
     selector: 'app-confirm-email',
@@ -79,7 +80,7 @@ import { AuthWrapperComponent } from '../components/auth-wrapper.component';
         </app-auth-wrapper>
     `
 })
-export class ConfirmEmail implements OnInit {
+export class ConfirmEmail extends BasePageComponent implements OnInit {
     authStore = inject(AuthStore);
     private route = inject(ActivatedRoute);
 

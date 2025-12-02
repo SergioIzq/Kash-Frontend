@@ -1,9 +1,6 @@
-import { computed } from '@angular/core';
+import { computed, inject } from '@angular/core';
 import { patchState, signalStore, withComputed, withHooks, withMethods, withState } from '@ngrx/signals';
-import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { pipe, switchMap, tap } from 'rxjs';
-import { tapResponse } from '@ngrx/operators';
-import { inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs'; // ✅ Necesario para async/await
 import { AuthService } from '@/core/services/api/auth.service';
 import { LoginCredentials, Usuario } from '../models';
 import { ErrorResponse } from '../models/error-response.model';
@@ -22,10 +19,6 @@ const initialState: AuthState = {
     error: null
 };
 
-/**
- * Signal Store global para autenticación
- * Optimizado con computed signals y métodos reactivos
- */
 export const AuthStore = signalStore(
     { providedIn: 'root' },
     withState(initialState),
@@ -46,138 +39,130 @@ export const AuthStore = signalStore(
     })),
 
     withMethods((store, authService = inject(AuthService)) => ({
-        // Login reactivo
-        login: rxMethod<LoginCredentials>(
-            pipe(
-                tap(() => patchState(store, { loading: true, error: null })),
-                switchMap((credentials) => {
-                    // Convertir a PascalCase para el backend C#
-                    const loginCredentials = {
-                        correo: credentials.correo,
-                        contrasena: credentials.contrasena
-                    };
-                    return authService.login(loginCredentials).pipe(
-                        tapResponse({
-                            next: (response) => {
-                                const user = authService.getCurrentUser();
-                                patchState(store, {
-                                    user,
-                                    isAuthenticated: true,
-                                    loading: false,
-                                    error: null
-                                });
-                            },
-                            error: (error: ErrorResponse) => {
-                                patchState(store, {
-                                    loading: false,
-                                    error: error.detail || 'Error al iniciar sesión'
-                                });
-                            }
-                        })
-                    );
-                })
-            )
-        ),
+        
+        async login(credentials: LoginCredentials): Promise<void> {
+            patchState(store, { loading: true, error: null });
 
-        register: rxMethod<{ correo: string; contrasena: string }>(
-            pipe(
-                tap(() => patchState(store, { loading: true, error: null })),
-                switchMap((payload) =>
-                    authService.register(payload).pipe(
-                        tapResponse({
-                            next: () => {
-                                patchState(store, {
-                                    loading: false
-                                });
-                            },
-                            error: (err: ErrorResponse) => {
-                                patchState(store, {
-                                    loading: false,
-                                    error: err.detail || 'Error al registrar usuario'
-                                });
-                            }
-                        })
-                    )
-                )
-            )
-        ),
+            try {
+                // Convertir a PascalCase para backend
+                const loginPayload = {
+                    correo: credentials.correo,
+                    contrasena: credentials.contrasena
+                };
 
-        confirmEmail: rxMethod<string>(
-            pipe(
-                tap(() => patchState(store, { loading: true, error: null })),
-                switchMap((token) =>
-                    authService.confirmEmail(token).pipe(
-                        tapResponse({
-                            next: (res) =>
-                                patchState(store, {
-                                    loading: false
-                                }),
-                            error: (err: ErrorResponse) =>
-                                patchState(store, {
-                                    loading: false,
-                                    error: err.detail || 'Error al confirmar correo'
-                                })
-                        })
-                    )
-                )
-            )
-        ),
+                // Esperamos la respuesta
+                await firstValueFrom(authService.login(loginPayload));
+                
+                // Si pasa, obtenemos el usuario actual
+                const user = authService.getCurrentUser();
+                
+                patchState(store, {
+                    user,
+                    isAuthenticated: true,
+                    loading: false,
+                    error: null
+                });
 
-        resendConfirmationEmail: rxMethod<string>(
-            pipe(
-                tap(() => patchState(store, { loading: true, error: null })),
-                switchMap((email) =>
-                    authService.resendConfirmation(email).pipe(
-                        tapResponse({
-                            next: () => {
-                                patchState(store, { loading: false });
-                            },
-                            error: (err: ErrorResponse) =>
-                                patchState(store, {
-                                    loading: false,
-                                    error: err.detail || 'Error al reenviar correo'
-                                })
-                        })
-                    )
-                )
-            )
-        ),
+            } catch (err: any) {
+                // Extraemos el mensaje de error de tu backend
+                const errorMsg = (err.error as ErrorResponse)?.detail || 'Error al iniciar sesión';
+                
+                patchState(store, {
+                    loading: false,
+                    error: errorMsg
+                });
+                
+                // ⚠️ IMPORTANTE: Relanzar error para el componente
+                throw err;
+            }
+        },
 
-        // Logout
-        logout: rxMethod<void>(
-            pipe(
-                tap(() => patchState(store, { loading: true })),
-                switchMap(() =>
-                    authService.logout().pipe(
-                        tapResponse({
-                            next: () => {
-                                patchState(store, {
-                                    user: null,
-                                    isAuthenticated: false,
-                                    loading: false,
-                                    error: null
-                                });
-                            },
-                            error: () => {
-                                // Limpiar estado aunque falle
-                                patchState(store, {
-                                    user: null,
-                                    isAuthenticated: false,
-                                    loading: false
-                                });
-                            }
-                        })
-                    )
-                )
-            )
-        ),
+        async register(payload: { correo: string; contrasena: string }): Promise<void> {
+            patchState(store, { loading: true, error: null });
+            try {
+                await firstValueFrom(authService.register(payload));
+                patchState(store, { loading: false });
+            } catch (err: any) {
+                const errorMsg = (err.error as ErrorResponse)?.detail || 'Error al registrar usuario';
+                patchState(store, { loading: false, error: errorMsg });
+                throw err;
+            }
+        },
 
-        // Actualizar usuario
+        async confirmEmail(token: string): Promise<void> {
+            patchState(store, { loading: true, error: null });
+            try {
+                await firstValueFrom(authService.confirmEmail(token));
+                patchState(store, { loading: false });
+            } catch (err: any) {
+                const errorMsg = (err.error as ErrorResponse)?.detail || 'Error al confirmar correo';
+                patchState(store, { loading: false, error: errorMsg });
+                throw err;
+            }
+        },
+
+        async forgotPassword(email: string): Promise<void> {
+            patchState(store, { loading: true, error: null });
+            try {
+                await firstValueFrom(authService.forgotPassword(email));
+                patchState(store, { loading: false });
+            } catch (err: any) {
+                const errorMsg = (err.error as ErrorResponse)?.detail || 'No se pudo enviar el correo';
+                patchState(store, { loading: false, error: errorMsg });
+                throw err;
+            }
+        },
+
+        async resetPassword(payload: { email: string; token: string; newPassword: string }): Promise<void> {
+            patchState(store, { loading: true, error: null });
+            try {
+                await firstValueFrom(authService.resetPassword(payload.email, payload.token, payload.newPassword));
+                patchState(store, { loading: false });
+                // Aquí el componente recibirá el control sin errores y mostrará la pantalla de éxito
+            } catch (err: any) {
+                const errorMsg = (err.error as ErrorResponse)?.detail || 'No se pudo restablecer la contraseña';
+                patchState(store, { loading: false, error: errorMsg });
+                // Aquí el componente caerá en su bloque catch
+                throw err;
+            }
+        },
+
+        // 6. RESEND CONFIRMATION
+        async resendConfirmationEmail(email: string): Promise<void> {
+            patchState(store, { loading: true, error: null });
+            try {
+                await firstValueFrom(authService.resendConfirmation(email));
+                patchState(store, { loading: false });
+            } catch (err: any) {
+                const errorMsg = (err.error as ErrorResponse)?.detail || 'Error al reenviar correo';
+                patchState(store, { loading: false, error: errorMsg });
+                throw err;
+            }
+        },
+
+        // 7. LOGOUT
+        async logout(): Promise<void> {
+            patchState(store, { loading: true });
+            try {
+                await firstValueFrom(authService.logout());
+            } catch (err) {
+                console.warn('Error en logout backend, limpiando localmente de todos modos', err);
+            } finally {
+                // Siempre limpiamos el estado local, falle o no el backend
+                patchState(store, {
+                    user: null,
+                    isAuthenticated: false,
+                    loading: false,
+                    error: null
+                });
+            }
+        },
+
+        // Métodos síncronos auxiliares
         setUser(user: Usuario | null) {
             patchState(store, { user, isAuthenticated: user !== null });
         },
 
-        // Limpiar error
         clearError() {
             patchState(store, { error: null });
         }
@@ -185,7 +170,6 @@ export const AuthStore = signalStore(
 
     withHooks({
         onInit(store, authService = inject(AuthService)) {
-            // Sincronizar con AuthService al iniciar
             const currentUser = authService.getCurrentUser();
             if (currentUser) {
                 store.setUser(currentUser);

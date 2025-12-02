@@ -93,7 +93,7 @@ import { AuthWrapperComponent } from '../components/auth-wrapper.component';
                             (onClick)="onRegister()"></p-button>
                     </div>
 
-                    <div class="mt-8 text-center"> <p-divider align="center" styleClass="my-4">
+                    <div class="mt-8 text-center"> <p-divider align="center" class="my-4">
                             <span class="text-muted-color text-sm">¿Ya tienes cuenta?</span>
                         </p-divider>
                         <a routerLink="/auth/login" class="font-medium text-primary hover:text-primary-600 cursor-pointer transition-colors no-underline">
