@@ -43,7 +43,7 @@ import { ToastModule } from 'primeng/toast';
                         <p-checkbox [(ngModel)]="rememberMe" id="rememberme" binary="true" class="mr-2" [disabled]="authStore.loading()"></p-checkbox>
                         <label for="rememberme">Recordarme</label>
                     </div>
-                    <a routerLink="/auth/forgot-password" class="font-medium no-underline ml-2 text-right cursor-pointer text-primary hover:underline"> ¿Olvidaste tu contraseña? </a>
+                    <a routerLink="/auth/forgot-password" class="font-medium ml-2 text-right cursor-pointer text-primary hover:underline"> ¿Olvidaste tu contraseña? </a>
                 </div>
 
                 <p-button label="Iniciar Sesión" styleClass="w-full" [loading]="authStore.loading()" [disabled]="!email || !password" (onClick)="onLogin()"></p-button>
@@ -51,10 +51,10 @@ import { ToastModule } from 'primeng/toast';
                 <div class="mt-6 text-center">
                     <div class="mb-4 text-surface-600 dark:text-surface-400 font-medium">
                         ¿No tienes cuenta?
-                        <a routerLink="/auth/register" class="text-primary cursor-pointer hover:underline no-underline">Regístrate aquí</a>
+                        <a routerLink="/auth/register" class="text-primary font-medium cursor-pointer hover:underline">Regístrate aquí</a>
                     </div>
 
-                    <div class="text-sm text-surface-500">
+                    <div class="font-medium text-surface-600">
                         ¿Problemas con la verificación?
                         <span class="text-primary font-medium cursor-pointer hover:underline" (click)="onResendConfirmation()"> Reenviar correo de confirmación </span>
                     </div>
