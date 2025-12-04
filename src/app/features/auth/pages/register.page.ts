@@ -27,7 +27,7 @@ import { AuthWrapperComponent } from '../components/auth-wrapper.component';
     ],
     template: `
         <app-auth-wrapper 
-            title="Crear Cuenta" 
+            title="Crear cuenta" 
             subtitle="Únete a AhorroLand hoy mismo">
             
             @if (showSuccessView()) {
