@@ -115,15 +115,19 @@ export class CategoriaCreateModalComponent {
         this.loading.set(true);
 
         this.categoriaService.create(this.nombre.trim()).subscribe({
-            next: (nuevaCategoria) => {
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Éxito',
-                    detail: `Categoría creada correctamente`,
-                    life: 3000
-                });
+            next: (response) => {
+                // El backend devuelve Result<string> con el UUID
+                const nuevaCategoriaId = response.value;
+                
+                const nuevaCategoria: Categoria = {
+                    id: nuevaCategoriaId,
+                    nombre: this.nombre.trim(),
+                    descripcion: null,
+                    fechaCreacion: new Date(),
+                    usuarioId: ''
+                };
 
-                // this.created.emit(nuevaCategoria);
+                this.created.emit(nuevaCategoria);
                 this.closeModal();
             },
             error: (error) => {

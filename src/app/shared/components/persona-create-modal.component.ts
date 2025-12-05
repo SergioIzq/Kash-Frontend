@@ -7,6 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { PersonaService } from '@/core/services/api/persona.service';
+import { Persona } from '@/core/models/persona.model';
 
 @Component({
     selector: 'app-persona-create-modal',
@@ -37,9 +38,11 @@ import { PersonaService } from '@/core/services/api/persona.service';
                             fluid
                             autofocus
                         />
-                        <small class="text-red-500" *ngIf="submitted() && !nombre">
-                            El nombre es requerido.
-                        </small>
+                        @if (submitted() && !nombre) {
+                            <small class="text-red-500">
+                                El nombre es requerido.
+                            </small>
+                        }
                     </div>
                 </div>
             </ng-template>
@@ -65,7 +68,7 @@ export class PersonaCreateModalComponent {
     // Inputs/Outputs
     visible = input<boolean>(false);
     visibleChange = output<boolean>();
-    created = output<string>();
+    created = output<Persona>();
     cancel = output<void>();
 
     // Estado del formulario
@@ -107,14 +110,18 @@ export class PersonaCreateModalComponent {
         this.isCreating.set(true);
 
         this.personaService.create(this.nombre.trim()).subscribe({
-            next: (nuevaPersona) => {
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Éxito',
-                    detail: `Persona "${this.nombre.trim()}" creada correctamente`,
-                    life: 3000
-                });
-                // this.created.emit(nuevaPersona);
+            next: (response) => {
+                // El backend devuelve Result<string> con el UUID
+                const nuevaPersonaId = response.value;
+                
+                const nuevaPersona: Persona = {
+                    id: nuevaPersonaId,
+                    nombre: this.nombre.trim(),
+                    fechaCreacion: new Date(),
+                    usuarioId: ''
+                };
+                
+                this.created.emit(nuevaPersona);
                 this.closeModal();
             },
             error: (error) => {

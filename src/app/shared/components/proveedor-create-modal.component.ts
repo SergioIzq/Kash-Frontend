@@ -114,15 +114,18 @@ export class ProveedorCreateModalComponent {
         this.loading.set(true);
 
         this.proveedorService.create(this.nombre.trim()).subscribe({
-            next: (nuevoProveedor) => {
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Éxito',
-                    detail: `Proveedor creado correctamente`,
-                    life: 3000
-                });
+            next: (response) => {
+                // El backend devuelve Result<string> con el UUID
+                const nuevoProveedorId = response.value;
+                
+                const nuevoProveedor: Proveedor = {
+                    id: nuevoProveedorId,
+                    nombre: this.nombre.trim(),
+                    fechaCreacion: new Date(),
+                    usuarioId: ''
+                };
 
-                // this.created.emit(nuevoProveedor);
+                this.created.emit(nuevoProveedor);
                 this.closeModal();
             },
             error: (error) => {

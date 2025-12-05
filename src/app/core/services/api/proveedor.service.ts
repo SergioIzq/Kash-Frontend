@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import { Result } from '@/core/models/common.model';
 import { Proveedor } from '@/core/models/proveedor.model';
@@ -32,9 +33,10 @@ export class ProveedorService {
     }
 
     /**
-     * Crear un nuevo persona
+     * Crear un nuevo proveedor
+     * El backend devuelve 201 con Result<string> donde value es el UUID creado
      */
-    create(nombre: string): Observable<Result<void>> {
-        return this.http.post<Result<void>>(this.apiUrl, { nombre });
+    create(nombre: string): Observable<Result<string>> {
+        return this.http.post<Result<string>>(this.apiUrl, { nombre });
     }
 }

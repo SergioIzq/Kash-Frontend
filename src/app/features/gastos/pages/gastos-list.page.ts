@@ -159,7 +159,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                             <td>{{ gasto.proveedorNombre || '-' }}</td>
                             <td>{{ gasto.fecha | date:'dd/MM/yyyy' }}</td>
                             <td>
-                                <span class="font-bold text-red-500">{{ gasto.importe | currency:'EUR':'symbol':'1.2-2' }}</span>
+                                <span class="font-bold text-red-500">{{ gasto.importe | number:'1.2-2' }} €</span>
                             </td>
                             <td>
                                 <p-button 

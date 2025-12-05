@@ -10,6 +10,8 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { MessageService } from 'primeng/api';
 import { Ingreso } from '@/core/models';
+import { Concepto } from '@/core/models/concepto.model';
+import { Persona } from '@/core/models/persona.model';
 import { ConceptoService } from '@/core/services/api/concepto.service';
 import { CategoriaService } from '@/core/services/api/categoria.service';
 import { ClienteService, ClienteItem } from '@/core/services/api/cliente.service';
@@ -462,39 +464,90 @@ export class IngresoFormModalComponent {
     }
 
     // Handlers cuando se crea un nuevo item
-    onConceptoCreated(nuevoConceptoId: string) {
-        // El modal de concepto devuelve solo el ID
+    onConceptoCreated(nuevoConcepto: Concepto) {
         this.showConceptoCreateModal = false;
+        
+        // Convertir a CatalogItem para el autocomplete
+        const conceptoItem: CatalogItem = {
+            id: nuevoConcepto.id,
+            nombre: nuevoConcepto.nombre
+        };
+        
+        // Seleccionar automáticamente el concepto recién creado
+        this.selectedConcepto = conceptoItem;
+        this.formData.conceptoId = conceptoItem.id;
+        this.formData.conceptoNombre = conceptoItem.nombre;
+        
+        // Añadir a la lista de filtrados
+        this.filteredConceptos.set([conceptoItem, ...this.filteredConceptos()]);
+        
         this.messageService.add({
             severity: 'success',
             summary: 'Concepto creado',
-            detail: 'Concepto creado exitosamente. Por favor seléccionelo de la lista.'
+            detail: `Concepto "${nuevoConcepto.nombre}" creado y seleccionado correctamente`
         });
     }
 
     onCategoriaCreated(nuevaCategoria: Categoria) {
+        this.showCategoriaCreateModal = false;
+        
         // Seleccionar automáticamente la categoría recién creada
-        this.selectedCategoria = nuevaCategoria;
+        this.selectedCategoria = {
+            id: nuevaCategoria.id,
+            nombre: nuevaCategoria.nombre
+        };
         this.formData.categoriaId = nuevaCategoria.id;
         this.formData.categoriaNombre = nuevaCategoria.nombre;
-        this.showCategoriaCreateModal = false;
+        
+        // Añadir a la lista de filtrados
+        this.filteredCategorias.set([this.selectedCategoria, ...this.filteredCategorias()]);
+        
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Categoría creada',
+            detail: `Categoría "${nuevaCategoria.nombre}" creada y seleccionada correctamente`
+        });
     }
 
     onClienteCreated(nuevoCliente: ClienteItem) {
+        this.showClienteCreateModal = false;
+        
         // Seleccionar automáticamente el cliente recién creado
         this.selectedCliente = nuevoCliente;
         this.formData.clienteId = nuevoCliente.id;
         this.formData.clienteNombre = nuevoCliente.nombre;
-        this.showClienteCreateModal = false;
+        
+        // Añadir a la lista de filtrados
+        this.filteredClientes.set([nuevoCliente, ...this.filteredClientes()]);
+        
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Cliente creado',
+            detail: `Cliente "${nuevoCliente.nombre}" creado y seleccionado correctamente`
+        });
     }
 
-    onPersonaCreated(nuevaPersonaId: string) {
-        // El modal de persona devuelve solo el ID
+    onPersonaCreated(nuevaPersona: Persona) {
         this.showPersonaCreateModal = false;
+        
+        // Convertir a CatalogItem para el autocomplete
+        const personaItem: CatalogItem = {
+            id: nuevaPersona.id,
+            nombre: nuevaPersona.nombre
+        };
+        
+        // Seleccionar automáticamente la persona recién creada
+        this.selectedPersona = personaItem;
+        this.formData.personaId = personaItem.id;
+        this.formData.personaNombre = personaItem.nombre;
+        
+        // Añadir a la lista de filtrados
+        this.filteredPersonas.set([personaItem, ...this.filteredPersonas()]);
+        
         this.messageService.add({
             severity: 'success',
             summary: 'Persona creada',
-            detail: 'Persona creada exitosamente. Por favor seléccionela de la lista.'
+            detail: `Persona "${nuevaPersona.nombre}" creada y seleccionada correctamente`
         });
     }
 

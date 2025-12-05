@@ -33,8 +33,9 @@ export class ConceptoService {
 
     /**
      * Crear un nuevo concepto
+     * El backend devuelve 201 con Result<string> donde value es el UUID creado
      */
-    create(nombre: string): Observable<Result<void>> {
-        return this.http.post<Result<void>>(this.apiUrl, { nombre });
+    create(nombre: string, categoriaId: string): Observable<Result<string>> {
+        return this.http.post<Result<string>>(this.apiUrl, { nombre, categoriaId });
     }
 }

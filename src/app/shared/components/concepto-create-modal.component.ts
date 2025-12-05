@@ -10,46 +10,22 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { ConceptoStore } from '@/shared/stores/concepto.store';
 import { CategoriaStore } from '@/shared/stores/categoria.store';
 import { Categoria } from '@/core/models/categoria.model';
+import { Concepto } from '@/core/models/concepto.model';
 
 @Component({
     selector: 'app-concepto-create-modal',
     standalone: true,
-    imports: [
-        CommonModule,
-        FormsModule,
-        DialogModule,
-        ButtonModule,
-        InputTextModule,
-        AutoCompleteModule,
-        ConfirmDialogModule
-    ],
+    imports: [CommonModule, FormsModule, DialogModule, ButtonModule, InputTextModule, AutoCompleteModule, ConfirmDialogModule],
     providers: [ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <p-dialog 
-            [(visible)]="isVisible" 
-            [style]="{ width: '500px' }" 
-            header="Crear Nuevo Concepto" 
-            [modal]="true"
-            [contentStyle]="{ padding: '2rem' }"
-            (onHide)="onCancel()"
-            styleClass="p-fluid">
+        <p-dialog [(visible)]="isVisible" [style]="{ width: '500px' }" header="Crear Nuevo Concepto" [modal]="true" [contentStyle]="{ padding: '2rem' }" (onHide)="onCancel()" styleClass="p-fluid">
             <ng-template #content>
                 <div class="flex flex-col gap-4">
                     <div>
                         <label for="nombre" class="block font-bold mb-3">Nombre del Concepto *</label>
-                        <input 
-                            type="text" 
-                            pInputText 
-                            id="nombre" 
-                            [(ngModel)]="nombre" 
-                            required 
-                            autofocus 
-                            [placeholder]="placeholder()"
-                            fluid />
-                        <small class="text-red-500" *ngIf="submitted() && !nombre.trim()">
-                            El nombre es requerido.
-                        </small>
+                        <input type="text" pInputText id="nombre" [(ngModel)]="nombre" required autofocus [placeholder]="placeholder()" fluid />
+                        <small class="text-red-500" *ngIf="submitted() && !nombre.trim()"> El nombre es requerido. </small>
                     </div>
 
                     <div>
@@ -59,10 +35,13 @@ import { Categoria } from '@/core/models/categoria.model';
                         </label>
                         <p-autoComplete
                             [(ngModel)]="selectedCategoria"
+                            [suggestions]="categoriasSugeridas()"
                             (completeMethod)="searchCategorias($event)"
-                            field="nombre"
+                            (onFocus)="onCategoriaFocus($event)"
+                            (onDropdownClick)="searchCategorias({ query: '' })"
+                            [dropdown]="true"
+                            optionLabel="nombre"
                             placeholder="Buscar o crear categoría..."
-                            [dropdown]="false"
                             [forceSelection]="false"
                             [showEmptyMessage]="true"
                             emptyMessage="No se encontraron categorías"
@@ -76,24 +55,16 @@ import { Categoria } from '@/core/models/categoria.model';
                                     <span>{{ categoria.nombre }}</span>
                                 </div>
                             </ng-template>
-                            
+
                             <ng-template #footer>
                                 @if (categoriaSearchTerm() && !categoriaExists()) {
                                     <div class="p-3 border-t">
-                                        <p-button 
-                                            label="Crear '{{ categoriaSearchTerm() }}'" 
-                                            icon="pi pi-plus" 
-                                            text
-                                            size="small"
-                                            (onClick)="crearNuevaCategoria()"
-                                            styleClass="w-full justify-start" />
+                                        <p-button label="Crear '{{ categoriaSearchTerm() }}'" icon="pi pi-plus" text size="small" (onClick)="crearNuevaCategoria()" styleClass="w-full justify-start" />
                                     </div>
                                 }
                             </ng-template>
                         </p-autoComplete>
-                        <small class="text-red-500" *ngIf="submitted() && !selectedCategoria">
-                            La categoría es requerida.
-                        </small>
+                        <small class="text-red-500" *ngIf="submitted() && !selectedCategoria"> La categoría es requerida. </small>
                     </div>
 
                     @if (errorMessage()) {
@@ -103,17 +74,8 @@ import { Categoria } from '@/core/models/categoria.model';
             </ng-template>
 
             <ng-template #footer>
-                <p-button 
-                    label="Cancelar" 
-                    icon="pi pi-times" 
-                    text 
-                    (click)="onCancel()"
-                    [disabled]="loading()" />
-                <p-button 
-                    label="Crear" 
-                    icon="pi pi-check" 
-                    (click)="onCreate()"
-                    [loading]="loading()" />
+                <p-button label="Cancelar" icon="pi pi-times" text (click)="onCancel()" [disabled]="loading()" />
+                <p-button label="Crear" icon="pi pi-check" (click)="onCreate()" [loading]="loading()" />
             </ng-template>
         </p-dialog>
         <p-confirmdialog />
@@ -129,7 +91,7 @@ export class ConceptoCreateModalComponent {
     visible = input<boolean>(false);
     placeholder = input<string>('Ej: Pago cliente');
     visibleChange = output<boolean>();
-    created = output<string>();
+    created = output<Concepto>();
     cancel = output<void>();
 
     // Estado del formulario
@@ -150,7 +112,7 @@ export class ConceptoCreateModalComponent {
         // Sincronizar visible con isVisible interno
         effect(() => {
             this.isVisible = this.visible();
-            
+
             // Limpiar formulario cuando se abre
             if (this.visible()) {
                 this.nombre = '';
@@ -159,71 +121,100 @@ export class ConceptoCreateModalComponent {
                 this.loading.set(false);
                 this.errorMessage.set('');
                 this.categoriaSearchTerm.set('');
+
+                // Cargar categorías recientes al abrir
+                this.loadCategoriasRecientes();
             }
         });
     }
 
+    private loadCategoriasRecientes() {
+        this.categoriaStore.getRecent(5).then((categorias) => {
+            this.categoriasRecientes.set(categorias);
+            this.categoriasSugeridas.set([...categorias]);
+        });
+    }
+
+    onCategoriaFocus(event: any) {
+        // Cuando se hace foco, mostrar las categorías recientes si no hay búsqueda activa
+        if (!this.categoriaSearchTerm() || !this.categoriaSearchTerm().trim()) {
+            this.categoriasSugeridas.set(this.categoriasRecientes());
+        }
+    }
+
     searchCategorias(event: any) {
-        const query = event.query || '';
+        const query = event.query || ''; // Si viene del dropdown click, puede ser undefined o ''
         this.categoriaSearchTerm.set(query);
 
+        // CASO 1: Búsqueda vacía (Dropdown click o foco) -> Mostrar recientes
         if (!query.trim()) {
-            this.categoriasSugeridas.set(this.categoriasRecientes());
+            if (this.categoriasRecientes().length > 0) {
+                // USO DE SPREAD OPERATOR [...] PARA CREAR NUEVA REFERENCIA
+                this.categoriasSugeridas.set([...this.categoriasRecientes()]);
+            } else {
+                this.loadCategoriasRecientes();
+            }
             return;
         }
 
-        this.categoriaStore.search(query, 10).then(
-            (categorias) => {
+        // CASO 2: Búsqueda con texto -> Llamar a API
+        this.categoriaStore
+            .search(query, 10)
+            .then((categorias) => {
                 this.categoriasSugeridas.set(categorias);
-            }
-        ).catch((error) => {
-            console.error('Error buscando categorías:', error);
-            this.categoriasSugeridas.set([]);
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: error.message || 'Error al buscar categorías',
-                life: 5000
+            })
+            .catch((error) => {
+                console.error('Error buscando categorías:', error);
+                this.categoriasSugeridas.set([]);
             });
-        });
     }
 
     categoriaExists(): boolean {
         const searchTerm = this.categoriaSearchTerm().toLowerCase().trim();
-        return this.categoriasSugeridas().some(
-            cat => cat.nombre.toLowerCase() === searchTerm
-        );
+        return this.categoriasSugeridas().some((cat) => cat.nombre.toLowerCase() === searchTerm);
     }
 
     crearNuevaCategoria() {
         const nombreCategoria = this.categoriaSearchTerm().trim();
-        
-        if (!nombreCategoria) {
-            return;
-        }
+        if (!nombreCategoria) return;
 
-        this.categoriaStore.create(nombreCategoria).then(
-            (nuevaCategoria) => {
+        this.categoriaStore
+            .create(nombreCategoria)
+            .then((nuevaCategoriaId) => {
+                // El backend devuelve el UUID de la categoría recién creada
+                const nuevaCategoria: Categoria = {
+                    id: nuevaCategoriaId,
+                    nombre: nombreCategoria,
+                    descripcion: null,
+                    fechaCreacion: new Date(),
+                    usuarioId: ''
+                };
+
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Éxito',
-                    detail: `Categoría creada correctamente`,
+                    detail: `Categoría "${nombreCategoria}" creada correctamente`,
                     life: 3000
                 });
-                
-                // this.selectedCategoria = nuevaCategoria;
-                // this.categoriasSugeridas.set([nuevaCategoria, ...this.categoriasSugeridas()]);
+
+                // Seleccionar automáticamente la categoría recién creada con el ID real
+                this.selectedCategoria = nuevaCategoria;
+
+                // Actualizamos las listas con el objeto que tiene el ID real del backend
+                this.categoriasSugeridas.set([nuevaCategoria, ...this.categoriasSugeridas()]);
+                this.categoriasRecientes.set([nuevaCategoria, ...this.categoriasRecientes()]);
+
                 this.categoriaSearchTerm.set('');
-            }
-        ).catch((error) => {
-            console.error('Error creando categoría:', error);
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: error.message || 'Error al crear la categoría',
-                life: 5000
+            })
+            .catch((error) => {
+                console.error('Error creando categoría:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: error.message || 'Error al crear la categoría',
+                    life: 5000
+                });
             });
-        });
     }
 
     onCreate() {
@@ -253,23 +244,26 @@ export class ConceptoCreateModalComponent {
     private confirmedCreate() {
         this.loading.set(true);
 
-        this.conceptoStore.create(this.nombre.trim()).then(
-            (nuevoConcepto) => {
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Éxito',
-                    detail: `Concepto "${this.nombre.trim()}" creado correctamente`,
-                    life: 3000
-                });
-                
-                this.created.emit(this.nombre.trim());
+        this.conceptoStore
+            .create(this.nombre.trim(), this.selectedCategoria!.id)
+            .then((nuevoConceptoId) => {
+                // El backend devuelve el UUID del concepto recién creado
+                const nuevoConcepto: Concepto = {
+                    id: nuevoConceptoId,
+                    nombre: this.nombre.trim(),
+                    categoriaId: this.selectedCategoria!.id,
+                    fechaCreacion: new Date(),
+                    usuarioId: ''
+                };
+
+                this.created.emit(nuevoConcepto);
                 this.closeModal();
-            }
-        ).catch((error) => {
-            console.error('Error creando concepto:', error);
-            this.errorMessage.set(error.message || 'Error al crear el concepto');
-            this.loading.set(false);
-        });
+            })
+            .catch((error) => {
+                console.error('Error creando concepto:', error);
+                this.errorMessage.set(error.message || 'Error al crear el concepto');
+                this.loading.set(false);
+            });
     }
 
     onCancel() {

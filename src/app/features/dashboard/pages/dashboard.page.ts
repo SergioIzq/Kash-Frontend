@@ -52,7 +52,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         <i class="pi pi-wallet text-primary" style="font-size: 1.5rem"></i>
                     </div>
                     <div [class]="'font-bold text-3xl mb-2 ' + (dashboardStore.resumen()!.balanceTotal >= 0 ? 'text-green-500' : 'text-red-500')">
-                        {{ dashboardStore.resumen()!.balanceTotal | currency:'EUR':'symbol':'1.2-2' }}
+                        {{ dashboardStore.resumen()!.balanceTotal | number:'1.2-2' }} €
                     </div>
                     <div class="text-500 text-sm mt-auto">{{ dashboardStore.resumen()?.totalCuentas || 0 }} cuentas</div>
                 </div>
@@ -64,13 +64,13 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         <i class="pi pi-arrow-up text-green-500" style="font-size: 1.5rem"></i>
                     </div>
                     <div class="text-green-500 font-bold text-3xl mb-2">
-                        {{ dashboardStore.resumen()?.ingresosMesActual | currency:'EUR':'symbol':'1.2-2' }}
+                        {{ dashboardStore.resumen()?.ingresosMesActual | number:'1.2-2' }} €
                     </div>
                     <div class="mt-auto">
                         @if (dashboardStore.resumen()?.comparativaMesAnterior) {
                             <div [class]="'text-sm flex items-center gap-1 ' + (dashboardStore.resumen()!.comparativaMesAnterior.diferenciaIngresos >= 0 ? 'text-green-600' : 'text-red-600')">
                                 <i [class]="'pi ' + (dashboardStore.resumen()!.comparativaMesAnterior.diferenciaIngresos >= 0 ? 'pi-arrow-up' : 'pi-arrow-down')"></i>
-                                {{ dashboardStore.resumen()!.comparativaMesAnterior.diferenciaIngresos | currency:'EUR':'symbol':'1.0-0' }} vs mes anterior
+                                {{ dashboardStore.resumen()!.comparativaMesAnterior.diferenciaIngresos | number:'1.0-0' }} € vs mes anterior
                             </div>
                         } @else {
                             <div class="text-sm text-500">&nbsp;</div>
@@ -85,13 +85,13 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         <i class="pi pi-arrow-down text-red-500" style="font-size: 1.5rem"></i>
                     </div>
                     <div class="text-red-500 font-bold text-3xl mb-2">
-                        {{ dashboardStore.resumen()?.gastosMesActual | currency:'EUR':'symbol':'1.2-2' }}
+                        {{ dashboardStore.resumen()?.gastosMesActual | number:'1.2-2' }} €
                     </div>
                     <div class="mt-auto">
                         @if (dashboardStore.resumen()?.comparativaMesAnterior) {
                             <div [class]="'text-sm flex items-center gap-1 ' + (dashboardStore.resumen()!.comparativaMesAnterior.diferenciaGastos <= 0 ? 'text-green-600' : 'text-red-600')">
                                 <i [class]="'pi ' + (dashboardStore.resumen()!.comparativaMesAnterior.diferenciaGastos <= 0 ? 'pi-arrow-down' : 'pi-arrow-up')"></i>
-                                {{ Math.abs(dashboardStore.resumen()!.comparativaMesAnterior.diferenciaGastos) | currency:'EUR':'symbol':'1.0-0' }} vs mes anterior
+                                {{ Math.abs(dashboardStore.resumen()!.comparativaMesAnterior.diferenciaGastos) | number:'1.0-0' }} € vs mes anterior
                             </div>
                         } @else {
                             <div class="text-sm text-500">&nbsp;</div>
@@ -106,7 +106,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         <i [class]="'pi ' + (dashboardStore.resumen()!.balanceMesActual >= 0 ? 'pi-check-circle text-green-500' : 'pi-times-circle text-red-500')" style="font-size: 1.5rem"></i>
                     </div>
                     <div [class]="'font-bold text-3xl mb-2 ' + (dashboardStore.resumen()!.balanceMesActual >= 0 ? 'text-green-500' : 'text-red-500')">
-                        {{ dashboardStore.resumen()!.balanceMesActual | currency:'EUR':'symbol':'1.2-2' }}
+                        {{ dashboardStore.resumen()!.balanceMesActual | number:'1.2-2' }} €
                     </div>
                     <div class="text-500 text-sm mt-auto">Ingresos - Gastos</div>
                 </div>
@@ -128,7 +128,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                                     <span class="font-medium text-900">{{ cuenta.nombre }}</span>
                                 </div>
                                 <span [class]="'font-bold ' + (cuenta.saldo >= 0 ? 'text-green-600' : 'text-red-600')">
-                                    {{ cuenta.saldo | currency:'EUR':'symbol':'1.2-2' }}
+                                    {{ cuenta.saldo | number:'1.2-2' }} €
                                 </span>
                             </div>
                         }
@@ -146,7 +146,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                             <div class="p-3 surface-border border-round">
                                 <div class="flex items-center justify-between mb-2">
                                     <span class="font-medium text-900">{{ categoria.categoriaNombre }}</span>
-                                    <span class="font-bold text-red-500">{{ categoria.totalGastado | currency:'EUR':'symbol':'1.2-2' }}</span>
+                                    <span class="font-bold text-red-500">{{ categoria.totalGastado | number:'1.2-2' }} €</span>
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <div class="flex-1 surface-200 border-round" style="height: 8px">
@@ -185,7 +185,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                     <div class="surface-border border-round p-4 text-center">
                         <i class="pi pi-chart-line text-orange-500 mb-3" style="font-size: 2.5rem"></i>
                         <div class="text-900 font-bold text-2xl mb-2">
-                            {{ dashboardStore.gastoPromedioDiario() | currency: 'EUR' : 'symbol' : '1.0-0' }}
+                            {{ dashboardStore.gastoPromedioDiario() | number:'1.0-0' }} €
                         </div>
                         <div class="text-600 text-sm">Gasto promedio diario</div>
                     </div>
@@ -193,7 +193,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                     <div class="surface-border border-round p-4 text-center">
                         <i class="pi pi-chart-bar text-purple-500 mb-3" style="font-size: 2.5rem"></i>
                         <div class="text-900 font-bold text-2xl mb-2">
-                            {{ dashboardStore.proyeccionGastosFinMes() | currency: 'EUR' : 'symbol' : '1.0-0' }}
+                            {{ dashboardStore.proyeccionGastosFinMes() | number:'1.0-0' }} €
                         </div>
                         <div class="text-600 text-sm">Proyección fin de mes</div>
                     </div>
@@ -218,7 +218,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                             </div>
                             <div class="text-right">
                                 <div [class]="'font-bold text-lg ' + (movimiento.tipo === 'Ingreso' ? 'text-green-600' : 'text-red-600')">
-                                    {{ (movimiento.tipo === 'Ingreso' ? '+' : '-') + (movimiento.importe | currency:'EUR':'symbol':'1.2-2') }}
+                                    {{ (movimiento.tipo === 'Ingreso' ? '+' : '-') }}{{ movimiento.importe | number:'1.2-2' }} €
                                 </div>
                                 <div class="text-500 text-sm">{{ movimiento.fecha | date:'dd/MM/yyyy' }}</div>
                             </div>
@@ -262,10 +262,10 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                                 @for (historico of dashboardStore.resumen()!.historicoUltimos6Meses; track historico.mes) {
                                     <tr class="border-b surface-border hover:surface-hover transition-colors">
                                         <td class="p-3 font-medium text-900">{{ historico.mesNombre | titlecase }} {{ historico.anio }}</td>
-                                        <td class="p-3 text-right text-green-600 font-medium">{{ historico.totalIngresos | currency:'EUR':'symbol':'1.2-2' }}</td>
-                                        <td class="p-3 text-right text-red-600 font-medium">{{ historico.totalGastos | currency:'EUR':'symbol':'1.2-2' }}</td>
+                                        <td class="p-3 text-right text-green-600 font-medium">{{ historico.totalIngresos | number:'1.2-2' }} €</td>
+                                        <td class="p-3 text-right text-red-600 font-medium">{{ historico.totalGastos | number:'1.2-2' }} €</td>
                                         <td [class]="'p-3 text-right font-bold ' + (historico.balance >= 0 ? 'text-green-600' : 'text-red-600')">
-                                            {{ historico.balance | currency:'EUR':'symbol':'1.2-2' }}
+                                            {{ historico.balance | number:'1.2-2' }} €
                                         </td>
                                     </tr>
                                 }

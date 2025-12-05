@@ -24,7 +24,7 @@ export const FormaPagoStore = signalStore(
             patchState(store, { loading: true, error: null });
             try {
                 const response = await firstValueFrom(formaPagoService.search(query, limit));
-                
+
                 // Manejar Result<FormaPago[]> - el backend devuelve array directo en value
                 if (response.isSuccess && response.value) {
                     const formaPagos = Array.isArray(response.value) ? response.value : (response.value as any).items || [];
@@ -42,30 +42,18 @@ export const FormaPagoStore = signalStore(
             }
         },
 
-        async create(nombre: string): Promise<FormaPago> {
-            patchState(store, { loading: true, error: null });
+        async create(nombre: string): Promise<void> {
+            patchState(store, { loading: true });
             try {
                 const response = await firstValueFrom(formaPagoService.create(nombre));
-                
-                // Manejar Result<FormaPago>
-                if (response.isSuccess && response.value) {
-                    const nuevoFormaPago = response.value;
-                    
-                    // Agregar a la lista local
-                    patchState(store, { 
-                        formaPagos: [nuevoFormaPago, ...store.formaPagos()],
-                        loading: false 
-                    });
-                    
-                    return nuevoFormaPago;
-                } else {
-                    const errorMsg = response.error?.message || 'Error al crear formaPago';
-                    patchState(store, { loading: false, error: errorMsg });
-                    throw new Error(errorMsg);
+
+                if (response.isSuccess) {
+                    patchState(store, { loading: false });
+                    return;
                 }
-            } catch (err: any) {
-                const errorMsg = err.message || 'Error al crear formaPago';
-                patchState(store, { loading: false, error: errorMsg });
+                throw new Error(response.error?.message || 'Error al crear concepto');
+            } catch (err) {
+                patchState(store, { loading: false });
                 throw err;
             }
         },
@@ -74,7 +62,7 @@ export const FormaPagoStore = signalStore(
             patchState(store, { loading: true, error: null });
             try {
                 const response = await firstValueFrom(formaPagoService.getRecent(limit));
-                
+
                 // Manejar Result<FormaPago[]> - el backend devuelve array directo en value
                 if (response.isSuccess && response.value) {
                     const formaPagos = Array.isArray(response.value) ? response.value : (response.value as any).items || [];

@@ -42,30 +42,18 @@ export const CuentaStore = signalStore(
             }
         },
 
-        async create(nombre: string): Promise<Cuenta> {
-            patchState(store, { loading: true, error: null });
+        async create(nombre: string): Promise<void> {
+            patchState(store, { loading: true });
             try {
                 const response = await firstValueFrom(cuentaService.create(nombre));
                 
-                // Manejar Result<Cuenta>
-                if (response.isSuccess && response.value) {
-                    const nuevoCuenta = response.value;
-                    
-                    // Agregar a la lista local
-                    patchState(store, { 
-                        cuentas: [nuevoCuenta, ...store.cuentas()],
-                        loading: false 
-                    });
-                    
-                    return nuevoCuenta;
-                } else {
-                    const errorMsg = response.error?.message || 'Error al crear cuenta';
-                    patchState(store, { loading: false, error: errorMsg });
-                    throw new Error(errorMsg);
+                if (response.isSuccess) {
+                    patchState(store, { loading: false });
+                    return;
                 }
-            } catch (err: any) {
-                const errorMsg = err.message || 'Error al crear cuenta';
-                patchState(store, { loading: false, error: errorMsg });
+                throw new Error(response.error?.message || 'Error al crear concepto');
+            } catch (err) {
+                patchState(store, { loading: false });
                 throw err;
             }
         },

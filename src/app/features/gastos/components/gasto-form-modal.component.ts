@@ -11,6 +11,8 @@ import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocompl
 import { MessageService } from 'primeng/api';
 import { Gasto } from '@/core/models';
 import { Proveedor } from '@/core/models/proveedor.model';
+import { Persona } from '@/core/models/persona.model';
+import { Concepto } from '@/core/models/concepto.model';
 import { ConceptoCreateModalComponent, CategoriaCreateModalComponent, ProveedorCreateModalComponent, PersonaCreateModalComponent } from '@/shared/components';
 import { Categoria } from '@/core/models/categoria.model';
 import { ConceptoStore, CategoriaStore, ProveedorStore, PersonaStore, CuentaStore, FormaPagoStore } from '@/shared/stores';
@@ -55,10 +57,12 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                                 [(ngModel)]="selectedConcepto"
                                 [suggestions]="filteredConceptos()"
                                 (completeMethod)="searchConceptos($event)"
+                                (onFocus)="onConceptoFocus($event)"
+                                (onDropdownClick)="onConceptoDropdownClick($event)"
                                 optionLabel="nombre"
                                 [dropdown]="true"
                                 placeholder="Buscar o seleccionar concepto"
-                                styleClass="flex-1"
+                                class="flex-1"
                                 [forceSelection]="true"
                                 (onSelect)="onConceptoSelect($event)"
                             />
@@ -77,6 +81,8 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                                 [(ngModel)]="selectedCategoria"
                                 [suggestions]="filteredCategorias()"
                                 (completeMethod)="searchCategorias($event)"
+                                (onFocus)="onCategoriaFocus($event)"
+                                (onDropdownClick)="onCategoriaDropdownClick($event)"
                                 optionLabel="nombre"
                                 [dropdown]="true"
                                 placeholder="Buscar o seleccionar categoría"
@@ -84,18 +90,23 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                                 [forceSelection]="false"
                                 (onSelect)="onCategoriaSelect($event)"
                             />
+                            @if (submitted() && !selectedCategoria) {
+                                <small class="text-red-500"> La categoría es requerida. </small>
+                            }
                             <p-button icon="pi pi-plus" [rounded]="true" severity="secondary" [outlined]="true" (click)="openCreateCategoria()" pTooltip="Crear nueva categoría" />
                         </div>
                     </div>
 
                     <!-- Proveedor con Autocomplete + Botón crear -->
                     <div>
-                        <label for="proveedor" class="block font-bold mb-3">Proveedor</label>
+                        <label for="proveedor" class="block font-bold mb-3">Proveedor *</label>
                         <div class="flex gap-2">
                             <p-autoComplete
                                 [(ngModel)]="selectedProveedor"
                                 [suggestions]="filteredProveedores()"
                                 (completeMethod)="searchProveedores($event)"
+                                (onFocus)="onProveedorFocus($event)"
+                                (onDropdownClick)="onProveedorDropdownClick($event)"
                                 optionLabel="nombre"
                                 [dropdown]="true"
                                 placeholder="Buscar o seleccionar proveedor"
@@ -103,18 +114,23 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                                 [forceSelection]="false"
                                 (onSelect)="onProveedorSelect($event)"
                             />
+                            @if (submitted() && !selectedProveedor) {
+                                <small class="text-red-500"> El proveedor es requerido. </small>
+                            }
                             <p-button icon="pi pi-plus" [rounded]="true" severity="secondary" [outlined]="true" (click)="openCreateProveedor()" pTooltip="Crear nuevo proveedor" />
                         </div>
                     </div>
 
                     <!-- Persona con Autocomplete + Botón crear -->
                     <div>
-                        <label for="persona" class="block font-bold mb-3">Persona</label>
+                        <label for="persona" class="block font-bold mb-3">Persona *</label>
                         <div class="flex gap-2">
                             <p-autoComplete
                                 [(ngModel)]="selectedPersona"
                                 [suggestions]="filteredPersonas()"
                                 (completeMethod)="searchPersonas($event)"
+                                (onFocus)="onPersonaFocus($event)"
+                                (onDropdownClick)="onPersonaDropdownClick($event)"
                                 optionLabel="nombre"
                                 [dropdown]="true"
                                 placeholder="Buscar o seleccionar persona"
@@ -122,6 +138,9 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                                 [forceSelection]="false"
                                 (onSelect)="onPersonaSelect($event)"
                             />
+                            @if (submitted() && !selectedPersona) {
+                                <small class="text-red-500"> La persona es requerida. </small>
+                            }
                             <p-button icon="pi pi-plus" [rounded]="true" severity="secondary" [outlined]="true" (click)="openCreatePersona()" pTooltip="Crear nueva persona" />
                         </div>
                     </div>
@@ -129,39 +148,49 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                     <!-- Cuenta con Autocomplete -->
                     <div>
                         <label for="cuenta" class="block font-bold mb-3">Cuenta *</label>
-                        <p-autoComplete
-                            [(ngModel)]="selectedCuenta"
-                            [suggestions]="filteredCuentas()"
-                            (completeMethod)="searchCuentas($event)"
-                            optionLabel="nombre"
-                            [dropdown]="true"
-                            placeholder="Buscar o seleccionar cuenta"
-                            [forceSelection]="true"
-                            (onSelect)="onCuentaSelect($event)"
-                            fluid
-                        />
-                        @if (submitted() && !selectedCuenta) {
-                            <small class="text-red-500"> La cuenta es requerida. </small>
-                        }
+                        <div class="flex gap-2">
+                            <p-autoComplete
+                                [(ngModel)]="selectedCuenta"
+                                [suggestions]="filteredCuentas()"
+                                (completeMethod)="searchCuentas($event)"
+                                (onFocus)="onCuentaFocus($event)"
+                                (onDropdownClick)="onCuentaDropdownClick($event)"
+                                optionLabel="nombre"
+                                [dropdown]="true"
+                                placeholder="Buscar o seleccionar cuenta"
+                                [forceSelection]="true"
+                                (onSelect)="onCuentaSelect($event)"
+                                fluid
+                            />
+                            @if (submitted() && !selectedCuenta) {
+                                <small class="text-red-500"> La cuenta es requerida. </small>
+                            }
+                            <p-button icon="pi pi-plus" [rounded]="true" severity="secondary" [outlined]="true" (click)="openCreateCuenta()" pTooltip="Crear nueva cuenta" />
+                        </div>
                     </div>
 
                     <!-- Forma de Pago con Autocomplete -->
                     <div>
                         <label for="formaPago" class="block font-bold mb-3">Forma de Pago *</label>
-                        <p-autoComplete
-                            [(ngModel)]="selectedFormaPago"
-                            [suggestions]="filteredFormasPago()"
-                            (completeMethod)="searchFormasPago($event)"
-                            optionLabel="nombre"
-                            [dropdown]="true"
-                            placeholder="Buscar o seleccionar forma de pago"
-                            [forceSelection]="true"
-                            (onSelect)="onFormaPagoSelect($event)"
-                            fluid
-                        />
-                        @if (submitted() && !selectedFormaPago) {
-                            <small class="text-red-500"> La forma de pago es requerida. </small>
-                        }
+                        <div class="flex gap-2">
+                            <p-autoComplete
+                                [(ngModel)]="selectedFormaPago"
+                                [suggestions]="filteredFormasPago()"
+                                (completeMethod)="searchFormasPago($event)"
+                                (onFocus)="onFormaPagoFocus($event)"
+                                (onDropdownClick)="onFormaPagoDropdownClick($event)"
+                                optionLabel="nombre"
+                                [dropdown]="true"
+                                placeholder="Buscar o seleccionar forma de pago"
+                                [forceSelection]="true"
+                                (onSelect)="onFormaPagoSelect($event)"
+                                fluid
+                            />
+                            @if (submitted() && !selectedFormaPago) {
+                                <small class="text-red-500"> La forma de pago es requerida. </small>
+                            }
+                            <p-button icon="pi pi-plus" [rounded]="true" severity="secondary" [outlined]="true" (click)="openCreateFormaPago()" pTooltip="Crear nueva forma de pago" />
+                        </div>
                     </div>
 
                     <!-- Importe -->
@@ -194,13 +223,13 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
         </p-dialog>
 
         <!-- Modales inline para creación rápida -->
-        <app-concepto-create-modal [visible]="showConceptoCreateModal" (visibleChange)="showConceptoCreateModal = $event" (created)="onConceptoCreated()" (cancel)="showConceptoCreateModal = false" />
+        <app-concepto-create-modal [visible]="showConceptoCreateModal" (visibleChange)="showConceptoCreateModal = $event" (created)="onConceptoCreated($event)" (cancel)="showConceptoCreateModal = false" />
 
         <app-categoria-create-modal [visible]="showCategoriaCreateModal" (visibleChange)="showCategoriaCreateModal = $event" (created)="onCategoriaCreated($event)" (cancel)="showCategoriaCreateModal = false" />
 
-        <app-proveedor-create-modal [visible]="showProveedorCreateModal" (visibleChange)="showProveedorCreateModal = $event" (created)="onProveedorCreated()" (cancel)="showProveedorCreateModal = false" />
+        <app-proveedor-create-modal [visible]="showProveedorCreateModal" (visibleChange)="showProveedorCreateModal = $event" (created)="onProveedorCreated($event)" (cancel)="showProveedorCreateModal = false" />
 
-        <app-persona-create-modal [visible]="showPersonaCreateModal" (visibleChange)="showPersonaCreateModal = $event" (created)="onPersonaCreated()" (cancel)="showPersonaCreateModal = false" />
+        <app-persona-create-modal [visible]="showPersonaCreateModal" (visibleChange)="showPersonaCreateModal = $event" (created)="onPersonaCreated($event)" (cancel)="showPersonaCreateModal = false" />
     `,
     styles: [
         `
@@ -252,6 +281,8 @@ export class GastoFormModalComponent {
     showCategoriaCreateModal = false;
     showProveedorCreateModal = false;
     showPersonaCreateModal = false;
+    showFormaPagoCreateModal = false;
+    showCuentaCreateModal = false;
 
     constructor() {
         // Sincronizar visible con isVisible interno
@@ -315,26 +346,113 @@ export class GastoFormModalComponent {
         this.submitted.set(false);
     }
 
+    // Métodos de focus y dropdown click para cargar recientes
+    onConceptoFocus(event: any) {
+        if (!this.filteredConceptos().length) {
+            this.conceptoStore.getRecent(5)
+                .then((conceptos) => this.filteredConceptos.set(conceptos))
+                .catch((err) => console.error('Error:', err));
+        }
+    }
+
+    onConceptoDropdownClick(event: any) {
+        this.conceptoStore.getRecent(5)
+            .then((conceptos) => this.filteredConceptos.set(conceptos))
+            .catch((err) => console.error('Error:', err));
+    }
+
+    onCategoriaFocus(event: any) {
+        if (!this.filteredCategorias().length) {
+            this.categoriaStore.getRecent(5)
+                .then((categorias) => this.filteredCategorias.set(categorias))
+                .catch((err) => console.error('Error:', err));
+        }
+    }
+
+    onCategoriaDropdownClick(event: any) {
+        this.categoriaStore.getRecent(5)
+            .then((categorias) => this.filteredCategorias.set(categorias))
+            .catch((err) => console.error('Error:', err));
+    }
+
+    onProveedorFocus(event: any) {
+        if (!this.filteredProveedores().length) {
+            this.proveedorStore.getRecent(5)
+                .then((proveedores) => this.filteredProveedores.set(proveedores))
+                .catch((err) => console.error('Error:', err));
+        }
+    }
+
+    onProveedorDropdownClick(event: any) {
+        this.proveedorStore.getRecent(5)
+            .then((proveedores) => this.filteredProveedores.set(proveedores))
+            .catch((err) => console.error('Error:', err));
+    }
+
+    onPersonaFocus(event: any) {
+        if (!this.filteredPersonas().length) {
+            this.personaStore.getRecent(5)
+                .then((personas) => this.filteredPersonas.set(personas))
+                .catch((err) => console.error('Error:', err));
+        }
+    }
+
+    onPersonaDropdownClick(event: any) {
+        this.personaStore.getRecent(5)
+            .then((personas) => this.filteredPersonas.set(personas))
+            .catch((err) => console.error('Error:', err));
+    }
+
+    onCuentaFocus(event: any) {
+        if (!this.filteredCuentas().length) {
+            this.cuentaStore.getRecent(5)
+                .then((cuentas) => this.filteredCuentas.set(cuentas))
+                .catch((err) => console.error('Error:', err));
+        }
+    }
+
+    onCuentaDropdownClick(event: any) {
+        this.cuentaStore.getRecent(5)
+            .then((cuentas) => this.filteredCuentas.set(cuentas))
+            .catch((err) => console.error('Error:', err));
+    }
+
+    onFormaPagoFocus(event: any) {
+        if (!this.filteredFormasPago().length) {
+            this.formaPagoStore.getRecent(5)
+                .then((formasPago) => this.filteredFormasPago.set(formasPago))
+                .catch((err) => console.error('Error:', err));
+        }
+    }
+
+    onFormaPagoDropdownClick(event: any) {
+        this.formaPagoStore.getRecent(5)
+            .then((formasPago) => this.filteredFormasPago.set(formasPago))
+            .catch((err) => console.error('Error:', err));
+    }
+
     // Métodos de búsqueda asíncrona conectados con stores
     searchConceptos(event: AutoCompleteCompleteEvent) {
         const query = event.query;
 
         if (!query || query.length < 2) {
             // Mostrar conceptos recientes si la búsqueda está vacía
-            this.conceptoStore.getRecent(5).then(
-                (conceptos) => this.filteredConceptos.set(conceptos)
-            ).catch((err) => {
-                console.error('Error cargando conceptos recientes:', err);
-                this.filteredConceptos.set([]);
-            });
+            this.conceptoStore
+                .getRecent(5)
+                .then((conceptos) => this.filteredConceptos.set(conceptos))
+                .catch((err) => {
+                    console.error('Error cargando conceptos recientes:', err);
+                    this.filteredConceptos.set([]);
+                });
         } else {
             // Buscar conceptos por término
-            this.conceptoStore.search(query, 10).then(
-                (conceptos) => this.filteredConceptos.set(conceptos)
-            ).catch((err) => {
-                console.error('Error buscando conceptos:', err);
-                this.filteredConceptos.set([]);
-            });
+            this.conceptoStore
+                .search(query, 10)
+                .then((conceptos) => this.filteredConceptos.set(conceptos))
+                .catch((err) => {
+                    console.error('Error buscando conceptos:', err);
+                    this.filteredConceptos.set([]);
+                });
         }
     }
 
@@ -343,20 +461,22 @@ export class GastoFormModalComponent {
 
         if (!query || query.length < 2) {
             // Mostrar categorías recientes si la búsqueda está vacía
-            this.categoriaStore.getRecent(5).then(
-                (categorias) => this.filteredCategorias.set(categorias)
-            ).catch((err) => {
-                console.error('Error cargando categorías recientes:', err);
-                this.filteredCategorias.set([]);
-            });
+            this.categoriaStore
+                .getRecent(5)
+                .then((categorias) => this.filteredCategorias.set(categorias))
+                .catch((err) => {
+                    console.error('Error cargando categorías recientes:', err);
+                    this.filteredCategorias.set([]);
+                });
         } else {
             // Buscar categorías por término
-            this.categoriaStore.search(query, 10).then(
-                (categorias) => this.filteredCategorias.set(categorias)
-            ).catch((err) => {
-                console.error('Error buscando categorías:', err);
-                this.filteredCategorias.set([]);
-            });
+            this.categoriaStore
+                .search(query, 10)
+                .then((categorias) => this.filteredCategorias.set(categorias))
+                .catch((err) => {
+                    console.error('Error buscando categorías:', err);
+                    this.filteredCategorias.set([]);
+                });
         }
     }
 
@@ -365,20 +485,22 @@ export class GastoFormModalComponent {
 
         if (!query || query.length < 2) {
             // Mostrar proveedores recientes si la búsqueda está vacía
-            this.proveedorStore.getRecent(5).then(
-                (proveedores) => this.filteredProveedores.set(proveedores)
-            ).catch((err) => {
-                console.error('Error cargando proveedores recientes:', err);
-                this.filteredProveedores.set([]);
-            });
+            this.proveedorStore
+                .getRecent(5)
+                .then((proveedores) => this.filteredProveedores.set(proveedores))
+                .catch((err) => {
+                    console.error('Error cargando proveedores recientes:', err);
+                    this.filteredProveedores.set([]);
+                });
         } else {
             // Buscar proveedores por término
-            this.proveedorStore.search(query, 10).then(
-                (proveedores) => this.filteredProveedores.set(proveedores)
-            ).catch((err) => {
-                console.error('Error buscando proveedores:', err);
-                this.filteredProveedores.set([]);
-            });
+            this.proveedorStore
+                .search(query, 10)
+                .then((proveedores) => this.filteredProveedores.set(proveedores))
+                .catch((err) => {
+                    console.error('Error buscando proveedores:', err);
+                    this.filteredProveedores.set([]);
+                });
         }
     }
 
@@ -387,20 +509,22 @@ export class GastoFormModalComponent {
 
         if (!query || query.length < 2) {
             // Mostrar personas recientes si la búsqueda está vacía
-            this.personaStore.getRecent(5).then(
-                (personas) => this.filteredPersonas.set(personas)
-            ).catch((err) => {
-                console.error('Error cargando personas recientes:', err);
-                this.filteredPersonas.set([]);
-            });
+            this.personaStore
+                .getRecent(5)
+                .then((personas) => this.filteredPersonas.set(personas))
+                .catch((err) => {
+                    console.error('Error cargando personas recientes:', err);
+                    this.filteredPersonas.set([]);
+                });
         } else {
             // Buscar personas por término
-            this.personaStore.search(query, 10).then(
-                (personas) => this.filteredPersonas.set(personas)
-            ).catch((err) => {
-                console.error('Error buscando personas:', err);
-                this.filteredPersonas.set([]);
-            });
+            this.personaStore
+                .search(query, 10)
+                .then((personas) => this.filteredPersonas.set(personas))
+                .catch((err) => {
+                    console.error('Error buscando personas:', err);
+                    this.filteredPersonas.set([]);
+                });
         }
     }
 
@@ -409,20 +533,22 @@ export class GastoFormModalComponent {
 
         if (!query || query.length < 2) {
             // Mostrar cuentas recientes si la búsqueda está vacía
-            this.cuentaStore.getRecent(5).then(
-                (cuentas) => this.filteredCuentas.set(cuentas)
-            ).catch((err) => {
-                console.error('Error cargando cuentas recientes:', err);
-                this.filteredCuentas.set([]);
-            });
+            this.cuentaStore
+                .getRecent(5)
+                .then((cuentas) => this.filteredCuentas.set(cuentas))
+                .catch((err) => {
+                    console.error('Error cargando cuentas recientes:', err);
+                    this.filteredCuentas.set([]);
+                });
         } else {
             // Buscar cuentas por término
-            this.cuentaStore.search(query, 10).then(
-                (cuentas) => this.filteredCuentas.set(cuentas)
-            ).catch((err) => {
-                console.error('Error buscando cuentas:', err);
-                this.filteredCuentas.set([]);
-            });
+            this.cuentaStore
+                .search(query, 10)
+                .then((cuentas) => this.filteredCuentas.set(cuentas))
+                .catch((err) => {
+                    console.error('Error buscando cuentas:', err);
+                    this.filteredCuentas.set([]);
+                });
         }
     }
 
@@ -431,20 +557,22 @@ export class GastoFormModalComponent {
 
         if (!query || query.length < 2) {
             // Mostrar formas de pago recientes si la búsqueda está vacía
-            this.formaPagoStore.getRecent(5).then(
-                (formasPago) => this.filteredFormasPago.set(formasPago)
-            ).catch((err) => {
-                console.error('Error cargando formas de pago recientes:', err);
-                this.filteredFormasPago.set([]);
-            });
+            this.formaPagoStore
+                .getRecent(5)
+                .then((formasPago) => this.filteredFormasPago.set(formasPago))
+                .catch((err) => {
+                    console.error('Error cargando formas de pago recientes:', err);
+                    this.filteredFormasPago.set([]);
+                });
         } else {
             // Buscar formas de pago por término
-            this.formaPagoStore.search(query, 10).then(
-                (formasPago) => this.filteredFormasPago.set(formasPago)
-            ).catch((err) => {
-                console.error('Error buscando formas de pago:', err);
-                this.filteredFormasPago.set([]);
-            });
+            this.formaPagoStore
+                .search(query, 10)
+                .then((formasPago) => this.filteredFormasPago.set(formasPago))
+                .catch((err) => {
+                    console.error('Error buscando formas de pago:', err);
+                    this.filteredFormasPago.set([]);
+                });
         }
     }
 
@@ -496,44 +624,105 @@ export class GastoFormModalComponent {
         this.showPersonaCreateModal = true;
     }
 
+    openCreateFormaPago() {
+        this.showFormaPagoCreateModal = true;
+    }
+
+    openCreateCuenta() {
+        this.showCuentaCreateModal = true;
+    }
+
     // Handlers cuando se crea un nuevo item
-    onConceptoCreated() {
-        // El modal de concepto devuelve solo el ID
-        // Necesitamos hacer fetch del concepto completo o construirlo con el nombre ingresado
-        // Por ahora, marcamos que se debe seleccionar manualmente o refrescar la lista
+    onConceptoCreated(nuevoConcepto: Concepto) {
         this.showConceptoCreateModal = false;
+        
+        // Convertir a CatalogItem para el autocomplete
+        const conceptoItem: CatalogItem = {
+            id: nuevoConcepto.id,
+            nombre: nuevoConcepto.nombre,
+        };
+        
+        // Seleccionar automáticamente el concepto recién creado
+        this.selectedConcepto = conceptoItem;
+        this.formData.conceptoId = conceptoItem.id;
+        this.formData.conceptoNombre = conceptoItem.nombre;
+        
+        // Añadir a la lista de filtrados para que aparezca en el autocomplete
+        this.filteredConceptos.set([conceptoItem, ...this.filteredConceptos()]);
+        
         this.messageService.add({
             severity: 'success',
             summary: 'Concepto creado',
-            detail: 'Concepto creado exitosamente. Por favor seléccionelo de la lista.'
+            detail: `Concepto "${nuevoConcepto.nombre}" creado y seleccionado correctamente`
         });
     }
 
     onCategoriaCreated(nuevaCategoria: Categoria) {
+        this.showCategoriaCreateModal = false;
+        
         // Seleccionar automáticamente la categoría recién creada
-        this.selectedCategoria = nuevaCategoria;
+        this.selectedCategoria = {
+            id: nuevaCategoria.id,
+            nombre: nuevaCategoria.nombre
+        };
         this.formData.categoriaId = nuevaCategoria.id;
         this.formData.categoriaNombre = nuevaCategoria.nombre;
-        this.showCategoriaCreateModal = false;
-    }
-
-    onProveedorCreated() {
-        // El modal de persona devuelve solo el ID
-        this.showProveedorCreateModal = false;
+        
+        // Añadir a la lista de filtrados
+        this.filteredCategorias.set([this.selectedCategoria, ...this.filteredCategorias()]);
+        
         this.messageService.add({
             severity: 'success',
-            summary: 'Proveedor creado',
-            detail: 'Proveedor creado exitosamente. Por favor selecciónelo de la lista.'
+            summary: 'Categoría creada',
+            detail: `Categoría "${nuevaCategoria.nombre}" creada y seleccionada correctamente`
         });
     }
 
-    onPersonaCreated() {
-        // El modal de persona devuelve solo el ID
+    onProveedorCreated(nuevoProveedor: Proveedor) {
+        this.showProveedorCreateModal = false;
+        
+        // Convertir a CatalogItem para el autocomplete
+        const proveedorItem: CatalogItem = {
+            id: nuevoProveedor.id,
+            nombre: nuevoProveedor.nombre
+        };
+        
+        // Seleccionar automáticamente el proveedor recién creado
+        this.selectedProveedor = proveedorItem;
+        this.formData.proveedorId = proveedorItem.id;
+        this.formData.proveedorNombre = proveedorItem.nombre;
+        
+        // Añadir a la lista de filtrados
+        this.filteredProveedores.set([proveedorItem, ...this.filteredProveedores()]);
+        
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Proveedor creado',
+            detail: `Proveedor "${nuevoProveedor.nombre}" creado y seleccionado correctamente`
+        });
+    }
+
+    onPersonaCreated(nuevaPersona: Persona) {
         this.showPersonaCreateModal = false;
+        
+        // Convertir a CatalogItem para el autocomplete
+        const personaItem: CatalogItem = {
+            id: nuevaPersona.id,
+            nombre: nuevaPersona.nombre
+        };
+        
+        // Seleccionar automáticamente la persona recién creada
+        this.selectedPersona = personaItem;
+        this.formData.personaId = personaItem.id;
+        this.formData.personaNombre = personaItem.nombre;
+        
+        // Añadir a la lista de filtrados
+        this.filteredPersonas.set([personaItem, ...this.filteredPersonas()]);
+        
         this.messageService.add({
             severity: 'success',
             summary: 'Persona creada',
-            detail: 'Persona creada exitosamente. Por favor seléccionela de la lista.'
+            detail: `Persona "${nuevaPersona.nombre}" creada y seleccionada correctamente`
         });
     }
 
