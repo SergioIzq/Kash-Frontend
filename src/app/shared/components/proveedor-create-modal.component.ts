@@ -6,7 +6,8 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
-import { ProveedorService, ProveedorItem } from '@/core/services/api/proveedor.service';
+import { ProveedorService } from '@/core/services/api/proveedor.service';
+import { Proveedor } from '@/core/models/proveedor.model';
 
 @Component({
     selector: 'app-proveedor-create-modal',
@@ -63,7 +64,7 @@ export class ProveedorCreateModalComponent {
     // Inputs/Outputs
     visible = input<boolean>(false);
     visibleChange = output<boolean>();
-    created = output<ProveedorItem>();
+    created = output<Proveedor>();
     cancel = output<void>();
 
     // Estado del formulario
@@ -117,11 +118,11 @@ export class ProveedorCreateModalComponent {
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Éxito',
-                    detail: `Proveedor "${nuevoProveedor.nombre}" creado correctamente`,
+                    detail: `Proveedor creado correctamente`,
                     life: 3000
                 });
 
-                this.created.emit(nuevoProveedor);
+                // this.created.emit(nuevoProveedor);
                 this.closeModal();
             },
             error: (error) => {

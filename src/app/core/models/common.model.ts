@@ -28,12 +28,6 @@ export interface PaginatedList<T> {
     hasPreviousPage: boolean; // Opcional
 }
 
-// Para listas simples sin paginación (ej. Dropdowns)
-export interface ListData<T> {
-    items: T[];
-    count: number;
-}
-
 // Define la estructura del error que viene en el JSON
 export interface ApiError {
     code: string;

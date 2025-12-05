@@ -6,7 +6,7 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
-import { PersonaService, PersonaItem } from '@/core/services/api/persona.service';
+import { PersonaService } from '@/core/services/api/persona.service';
 
 @Component({
     selector: 'app-persona-create-modal',
@@ -114,7 +114,7 @@ export class PersonaCreateModalComponent {
                     detail: `Persona "${this.nombre.trim()}" creada correctamente`,
                     life: 3000
                 });
-                this.created.emit(nuevaPersona);
+                // this.created.emit(nuevaPersona);
                 this.closeModal();
             },
             error: (error) => {

@@ -26,38 +26,34 @@ export class AuthService {
         return this.http.get<Result<string>>(`${this.apiUrl}/confirmar-correo?token=${token}`).pipe(map((res) => res.value));
     }
 
-    resendConfirmation(email: string): Observable<void> {
-        return this.http.post<Result<void>>(`${this.apiUrl}/resend-confirmation`, { correo: email }).pipe(map(() => undefined));
+    resendConfirmation(correo: string): Observable<void> {
+        return this.http.post<Result<void>>(`${this.apiUrl}/resend-confirmation`, { correo: correo }).pipe(map(() => undefined));
     }
 
-    forgotPassword(email: string): Observable<string> {
-        return this.http
-            .post<Result<string>>(`${this.apiUrl}/forgot-password`, { email }, { observe: 'response' })
-            .pipe(
-                map((response) => {
-                    // Si es 204, no hay body
-                    if (response.status === 204) {
-                        return 'Correo de recuperación enviado correctamente';
-                    }
-                    // Si hay body, extraer el valor
-                    return response.body?.value || 'Correo de recuperación enviado correctamente';
-                })
-            );
+    forgotPassword(correo: string): Observable<string> {
+        return this.http.post<Result<string>>(`${this.apiUrl}/forgot-password`, { correo }, { observe: 'response' }).pipe(
+            map((response) => {
+                // Si es 204, no hay body
+                if (response.status === 204) {
+                    return 'Correo de recuperación enviado correctamente';
+                }
+                // Si hay body, extraer el valor
+                return response.body?.value || 'Correo de recuperación enviado correctamente';
+            })
+        );
     }
 
-    resetPassword(email: string, token: string, newPassword: string): Observable<string> {
-        return this.http
-            .post<Result<string>>(`${this.apiUrl}/reset-password`, { email, token, newPassword }, { observe: 'response' })
-            .pipe(
-                map((response) => {
-                    // Si es 204, no hay body
-                    if (response.status === 204) {
-                        return 'Contraseña restablecida correctamente';
-                    }
-                    // Si hay body, extraer el valor
-                    return response.body?.value || 'Contraseña restablecida correctamente';
-                })
-            );
+    resetPassword(correo: string, token: string, newPassword: string): Observable<string> {
+        return this.http.post<Result<string>>(`${this.apiUrl}/reset-password`, { correo, token, newPassword }, { observe: 'response' }).pipe(
+            map((response) => {
+                // Si es 204, no hay body
+                if (response.status === 204) {
+                    return 'Contraseña restablecida correctamente';
+                }
+                // Si hay body, extraer el valor
+                return response.body?.value || 'Contraseña restablecida correctamente';
+            })
+        );
     }
 
     logout(): Observable<void> {
@@ -90,10 +86,11 @@ export class AuthService {
                     const data = res.value;
                     const user: Usuario = {
                         id: data.id || data.Id,
-                        email: data.email || data.Email || data.correo || data.Correo,
+                        correo: data.correo || data.correo || data.correo || data.Correo,
                         nombre: data.nombre || data.Nombre,
                         apellidos: data.apellidos || data.Apellidos,
-                        rol: data.rol || data.Rol
+                        rol: data.rol || data.Rol,
+                        avatar: data.avatar || data.Avatar || null
                     };
 
                     this.setUser(user);
@@ -130,5 +127,12 @@ export class AuthService {
 
     updateProfile(data: { nombre: string; apellido?: string }): Observable<void> {
         return this.http.put<Result<void>>(`${this.apiUrl}/profile`, data).pipe(map(() => undefined));
+    }
+
+    uploadAvatar(file: File): Observable<string> {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        return this.http.post<Result<string>>(`${this.apiUrl}/avatar`, formData).pipe(map((res) => res.value));
     }
 }

@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
-import { Result, ListData } from '@/core/models/common.model';
+import { Result } from '@/core/models/common.model';
 
 export interface ClienteItem {
     id: string;
@@ -26,8 +26,8 @@ export class ClienteService {
             .set('searchTerm', searchTerm)
             .set('limit', limit.toString());
 
-        return this.http.get<Result<ListData<ClienteItem>>>(`${this.apiUrl}/search`, { params })
-            .pipe(map(response => response.value.items));
+        return this.http.get<Result<ClienteItem[]>>(`${this.apiUrl}/search`, { params })
+            .pipe(map(response => response.value));
     }
 
     /**
@@ -37,8 +37,8 @@ export class ClienteService {
         let params = new HttpParams()
             .set('limit', limit.toString());
 
-        return this.http.get<Result<ListData<ClienteItem>>>(`${this.apiUrl}/recent`, { params })
-            .pipe(map(response => response.value.items));
+        return this.http.get<Result<ClienteItem[]>>(`${this.apiUrl}/recent`, { params })
+            .pipe(map(response => response.value));
     }
 
     /**

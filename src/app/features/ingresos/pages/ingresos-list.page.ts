@@ -13,11 +13,10 @@ import { TagModule } from 'primeng/tag';
 import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { SkeletonModule } from 'primeng/skeleton';
-import { MessageService, ConfirmationService } from 'primeng/api';
 import { IngresosStore } from '../stores/ingresos.store';
 import { Ingreso } from '@/core/models';
 import { IngresoFormModalComponent } from '../components/ingreso-form-modal.component';
-import { BasePageComponent } from '@/shared/components/base-page.component';
+import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
 
 @Component({
     selector: 'app-ingresos-list-page',
@@ -35,11 +34,12 @@ import { BasePageComponent } from '@/shared/components/base-page.component';
         InputIconModule,
         IconFieldModule,
         SkeletonModule,
-        IngresoFormModalComponent
+        IngresoFormModalComponent,
+        BasePageTemplateComponent
     ],
-    providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
+        <app-base-page-template [loading]="ingresosStore.loading() && ingresosStore.ingresos().length === 0" [skeletonType]="'table'">
         <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
             <div class="surface-card shadow-2 border-round p-6">
                 <p-toast></p-toast>
@@ -225,10 +225,14 @@ import { BasePageComponent } from '@/shared/components/base-page.component';
                 <p-confirmdialog [style]="{ width: '450px' }" />
             </div>
         </div>
+        </app-base-page-template>
     `
 })
 export class IngresosListPage extends BasePageComponent implements OnDestroy {
     ingresosStore: InstanceType<typeof IngresosStore> = inject(IngresosStore);
+
+    protected override loadingSignal = this.ingresosStore.loading;
+    protected override skeletonType = 'table' as const;
 
     @ViewChild('dt') dt!: Table;
 

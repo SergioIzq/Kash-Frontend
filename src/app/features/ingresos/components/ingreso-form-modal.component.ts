@@ -10,16 +10,17 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { MessageService } from 'primeng/api';
 import { Ingreso } from '@/core/models';
-import { ConceptoService, ConceptoItem } from '@/core/services/api/concepto.service';
-import { CategoriaService, CategoriaItem } from '@/core/services/api/categoria.service';
+import { ConceptoService } from '@/core/services/api/concepto.service';
+import { CategoriaService } from '@/core/services/api/categoria.service';
 import { ClienteService, ClienteItem } from '@/core/services/api/cliente.service';
-import { PersonaService, PersonaItem } from '@/core/services/api/persona.service';
+import { PersonaService } from '@/core/services/api/persona.service';
 import { 
     ConceptoCreateModalComponent,
     CategoriaCreateModalComponent,
     ClienteCreateModalComponent,
     PersonaCreateModalComponent
 } from '@/shared/components';
+import { Categoria } from '@/core/models/categoria.model';
 
 interface CatalogItem {
     id: string;
@@ -356,13 +357,13 @@ export class IngresoFormModalComponent {
         if (!query || query.length < 2) {
             // Mostrar conceptos recientes si la búsqueda está vacía
             this.conceptoService.getRecent(5).subscribe({
-                next: (conceptos) => this.filteredConceptos.set(conceptos),
+                next: (conceptos) => this.filteredConceptos.set(conceptos.value),
                 error: (err) => console.error('Error cargando conceptos recientes:', err)
             });
         } else {
             // Buscar conceptos por término
             this.conceptoService.search(query, 10).subscribe({
-                next: (conceptos) => this.filteredConceptos.set(conceptos),
+                next: (conceptos) => this.filteredConceptos.set(conceptos.value),
                 error: (err) => console.error('Error buscando conceptos:', err)
             });
         }
@@ -374,13 +375,13 @@ export class IngresoFormModalComponent {
         if (!query || query.length < 2) {
             // Mostrar categorías recientes si la búsqueda está vacía
             this.categoriaService.getRecent( 5).subscribe({
-                next: (categorias) => this.filteredCategorias.set(categorias),
+                next: (categorias) => this.filteredCategorias.set(categorias.value),
                 error: (err) => console.error('Error cargando categorías recientes:', err)
             });
         } else {
             // Buscar categorías por término
             this.categoriaService.search(query, 10).subscribe({
-                next: (categorias) => this.filteredCategorias.set(categorias),
+                next: (categorias) => this.filteredCategorias.set(categorias.value),
                 error: (err) => console.error('Error buscando categorías:', err)
             });
         }
@@ -410,13 +411,13 @@ export class IngresoFormModalComponent {
         if (!query || query.length < 2) {
             // Mostrar personas recientes si la búsqueda está vacía
             this.personaService.getRecent(5).subscribe({
-                next: (personas) => this.filteredPersonas.set(personas),
+                next: (personas) => this.filteredPersonas.set(personas.value),
                 error: (err) => console.error('Error cargando personas recientes:', err)
             });
         } else {
             // Buscar personas por término
             this.personaService.search(query, 10).subscribe({
-                next: (personas) => this.filteredPersonas.set(personas),
+                next: (personas) => this.filteredPersonas.set(personas.value),
                 error: (err) => console.error('Error buscando personas:', err)
             });
         }
@@ -471,7 +472,7 @@ export class IngresoFormModalComponent {
         });
     }
 
-    onCategoriaCreated(nuevaCategoria: CategoriaItem) {
+    onCategoriaCreated(nuevaCategoria: Categoria) {
         // Seleccionar automáticamente la categoría recién creada
         this.selectedCategoria = nuevaCategoria;
         this.formData.categoriaId = nuevaCategoria.id;

@@ -6,7 +6,8 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
-import { CategoriaService, CategoriaItem } from '@/core/services/api/categoria.service';
+import { CategoriaService } from '@/core/services/api/categoria.service';
+import { Categoria } from '@/core/models/categoria.model';
 
 @Component({
     selector: 'app-categoria-create-modal',
@@ -64,7 +65,7 @@ export class CategoriaCreateModalComponent {
     visible = input<boolean>(false);
     placeholder = input<string>('Ej: Alimentación');
     visibleChange = output<boolean>();
-    created = output<CategoriaItem>();
+    created = output<Categoria>();
     cancel = output<void>();
 
     // Estado del formulario
@@ -118,11 +119,11 @@ export class CategoriaCreateModalComponent {
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Éxito',
-                    detail: `Categoría "${nuevaCategoria.nombre}" creada correctamente`,
+                    detail: `Categoría creada correctamente`,
                     life: 3000
                 });
 
-                this.created.emit(nuevaCategoria);
+                // this.created.emit(nuevaCategoria);
                 this.closeModal();
             },
             error: (error) => {
