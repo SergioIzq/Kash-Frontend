@@ -7,14 +7,15 @@ import { AuthStore } from '../../../core/stores/auth.store';
 import { ResumenFinancieroComponent } from '../components/resumen-financiero/resumen-financiero.component';
 import { GastosChartComponent } from '../components/gastos-chart/gastos-chart.component';
 import { IngresosChartComponent } from '../components/ingresos-chart/ingresos-chart.component';
+import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
 
 @Component({
     selector: 'app-dashboard-page',
     standalone: true,
-    imports: [CommonModule, RouterModule, ButtonModule, ResumenFinancieroComponent, GastosChartComponent, IngresosChartComponent],
+    imports: [CommonModule, RouterModule, ButtonModule, ResumenFinancieroComponent, GastosChartComponent, IngresosChartComponent, BasePageTemplateComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <div class="surface-ground px-4 py-5 md:px-6 lg:px-8">
+        <app-base-page-template [loading]="dashboardStore.loading()" [skeletonType]="'card'">
             <!-- Header -->
             <div class="card flex items-center justify-between flex-wrap gap-3 mb-5">
                 <div>
@@ -22,13 +23,7 @@ import { IngresosChartComponent } from '../components/ingresos-chart/ingresos-ch
                     <p class="text-600 text-lg m-0">Bienvenido, {{ authStore.userName() || 'Usuario' }}</p>
                 </div>
                 <div>
-                    <p-button 
-                        label="Actualizar" 
-                        icon="pi pi-refresh" 
-                        severity="info"
-                        [loading]="dashboardStore.loading()" 
-                        (click)="dashboardStore.refresh()">
-                    </p-button>
+                    <p-button label="Actualizar" icon="pi pi-refresh" severity="info" [loading]="dashboardStore.loading()" (click)="dashboardStore.refresh()"> </p-button>
                 </div>
             </div>
 
@@ -84,36 +79,19 @@ import { IngresosChartComponent } from '../components/ingresos-chart/ingresos-ch
             <div class="card shadow-2 border-round p-4 mt-4">
                 <h5 class="text-900 font-semibold text-xl mb-4">Acciones Rápidas</h5>
                 <div class="flex flex-wrap gap-3">
-                    <p-button 
-                        label="Nuevo Gasto" 
-                        icon="pi pi-plus" 
-                        severity="danger" 
-                        [routerLink]="['/gastos']">
-                    </p-button>
-                    <p-button 
-                        label="Nuevo Ingreso" 
-                        icon="pi pi-plus" 
-                        severity="success" 
-                        [routerLink]="['/ingresos']">
-                    </p-button>
-                    <p-button 
-                        label="Ver Gastos" 
-                        icon="pi pi-list" 
-                        [outlined]="true" 
-                        [routerLink]="['/gastos']">
-                    </p-button>
-                    <p-button 
-                        label="Ver Ingresos" 
-                        icon="pi pi-list" 
-                        [outlined]="true" 
-                        [routerLink]="['/ingresos']">
-                    </p-button>
+                    <p-button label="Nuevo Gasto" icon="pi pi-plus" severity="danger" [routerLink]="['/gastos']"> </p-button>
+                    <p-button label="Nuevo Ingreso" icon="pi pi-plus" severity="success" [routerLink]="['/ingresos']"> </p-button>
+                    <p-button label="Ver Gastos" icon="pi pi-list" [outlined]="true" [routerLink]="['/gastos']"> </p-button>
+                    <p-button label="Ver Ingresos" icon="pi pi-list" [outlined]="true" [routerLink]="['/ingresos']"> </p-button>
                 </div>
             </div>
-        </div>
+        </app-base-page-template>
     `
 })
-export class DashboardPage {
+export class DashboardPage extends BasePageComponent {
     dashboardStore = inject(DashboardStore);
     authStore = inject(AuthStore);
+
+    protected override loadingSignal = this.dashboardStore.loading;
+    protected override skeletonType = 'card' as const;
 }

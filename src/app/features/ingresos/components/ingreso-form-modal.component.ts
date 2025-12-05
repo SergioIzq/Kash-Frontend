@@ -10,7 +10,7 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { MessageService } from 'primeng/api';
 import { Ingreso } from '@/core/models';
-import { ConceptoService, ConceptoItem } from '@/core/services/api/concepto.service';
+import { ConceptoService, Concepto } from '@/core/services/api/concepto.service';
 import { CategoriaService, CategoriaItem } from '@/core/services/api/categoria.service';
 import { ClienteService, ClienteItem } from '@/core/services/api/cliente.service';
 import { PersonaService, PersonaItem } from '@/core/services/api/persona.service';

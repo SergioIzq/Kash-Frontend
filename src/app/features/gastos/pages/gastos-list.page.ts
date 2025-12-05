@@ -13,11 +13,10 @@ import { TagModule } from 'primeng/tag';
 import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { SkeletonModule } from 'primeng/skeleton';
-import { MessageService, ConfirmationService } from 'primeng/api';
 import { GastosStore } from '../stores/gastos.store';
 import { Gasto } from '@/core/models';
 import { GastoFormModalComponent } from '../components/gasto-form-modal.component';
-import { BasePageComponent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
 
 @Component({
     selector: 'app-gastos-list-page',
@@ -35,11 +34,12 @@ import { BasePageComponent } from '@/shared/components';
         InputIconModule,
         IconFieldModule,
         SkeletonModule,
-        GastoFormModalComponent
+        GastoFormModalComponent,
+        BasePageTemplateComponent
     ],
-    providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
+        <app-base-page-template [loading]="gastosStore.loading() && gastosStore.gastos().length === 0" [skeletonType]="'table'">
         <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
             <div class="surface-card shadow-2 border-round p-6">
                 <p-toast></p-toast>
@@ -225,10 +225,14 @@ import { BasePageComponent } from '@/shared/components';
                 <p-confirmdialog [style]="{ width: '450px' }" />
             </div>
         </div>
+        </app-base-page-template>
     `
 })
 export class GastosListPage extends BasePageComponent implements OnDestroy {
     gastosStore = inject(GastosStore);
+
+    protected override loadingSignal = this.gastosStore.loading;
+    protected override skeletonType = 'table' as const;
 
     @ViewChild('dt') dt!: Table;
 

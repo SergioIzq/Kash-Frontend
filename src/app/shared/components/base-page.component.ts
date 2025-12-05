@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, Signal } from '@angular/core';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { Observable, lastValueFrom } from 'rxjs';
 
@@ -7,14 +7,28 @@ import { Observable, lastValueFrom } from 'rxjs';
  * - Toasts (mensajes de éxito/error)
  * - Confirmaciones
  * - Manejo automático de respuestas del servidor
+ * - Skeleton loader con signal de loading
  */
 @Component({
     template: '',
-    standalone: true
+    standalone: true,
+    providers: [MessageService, ConfirmationService]
 })
 export abstract class BasePageComponent {
     protected messageService = inject(MessageService);
-    protected confirmationService = inject(ConfirmationService, { optional: true });
+    protected confirmationService = inject(ConfirmationService);
+
+    /**
+     * Signal de loading del store - puede ser implementado opcionalmente por la clase hija
+     * Ejemplo: protected loadingSignal = this.authStore.loading;
+     */
+    protected loadingSignal?: Signal<boolean>;
+
+    /**
+     * Tipo de skeleton a mostrar cuando está cargando
+     * Por defecto 'form', puede ser: 'profile' | 'form' | 'table' | 'card'
+     */
+    protected skeletonType: 'profile' | 'form' | 'table' | 'card' = 'form';
 
     /**
      * Ejecuta una operación asíncrona mostrando toast de éxito o error según el resultado

@@ -99,23 +99,6 @@ export const DashboardStore = signalStore(
                 }
             });
         },
-        loadHistorico: rxMethod<number>(
-            pipe(
-                tap(() => patchState(store, { loading: true, error: null })),
-                switchMap((meses) =>
-                    dashboardService.getHistorico(meses).pipe(
-                        tapResponse({
-                            next: (historico) => {
-                                patchState(store, { historico, loading: false });
-                            },
-                            error: (error: any) => {
-                                patchState(store, { loading: false, error: error?.message || 'Error al cargar el histórico' });
-                            }
-                        })
-                    )
-                )
-            )
-        ),
         clearError() {
             patchState(store, { error: null });
         }

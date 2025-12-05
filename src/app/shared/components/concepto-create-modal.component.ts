@@ -7,8 +7,9 @@ import { InputTextModule } from 'primeng/inputtext';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
-import { ConceptoService, ConceptoItem } from '@/core/services/api/concepto.service';
-import { CategoriaService, CategoriaItem } from '@/core/services/api/categoria.service';
+import { CategoriaItem } from '@/core/services/api/categoria.service';
+import { ConceptoStore } from '@/shared/stores/concepto.store';
+import { CategoriaStore } from '@/shared/stores/categoria.store';
 
 @Component({
     selector: 'app-concepto-create-modal',
@@ -120,8 +121,8 @@ import { CategoriaService, CategoriaItem } from '@/core/services/api/categoria.s
 })
 export class ConceptoCreateModalComponent {
     private messageService = inject(MessageService);
-    private conceptoService = inject(ConceptoService);
-    private categoriaService = inject(CategoriaService);
+    private conceptoStore = inject(ConceptoStore);
+    private categoriaStore = inject(CategoriaStore);
     private confirmationService = inject(ConfirmationService);
 
     // Inputs/Outputs
@@ -171,14 +172,19 @@ export class ConceptoCreateModalComponent {
             return;
         }
 
-        this.categoriaService.search(query, 10).subscribe({
-            next: (categorias) => {
+        this.categoriaStore.search(query, 10).then(
+            (categorias) => {
                 this.categoriasSugeridas.set(categorias);
-            },
-            error: (error) => {
-                console.error('Error buscando categorías:', error);
-                this.categoriasSugeridas.set([]);
             }
+        ).catch((error) => {
+            console.error('Error buscando categorías:', error);
+            this.categoriasSugeridas.set([]);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: error.message || 'Error al buscar categorías',
+                life: 5000
+            });
         });
     }
 
@@ -196,8 +202,8 @@ export class ConceptoCreateModalComponent {
             return;
         }
 
-        this.categoriaService.create(nombreCategoria).subscribe({
-            next: (nuevaCategoria) => {
+        this.categoriaStore.create(nombreCategoria).then(
+            (nuevaCategoria) => {
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Éxito',
@@ -208,16 +214,15 @@ export class ConceptoCreateModalComponent {
                 this.selectedCategoria = nuevaCategoria;
                 this.categoriasSugeridas.set([nuevaCategoria, ...this.categoriasSugeridas()]);
                 this.categoriaSearchTerm.set('');
-            },
-            error: (error) => {
-                console.error('Error creando categoría:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: error.error?.message || 'Error al crear la categoría',
-                    life: 5000
-                });
             }
+        ).catch((error) => {
+            console.error('Error creando categoría:', error);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: error.message || 'Error al crear la categoría',
+                life: 5000
+            });
         });
     }
 
@@ -248,8 +253,8 @@ export class ConceptoCreateModalComponent {
     private confirmedCreate() {
         this.loading.set(true);
 
-        this.conceptoService.create(this.nombre.trim()).subscribe({
-            next: (nuevoConcepto) => {
+        this.conceptoStore.create(this.nombre.trim()).then(
+            (nuevoConcepto) => {
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Éxito',
@@ -259,12 +264,11 @@ export class ConceptoCreateModalComponent {
                 
                 this.created.emit(this.nombre.trim());
                 this.closeModal();
-            },
-            error: (error) => {
-                console.error('Error creando concepto:', error);
-                this.errorMessage.set(error.error?.message || 'Error al crear el concepto');
-                this.loading.set(false);
             }
+        ).catch((error) => {
+            console.error('Error creando concepto:', error);
+            this.errorMessage.set(error.message || 'Error al crear el concepto');
+            this.loading.set(false);
         });
     }
 

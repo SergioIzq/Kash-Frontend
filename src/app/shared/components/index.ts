@@ -1,5 +1,6 @@
 export * from './base-page.component';
 export * from './base-page-template.component';
+export * from './skeleton-loader.component';
 export * from './categoria-create-modal.component';
 export * from './cliente-create-modal.component';
 export * from './concepto-create-modal.component';
