@@ -14,7 +14,7 @@ import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { SkeletonModule } from 'primeng/skeleton';
 import { GastosStore } from '../stores/gastos.store';
-import { Gasto } from '@/core/models';
+import { Gasto, GastoCreate } from '@/core/models';
 import { GastoFormModalComponent } from '../components/gasto-form-modal.component';
 import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
 
@@ -337,8 +337,22 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
                 this.showError(error.userMessage || 'Error al actualizar el gasto');
             }
         } else {
-            // TODO: Implementar creación cuando el backend esté listo
-            this.showInfo('La creación de gastos estará disponible cuando se conecten los endpoints de catálogos', 'Próximamente');
+            var gastoCreate: GastoCreate = {
+                conceptoId: gasto.conceptoId!,
+                categoriaId: gasto.categoriaId!,
+                proveedorId: gasto.proveedorId!,
+                fecha: gasto.fecha!,
+                importe: gasto.importe!,
+                descripcion: gasto.descripcion,
+                formaPagoId: gasto.formaPagoId!,
+                personaId: gasto.personaId!,
+                cuentaId: gasto.cuentaId!
+            };
+
+            this.gastosStore.createGasto(gastoCreate).then(() => {
+                this.showSuccess('Gasto creado correctamente');
+                this.reloadGastos();
+            });
             this.gastoDialog = false;
             this.currentGasto = {};
         }

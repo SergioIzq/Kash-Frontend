@@ -13,7 +13,7 @@ import { Gasto } from '@/core/models';
 import { Proveedor } from '@/core/models/proveedor.model';
 import { ConceptoCreateModalComponent, CategoriaCreateModalComponent, ProveedorCreateModalComponent, PersonaCreateModalComponent } from '@/shared/components';
 import { Categoria } from '@/core/models/categoria.model';
-import { ConceptoStore, CategoriaStore, ProveedorStore, PersonaStore } from '@/shared/stores';
+import { ConceptoStore, CategoriaStore, ProveedorStore, PersonaStore, CuentaStore, FormaPagoStore } from '@/shared/stores';
 
 interface CatalogItem {
     id: string;
@@ -126,6 +126,44 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                         </div>
                     </div>
 
+                    <!-- Cuenta con Autocomplete -->
+                    <div>
+                        <label for="cuenta" class="block font-bold mb-3">Cuenta *</label>
+                        <p-autoComplete
+                            [(ngModel)]="selectedCuenta"
+                            [suggestions]="filteredCuentas()"
+                            (completeMethod)="searchCuentas($event)"
+                            optionLabel="nombre"
+                            [dropdown]="true"
+                            placeholder="Buscar o seleccionar cuenta"
+                            [forceSelection]="true"
+                            (onSelect)="onCuentaSelect($event)"
+                            fluid
+                        />
+                        @if (submitted() && !selectedCuenta) {
+                            <small class="text-red-500"> La cuenta es requerida. </small>
+                        }
+                    </div>
+
+                    <!-- Forma de Pago con Autocomplete -->
+                    <div>
+                        <label for="formaPago" class="block font-bold mb-3">Forma de Pago *</label>
+                        <p-autoComplete
+                            [(ngModel)]="selectedFormaPago"
+                            [suggestions]="filteredFormasPago()"
+                            (completeMethod)="searchFormasPago($event)"
+                            optionLabel="nombre"
+                            [dropdown]="true"
+                            placeholder="Buscar o seleccionar forma de pago"
+                            [forceSelection]="true"
+                            (onSelect)="onFormaPagoSelect($event)"
+                            fluid
+                        />
+                        @if (submitted() && !selectedFormaPago) {
+                            <small class="text-red-500"> La forma de pago es requerida. </small>
+                        }
+                    </div>
+
                     <!-- Importe -->
                     <div>
                         <label for="importe" class="block font-bold mb-3">Importe *</label>
@@ -180,6 +218,8 @@ export class GastoFormModalComponent {
     private categoriaStore = inject(CategoriaStore);
     private proveedorStore = inject(ProveedorStore);
     private personaStore = inject(PersonaStore);
+    private cuentaStore = inject(CuentaStore);
+    private formaPagoStore = inject(FormaPagoStore);
 
     // Inputs/Outputs
     visible = input<boolean>(false);
@@ -197,11 +237,15 @@ export class GastoFormModalComponent {
     selectedCategoria: CatalogItem | null = null;
     selectedProveedor: CatalogItem | null = null;
     selectedPersona: CatalogItem | null = null;
+    selectedCuenta: CatalogItem | null = null;
+    selectedFormaPago: CatalogItem | null = null;
 
     filteredConceptos = signal<CatalogItem[]>([]);
     filteredCategorias = signal<CatalogItem[]>([]);
     filteredProveedores = signal<CatalogItem[]>([]);
     filteredPersonas = signal<CatalogItem[]>([]);
+    filteredCuentas = signal<CatalogItem[]>([]);
+    filteredFormasPago = signal<CatalogItem[]>([]);
 
     // Control de modales inline
     showConceptoCreateModal = false;
@@ -248,6 +292,10 @@ export class GastoFormModalComponent {
             this.selectedProveedor = gastoData.proveedorId && gastoData.proveedorNombre ? { id: gastoData.proveedorId, nombre: gastoData.proveedorNombre } : null;
 
             this.selectedPersona = gastoData.personaId && gastoData.personaNombre ? { id: gastoData.personaId, nombre: gastoData.personaNombre } : null;
+
+            this.selectedCuenta = gastoData.cuentaId && gastoData.cuentaNombre ? { id: gastoData.cuentaId, nombre: gastoData.cuentaNombre } : null;
+
+            this.selectedFormaPago = gastoData.formaPagoId && gastoData.formaPagoNombre ? { id: gastoData.formaPagoId, nombre: gastoData.formaPagoNombre } : null;
         } else {
             // Modo creación
             this.isEditMode.set(false);
@@ -260,6 +308,8 @@ export class GastoFormModalComponent {
             this.selectedCategoria = null;
             this.selectedProveedor = null;
             this.selectedPersona = null;
+            this.selectedCuenta = null;
+            this.selectedFormaPago = null;
         }
 
         this.submitted.set(false);
@@ -354,6 +404,50 @@ export class GastoFormModalComponent {
         }
     }
 
+    searchCuentas(event: AutoCompleteCompleteEvent) {
+        const query = event.query;
+
+        if (!query || query.length < 2) {
+            // Mostrar cuentas recientes si la búsqueda está vacía
+            this.cuentaStore.getRecent(5).then(
+                (cuentas) => this.filteredCuentas.set(cuentas)
+            ).catch((err) => {
+                console.error('Error cargando cuentas recientes:', err);
+                this.filteredCuentas.set([]);
+            });
+        } else {
+            // Buscar cuentas por término
+            this.cuentaStore.search(query, 10).then(
+                (cuentas) => this.filteredCuentas.set(cuentas)
+            ).catch((err) => {
+                console.error('Error buscando cuentas:', err);
+                this.filteredCuentas.set([]);
+            });
+        }
+    }
+
+    searchFormasPago(event: AutoCompleteCompleteEvent) {
+        const query = event.query;
+
+        if (!query || query.length < 2) {
+            // Mostrar formas de pago recientes si la búsqueda está vacía
+            this.formaPagoStore.getRecent(5).then(
+                (formasPago) => this.filteredFormasPago.set(formasPago)
+            ).catch((err) => {
+                console.error('Error cargando formas de pago recientes:', err);
+                this.filteredFormasPago.set([]);
+            });
+        } else {
+            // Buscar formas de pago por término
+            this.formaPagoStore.search(query, 10).then(
+                (formasPago) => this.filteredFormasPago.set(formasPago)
+            ).catch((err) => {
+                console.error('Error buscando formas de pago:', err);
+                this.filteredFormasPago.set([]);
+            });
+        }
+    }
+
     // Eventos de selección
     onConceptoSelect(event: any) {
         this.formData.conceptoId = event.id;
@@ -373,6 +467,16 @@ export class GastoFormModalComponent {
     onPersonaSelect(event: any) {
         this.formData.personaId = event.id;
         this.formData.personaNombre = event.nombre;
+    }
+
+    onCuentaSelect(event: any) {
+        this.formData.cuentaId = event.id;
+        this.formData.cuentaNombre = event.nombre;
+    }
+
+    onFormaPagoSelect(event: any) {
+        this.formData.formaPagoId = event.id;
+        this.formData.formaPagoNombre = event.nombre;
     }
 
     // Abrir modales de creación inline
@@ -437,11 +541,11 @@ export class GastoFormModalComponent {
         this.submitted.set(true);
 
         // Validaciones
-        if (!this.selectedConcepto || !this.formData.importe || this.formData.importe <= 0) {
+        if (!this.selectedConcepto || !this.formData.importe || this.formData.importe <= 0 || !this.selectedCuenta || !this.selectedFormaPago) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Advertencia',
-                detail: 'Por favor complete los campos requeridos'
+                detail: 'Por favor complete los campos requeridos (Concepto, Importe, Cuenta y Forma de Pago)'
             });
             return;
         }
@@ -457,6 +561,10 @@ export class GastoFormModalComponent {
             proveedorNombre: this.selectedProveedor?.nombre || '',
             personaId: this.selectedPersona?.id || '',
             personaNombre: this.selectedPersona?.nombre || '',
+            cuentaId: this.selectedCuenta.id,
+            cuentaNombre: this.selectedCuenta.nombre,
+            formaPagoId: this.selectedFormaPago.id,
+            formaPagoNombre: this.selectedFormaPago.nombre,
             fecha: typeof this.formData.fecha === 'string' ? this.formData.fecha : new Date(this.formData.fecha!).toISOString().split('T')[0]
         };
 

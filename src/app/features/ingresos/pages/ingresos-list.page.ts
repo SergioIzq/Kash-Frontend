@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectionStrategy, ViewChild, OnDestroy } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy, signal, ViewChild, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
@@ -14,7 +14,7 @@ import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { SkeletonModule } from 'primeng/skeleton';
 import { IngresosStore } from '../stores/ingresos.store';
-import { Ingreso } from '@/core/models';
+import { Ingreso, IngresoCreate } from '@/core/models';
 import { IngresoFormModalComponent } from '../components/ingreso-form-modal.component';
 import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
 
@@ -87,7 +87,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                     [paginator]="true"
                     [loading]="ingresosStore.loading()"
                     [loadingIcon]="'none'"
-                    [globalFilterFields]="['conceptoNombre', 'categoriaNombre', 'clienteNombre', 'descripcion']"
+                    [globalFilterFields]="['conceptoNombre', 'categoriaNombre', 'proveedorNombre', 'descripcion']"
                     [tableStyle]="{ 'min-width': '75rem' }"
                     styleClass="p-datatable-gridlines p-datatable-loading-icon-none"
                     [(selection)]="selectedIngresos"
@@ -122,9 +122,9 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                                 Categoría
                                 <p-sortIcon field="categoriaNombre" />
                             </th>
-                            <th pSortableColumn="clienteNombre" style="min-width:12rem">
-                                Cliente
-                                <p-sortIcon field="clienteNombre" />
+                            <th pSortableColumn="proveedorNombre" style="min-width:12rem">
+                                Proveedor
+                                <p-sortIcon field="proveedorNombre" />
                             </th>
                             <th pSortableColumn="fecha" style="min-width:10rem">
                                 Fecha
@@ -156,10 +156,10 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                                     [value]="ingreso.categoriaNombre || 'Sin categoría'" 
                                     [severity]="getCategorySeverity(ingreso.categoriaNombre)" />
                             </td>
-                            <td>{{ ingreso.clienteNombre || '-' }}</td>
+                            <td>{{ ingreso.proveedorNombre || '-' }}</td>
                             <td>{{ ingreso.fecha | date:'dd/MM/yyyy' }}</td>
                             <td>
-                                <span class="font-bold text-green-500">{{ ingreso.importe | currency:'EUR':'symbol':'1.2-2' }}</span>
+                                <span class="font-bold text-red-500">{{ ingreso.importe | currency:'EUR':'symbol':'1.2-2' }}</span>
                             </td>
                             <td>
                                 <p-button 
@@ -229,7 +229,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
     `
 })
 export class IngresosListPage extends BasePageComponent implements OnDestroy {
-    ingresosStore: InstanceType<typeof IngresosStore> = inject(IngresosStore);
+    ingresosStore = inject(IngresosStore);
 
     protected override loadingSignal = this.ingresosStore.loading;
     protected override skeletonType = 'table' as const;
@@ -337,8 +337,22 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
                 this.showError(error.userMessage || 'Error al actualizar el ingreso');
             }
         } else {
-            // TODO: Implementar creación cuando el backend esté listo
-            this.showInfo('La creación de ingresos estará disponible cuando se conecten los endpoints de catálogos', 'Próximamente');
+            var ingresoCreate: IngresoCreate = {
+                conceptoId: ingreso.conceptoId!,
+                categoriaId: ingreso.categoriaId!,
+                clienteId: ingreso.clienteId!,
+                fecha: ingreso.fecha!,
+                importe: ingreso.importe!,
+                descripcion: ingreso.descripcion,
+                formaPagoId: ingreso.formaPagoId!,
+                personaId: ingreso.personaId!,
+                cuentaId: ingreso.cuentaId!
+            };
+
+            this.ingresosStore.createIngreso(ingresoCreate).then(() => {
+                this.showSuccess('Ingreso creado correctamente');
+                this.reloadIngresos();
+            });
             this.ingresoDialog = false;
             this.currentIngreso = {};
         }
@@ -403,21 +417,21 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
         }
 
         // Crear CSV manualmente con BOM para UTF-8
-        const headers = ['Concepto', 'Categoría', 'Cliente', 'Fecha', 'Importe', 'Descripción'];
-        const csvData = ingresos.map((i: Ingreso) => [
-            i.conceptoNombre,
-            i.categoriaNombre || '',
-            i.clienteNombre || '',
-            i.fecha,
-            i.importe,
-            i.descripcion || ''
+        const headers = ['Concepto', 'Categoría', 'Proveedor', 'Fecha', 'Importe', 'Descripción'];
+        const csvData = ingresos.map(g => [
+            g.conceptoNombre,
+            g.categoriaNombre || '',
+            g.clienteNombre || '',
+            g.fecha,
+            g.importe,
+            g.descripcion || ''
         ]);
 
         // Agregar BOM (Byte Order Mark) para UTF-8
         let csv = '\uFEFF';
         csv += headers.join(',') + '\n';
-        csvData.forEach((row: any[]) => {
-            csv += row.map((field: any) => `"${field}"`).join(',') + '\n';
+        csvData.forEach(row => {
+            csv += row.map(field => `"${field}"`).join(',') + '\n';
         });
 
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -446,4 +460,9 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
         const index = Math.abs(hash) % severities.length;
         return severities[index];
     }
+
+    selectIngreso(ingreso: Ingreso) {
+        this.ingresosStore.selectIngreso(ingreso);
+    }
 }
+

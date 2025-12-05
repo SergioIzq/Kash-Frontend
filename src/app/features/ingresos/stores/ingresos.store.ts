@@ -16,7 +16,7 @@ interface IngresosState {
     filters: {
         fechaInicio: string;
         fechaFin: string;
-        tipo: string;
+        categoria: string;
         searchTerm: string;
         sortColumn: string;
         sortOrder: string;
@@ -33,7 +33,7 @@ const initialState: IngresosState = {
     filters: {
         fechaInicio: '',
         fechaFin: '',
-        tipo: '',
+        categoria: '',
         searchTerm: '',
         sortColumn: '',
         sortOrder: ''
@@ -47,52 +47,69 @@ const initialState: IngresosState = {
 export const IngresosStore = signalStore(
     { providedIn: 'root' },
     withState(initialState),
-
-    withComputed((store: any) => ({
+    
+    withComputed((store) => ({
         // Total calculado de ingresos
-        total: computed(() => store.ingresos().reduce((sum: number, i: Ingreso) => sum + i.importe, 0)),
-
+        total: computed(() => {
+            const ingresos = store.ingresos();
+            if (!Array.isArray(ingresos)) return 0;
+            return ingresos.reduce((sum, g) => sum + g.importe, 0);
+        }),
+        
         // Cantidad de ingresos
-        count: computed(() => store.ingresos().length),
-
+        count: computed(() => {
+            const ingresos = store.ingresos();
+            return Array.isArray(ingresos) ? ingresos.length : 0;
+        }),
+        
         // Ingresos filtrados por término de búsqueda
         filteredIngresos: computed(() => {
             const ingresos = store.ingresos();
-            const searchTerm = store.filters.searchTerm().toLowerCase();
-
+            if (!Array.isArray(ingresos)) return [];
+            
+            const searchTerm = store.filters().searchTerm.toLowerCase();
+            
             if (!searchTerm) return ingresos;
-
-            return ingresos.filter((i: Ingreso) => i.importe.toString().toLowerCase().includes(searchTerm) || i.categoriaNombre?.toLowerCase().includes(searchTerm) || i.descripcion?.toLowerCase().includes(searchTerm));
+            
+            return ingresos.filter(g =>
+                g.conceptoNombre.toLowerCase().includes(searchTerm) ||
+                g.categoriaNombre?.toLowerCase().includes(searchTerm) ||
+                g.clienteNombre?.toLowerCase().includes(searchTerm) ||
+                g.descripcion?.toLowerCase().includes(searchTerm)
+            );
         }),
-
-        // Ingresos por tipo
-        ingresosPorTipo: computed(() => {
+        
+        // Ingresos por categoría
+        ingresosPorCategoria: computed(() => {
             const ingresos = store.ingresos();
-            const tipos: Record<string, { total: number; count: number }> = {};
-
-            ingresos.forEach((ingreso: Ingreso) => {
-                const tipo = ingreso.categoriaNombre || 'Sin tipo';
-                if (!tipos[tipo]) {
-                    tipos[tipo] = { total: 0, count: 0 };
+            if (!Array.isArray(ingresos)) return {};
+            
+            const categorias: Record<string, { total: number; count: number }> = {};
+            
+            ingresos.forEach(ingreso => {
+                const cat = ingreso.categoriaNombre || 'Sin categoría';
+                if (!categorias[cat]) {
+                    categorias[cat] = { total: 0, count: 0 };
                 }
-                tipos[tipo].total += ingreso.importe;
-                tipos[tipo].count++;
+                categorias[cat].total += ingreso.importe;
+                categorias[cat].count++;
             });
-
-            return tipos;
+            
+            return categorias;
         }),
-
+        
         // Ingresos recientes (últimos 5)
-        ingresosRecientes: computed(() => [...store.ingresos()].sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()).slice(0, 5)),
-
-        // Promedio de ingresos
-        promedioIngresos: computed(() => {
+        ingresosRecientes: computed(() => {
             const ingresos = store.ingresos();
-            return ingresos.length > 0 ? ingresos.reduce((sum: number, i: Ingreso) => sum + i.importe, 0) / ingresos.length : 0;
+            if (!Array.isArray(ingresos)) return [];
+            
+            return [...ingresos]
+                .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+                .slice(0, 5);
         })
     })),
-
-    withMethods((store: any, ingresoService = inject(IngresoService)) => ({
+    
+    withMethods((store, ingresoService = inject(IngresoService)) => ({
         // Cargar ingresos
         loadIngresos: rxMethod<void>(
             pipe(
@@ -100,7 +117,7 @@ export const IngresosStore = signalStore(
                 switchMap(() =>
                     ingresoService.getAllIngresos().pipe(
                         tapResponse({
-                            next: (ingresos: Ingreso[]) => {
+                            next: (ingresos) => {
                                 patchState(store, {
                                     ingresos,
                                     loading: false,
@@ -118,10 +135,10 @@ export const IngresosStore = signalStore(
                 )
             )
         ),
-
+        
         // Cargar ingresos con paginación, búsqueda y ordenamiento
-        loadIngresosPaginated: rxMethod<{
-            page: number;
+        loadIngresosPaginated: rxMethod<{ 
+            page: number; 
             pageSize: number;
             searchTerm?: string;
             sortColumn?: string;
@@ -134,7 +151,7 @@ export const IngresosStore = signalStore(
                 switchMap(({ page, pageSize, searchTerm, sortColumn, sortOrder }) =>
                     ingresoService.getIngresos(page, pageSize, searchTerm, sortColumn, sortOrder).pipe(
                         tapResponse({
-                            next: (response: any) => {
+                            next: (response) => {
                                 patchState(store, {
                                     ingresos: response.items,
                                     totalRecords: response.totalCount,
@@ -154,15 +171,15 @@ export const IngresosStore = signalStore(
                 )
             )
         ),
-
+        
         // Cargar ingresos por período
         loadIngresosPorPeriodo: rxMethod<{ fechaInicio: string; fechaFin: string }>(
             pipe(
-                tap(({ fechaInicio, fechaFin }) => patchState(store, { loading: true, error: null })),
+                tap(() => patchState(store, { loading: true, error: null })),
                 switchMap(({ fechaInicio, fechaFin }) =>
                     ingresoService.getIngresosPorPeriodo(fechaInicio, fechaFin).pipe(
                         tapResponse({
-                            next: (ingresos: Ingreso[]) => {
+                            next: (ingresos) => {
                                 patchState(store, {
                                     ingresos,
                                     loading: false,
@@ -180,7 +197,7 @@ export const IngresosStore = signalStore(
                 )
             )
         ),
-
+        
         // Crear ingreso
         async createIngreso(ingreso: IngresoCreate): Promise<string> {
             patchState(store, { loading: true, error: null });
@@ -199,55 +216,36 @@ export const IngresosStore = signalStore(
                 throw error;
             }
         },
-
+        
         // Actualizar ingreso
         async updateIngreso(payload: { id: string; ingreso: Partial<Ingreso> }): Promise<void> {
             const { id, ingreso } = payload;
-
-            // 1. Loading
             patchState(store, { loading: true, error: null });
-
+            
             try {
-                // 2. Llamada al API (Esperamos que termine)
-                // El servicio devuelve void, así que no capturamos respuesta aquí
                 await firstValueFrom(ingresoService.update(id, ingreso));
-
-                // 3. Actualizar Estado Local (Optimista/Manual)
-                // Como el backend no devuelve el objeto, lo construimos nosotros:
-                // Nuevo = Viejo + Cambios
-                const currentIngresos = store.ingresos();
-
-                const updatedIngresos = currentIngresos.map((item: Ingreso) => {
-                    if (item.id === id) {
-                        // Mezclamos el item existente con los cambios parciales
-                        return { ...item, ...ingreso };
-                    }
-                    return item;
-                });
-
-                patchState(store, {
-                    ingresos: updatedIngresos,
-                    loading: false
-                });
-            } catch (err: any) {
-                // 4. Manejo de Errores
+                
+                // Actualizar estado local
+                const ingresos = store.ingresos().map(g =>
+                    g.id === id ? { ...g, ...ingreso } : g
+                );
+                patchState(store, { ingresos, loading: false });
+            } catch (error: any) {
                 patchState(store, {
                     loading: false,
-                    error: err.userMessage || 'Error al actualizar ingreso'
+                    error: error.userMessage || 'Error al actualizar ingreso'
                 });
-
-                // Relanzamos para que el componente se entere y no cierre el modal
-                throw err;
+                throw error;
             }
         },
-
+        
         // Eliminar ingreso
         async deleteIngreso(id: string): Promise<void> {
             patchState(store, { loading: true, error: null });
             
             try {
                 await firstValueFrom(ingresoService.delete(id));
-                const ingresos = store.ingresos().filter((i: Ingreso) => i.id !== id);
+                const ingresos = store.ingresos().filter(g => g.id !== id);
                 patchState(store, { ingresos, loading: false });
             } catch (error: any) {
                 patchState(store, {
@@ -257,7 +255,7 @@ export const IngresosStore = signalStore(
                 throw error;
             }
         },
-
+        
         // Buscar ingresos con debounce
         searchIngresos: rxMethod<string>(
             pipe(
@@ -269,22 +267,23 @@ export const IngresosStore = signalStore(
                 })
             )
         ),
-
+        
         // Seleccionar ingreso
         selectIngreso(ingreso: Ingreso | null) {
             patchState(store, { selectedIngreso: ingreso });
         },
-
+        
         // Actualizar filtros
         setFilters(filters: Partial<IngresosState['filters']>) {
             patchState(store, {
                 filters: { ...store.filters(), ...filters }
             });
         },
-
+        
         // Limpiar error
         clearError() {
             patchState(store, { error: null });
         }
-    }))
+    })),
+
 );
