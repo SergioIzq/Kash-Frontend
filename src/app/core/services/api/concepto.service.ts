@@ -1,14 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
-import { Result, ListData } from '@/core/models/common.model';
-
-export interface ConceptoItem {
-    id: string;
-    nombre: string;
-}
+import { Result } from '@/core/models/common.model';
+import { Concepto } from '@/core/models/concepto.model';
 
 @Injectable({
     providedIn: 'root'
@@ -21,28 +16,25 @@ export class ConceptoService {
      * Búsqueda ligera de conceptos por nombre
      * Solo devuelve {id, nombre} para rendimiento óptimo
      */
-    search(search: string, limit: number = 10): Observable<ConceptoItem[]> {
+    search(search: string, limit: number = 10): Observable<Result<Concepto[]>> {
         let params = new HttpParams().set('search', search).set('limit', limit.toString());
 
-        return this.http.get<Result<ListData<ConceptoItem>>>(`${this.apiUrl}/search`, { params })
-            .pipe(map(response => response.value.items));
+        return this.http.get<Result<Concepto[]>>(`${this.apiUrl}/search`, { params });
     }
 
     /**
      * Obtener los conceptos más usados recientemente
      */
-    getRecent(limit: number = 5): Observable<ConceptoItem[]> {
+    getRecent(limit: number = 5): Observable<Result<Concepto[]>> {
         let params = new HttpParams().set('limit', limit.toString());
 
-        return this.http.get<Result<ListData<ConceptoItem>>>(`${this.apiUrl}/recent`, { params })
-            .pipe(map(response => response.value.items));
+        return this.http.get<Result<Concepto[]>>(`${this.apiUrl}/recent`, { params });
     }
 
     /**
      * Crear un nuevo concepto
      */
-    create(nombre: string): Observable<string> {
-        return this.http.post<Result<string>>(this.apiUrl, { nombre })
-            .pipe(map(response => response.value));
+    create(nombre: string): Observable<Result<void>> {
+        return this.http.post<Result<void>>(this.apiUrl, { nombre });
     }
 }

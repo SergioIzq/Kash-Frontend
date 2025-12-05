@@ -1,7 +1,6 @@
-export interface Categoria {
+export interface Persona {
     id: string;
     nombre: string;
-    descripcion: string | null;
     fechaCreacion: Date | null;
     usuarioId: string;
 }

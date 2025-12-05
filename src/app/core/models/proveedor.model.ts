@@ -1,7 +1,6 @@
-export interface Categoria {
+export interface Proveedor {
     id: string;
     nombre: string;
-    descripcion: string | null;
     fechaCreacion: Date | null;
     usuarioId: string;
 }

@@ -7,9 +7,9 @@ import { InputTextModule } from 'primeng/inputtext';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
-import { CategoriaItem } from '@/core/services/api/categoria.service';
 import { ConceptoStore } from '@/shared/stores/concepto.store';
 import { CategoriaStore } from '@/shared/stores/categoria.store';
+import { Categoria } from '@/core/models/categoria.model';
 
 @Component({
     selector: 'app-concepto-create-modal',
@@ -134,15 +134,15 @@ export class ConceptoCreateModalComponent {
 
     // Estado del formulario
     nombre: string = '';
-    selectedCategoria: CategoriaItem | null = null;
+    selectedCategoria: Categoria | null = null;
     submitted = signal(false);
     loading = signal(false);
     errorMessage = signal<string>('');
 
     // Estado de categorías
-    categoriasSugeridas = signal<CategoriaItem[]>([]);
+    categoriasSugeridas = signal<Categoria[]>([]);
     categoriaSearchTerm = signal<string>('');
-    categoriasRecientes = signal<CategoriaItem[]>([]);
+    categoriasRecientes = signal<Categoria[]>([]);
 
     isVisible = false;
 
@@ -207,12 +207,12 @@ export class ConceptoCreateModalComponent {
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Éxito',
-                    detail: `Categoría "${nuevaCategoria.nombre}" creada correctamente`,
+                    detail: `Categoría creada correctamente`,
                     life: 3000
                 });
                 
-                this.selectedCategoria = nuevaCategoria;
-                this.categoriasSugeridas.set([nuevaCategoria, ...this.categoriasSugeridas()]);
+                // this.selectedCategoria = nuevaCategoria;
+                // this.categoriasSugeridas.set([nuevaCategoria, ...this.categoriasSugeridas()]);
                 this.categoriaSearchTerm.set('');
             }
         ).catch((error) => {

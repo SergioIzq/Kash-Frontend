@@ -9,12 +9,11 @@ import { TextareaModule } from 'primeng/textarea';
 import { DatePickerModule } from 'primeng/datepicker';
 import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { MessageService } from 'primeng/api';
-import { Gasto, GastoCreate } from '@/core/models';
-import { ConceptoService, Concepto } from '@/core/services/api/concepto.service';
-import { CategoriaService, CategoriaItem } from '@/core/services/api/categoria.service';
-import { ProveedorService, ProveedorItem } from '@/core/services/api/proveedor.service';
-import { PersonaService, PersonaItem } from '@/core/services/api/persona.service';
+import { Gasto } from '@/core/models';
+import { Proveedor } from '@/core/models/proveedor.model';
 import { ConceptoCreateModalComponent, CategoriaCreateModalComponent, ProveedorCreateModalComponent, PersonaCreateModalComponent } from '@/shared/components';
+import { Categoria } from '@/core/models/categoria.model';
+import { ConceptoStore, CategoriaStore, ProveedorStore, PersonaStore } from '@/shared/stores';
 
 interface CatalogItem {
     id: string;
@@ -157,13 +156,13 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
         </p-dialog>
 
         <!-- Modales inline para creación rápida -->
-        <app-concepto-create-modal [visible]="showConceptoCreateModal" (visibleChange)="showConceptoCreateModal = $event" (created)="onConceptoCreated($event)" (cancel)="showConceptoCreateModal = false" />
+        <app-concepto-create-modal [visible]="showConceptoCreateModal" (visibleChange)="showConceptoCreateModal = $event" (created)="onConceptoCreated()" (cancel)="showConceptoCreateModal = false" />
 
         <app-categoria-create-modal [visible]="showCategoriaCreateModal" (visibleChange)="showCategoriaCreateModal = $event" (created)="onCategoriaCreated($event)" (cancel)="showCategoriaCreateModal = false" />
 
-        <app-proveedor-create-modal [visible]="showProveedorCreateModal" (visibleChange)="showProveedorCreateModal = $event" (created)="onProveedorCreated($event)" (cancel)="showProveedorCreateModal = false" />
+        <app-proveedor-create-modal [visible]="showProveedorCreateModal" (visibleChange)="showProveedorCreateModal = $event" (created)="onProveedorCreated()" (cancel)="showProveedorCreateModal = false" />
 
-        <app-persona-create-modal [visible]="showPersonaCreateModal" (visibleChange)="showPersonaCreateModal = $event" (created)="onPersonaCreated($event)" (cancel)="showPersonaCreateModal = false" />
+        <app-persona-create-modal [visible]="showPersonaCreateModal" (visibleChange)="showPersonaCreateModal = $event" (created)="onPersonaCreated()" (cancel)="showPersonaCreateModal = false" />
     `,
     styles: [
         `
@@ -177,10 +176,10 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
 })
 export class GastoFormModalComponent {
     private messageService = inject(MessageService);
-    private conceptoService = inject(ConceptoService);
-    private categoriaService = inject(CategoriaService);
-    private proveedorService = inject(ProveedorService);
-    private personaService = inject(PersonaService);
+    private conceptoStore = inject(ConceptoStore);
+    private categoriaStore = inject(CategoriaStore);
+    private proveedorStore = inject(ProveedorStore);
+    private personaStore = inject(PersonaStore);
 
     // Inputs/Outputs
     visible = input<boolean>(false);
@@ -266,21 +265,25 @@ export class GastoFormModalComponent {
         this.submitted.set(false);
     }
 
-    // Métodos de búsqueda asíncrona conectados con servicios reales
+    // Métodos de búsqueda asíncrona conectados con stores
     searchConceptos(event: AutoCompleteCompleteEvent) {
         const query = event.query;
 
         if (!query || query.length < 2) {
             // Mostrar conceptos recientes si la búsqueda está vacía
-            this.conceptoService.getRecent(5).subscribe({
-                next: (conceptos) => this.filteredConceptos.set(conceptos),
-                error: (err) => console.error('Error cargando conceptos recientes:', err)
+            this.conceptoStore.getRecent(5).then(
+                (conceptos) => this.filteredConceptos.set(conceptos)
+            ).catch((err) => {
+                console.error('Error cargando conceptos recientes:', err);
+                this.filteredConceptos.set([]);
             });
         } else {
             // Buscar conceptos por término
-            this.conceptoService.search(query, 10).subscribe({
-                next: (conceptos) => this.filteredConceptos.set(conceptos),
-                error: (err) => console.error('Error buscando conceptos:', err)
+            this.conceptoStore.search(query, 10).then(
+                (conceptos) => this.filteredConceptos.set(conceptos)
+            ).catch((err) => {
+                console.error('Error buscando conceptos:', err);
+                this.filteredConceptos.set([]);
             });
         }
     }
@@ -290,15 +293,19 @@ export class GastoFormModalComponent {
 
         if (!query || query.length < 2) {
             // Mostrar categorías recientes si la búsqueda está vacía
-            this.categoriaService.getRecent(5).subscribe({
-                next: (categorias) => this.filteredCategorias.set(categorias),
-                error: (err) => console.error('Error cargando categorías recientes:', err)
+            this.categoriaStore.getRecent(5).then(
+                (categorias) => this.filteredCategorias.set(categorias)
+            ).catch((err) => {
+                console.error('Error cargando categorías recientes:', err);
+                this.filteredCategorias.set([]);
             });
         } else {
             // Buscar categorías por término
-            this.categoriaService.search(query, 10).subscribe({
-                next: (categorias) => this.filteredCategorias.set(categorias),
-                error: (err) => console.error('Error buscando categorías:', err)
+            this.categoriaStore.search(query, 10).then(
+                (categorias) => this.filteredCategorias.set(categorias)
+            ).catch((err) => {
+                console.error('Error buscando categorías:', err);
+                this.filteredCategorias.set([]);
             });
         }
     }
@@ -308,15 +315,19 @@ export class GastoFormModalComponent {
 
         if (!query || query.length < 2) {
             // Mostrar proveedores recientes si la búsqueda está vacía
-            this.proveedorService.getRecent(5).subscribe({
-                next: (proveedores) => this.filteredProveedores.set(proveedores),
-                error: (err) => console.error('Error cargando proveedores recientes:', err)
+            this.proveedorStore.getRecent(5).then(
+                (proveedores) => this.filteredProveedores.set(proveedores)
+            ).catch((err) => {
+                console.error('Error cargando proveedores recientes:', err);
+                this.filteredProveedores.set([]);
             });
         } else {
             // Buscar proveedores por término
-            this.proveedorService.search(query, 10).subscribe({
-                next: (proveedores) => this.filteredProveedores.set(proveedores),
-                error: (err) => console.error('Error buscando proveedores:', err)
+            this.proveedorStore.search(query, 10).then(
+                (proveedores) => this.filteredProveedores.set(proveedores)
+            ).catch((err) => {
+                console.error('Error buscando proveedores:', err);
+                this.filteredProveedores.set([]);
             });
         }
     }
@@ -326,15 +337,19 @@ export class GastoFormModalComponent {
 
         if (!query || query.length < 2) {
             // Mostrar personas recientes si la búsqueda está vacía
-            this.personaService.getRecent(5).subscribe({
-                next: (personas) => this.filteredPersonas.set(personas),
-                error: (err) => console.error('Error cargando personas recientes:', err)
+            this.personaStore.getRecent(5).then(
+                (personas) => this.filteredPersonas.set(personas)
+            ).catch((err) => {
+                console.error('Error cargando personas recientes:', err);
+                this.filteredPersonas.set([]);
             });
         } else {
             // Buscar personas por término
-            this.personaService.search(query, 10).subscribe({
-                next: (personas) => this.filteredPersonas.set(personas),
-                error: (err) => console.error('Error buscando personas:', err)
+            this.personaStore.search(query, 10).then(
+                (personas) => this.filteredPersonas.set(personas)
+            ).catch((err) => {
+                console.error('Error buscando personas:', err);
+                this.filteredPersonas.set([]);
             });
         }
     }
@@ -378,7 +393,7 @@ export class GastoFormModalComponent {
     }
 
     // Handlers cuando se crea un nuevo item
-    onConceptoCreated(nuevoConceptoId: string) {
+    onConceptoCreated() {
         // El modal de concepto devuelve solo el ID
         // Necesitamos hacer fetch del concepto completo o construirlo con el nombre ingresado
         // Por ahora, marcamos que se debe seleccionar manualmente o refrescar la lista
@@ -390,7 +405,7 @@ export class GastoFormModalComponent {
         });
     }
 
-    onCategoriaCreated(nuevaCategoria: CategoriaItem) {
+    onCategoriaCreated(nuevaCategoria: Categoria) {
         // Seleccionar automáticamente la categoría recién creada
         this.selectedCategoria = nuevaCategoria;
         this.formData.categoriaId = nuevaCategoria.id;
@@ -398,15 +413,17 @@ export class GastoFormModalComponent {
         this.showCategoriaCreateModal = false;
     }
 
-    onProveedorCreated(nuevoProveedor: ProveedorItem) {
-        // Seleccionar automáticamente el proveedor recién creado
-        this.selectedProveedor = nuevoProveedor;
-        this.formData.proveedorId = nuevoProveedor.id;
-        this.formData.proveedorNombre = nuevoProveedor.nombre;
+    onProveedorCreated() {
+        // El modal de persona devuelve solo el ID
         this.showProveedorCreateModal = false;
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Proveedor creado',
+            detail: 'Proveedor creado exitosamente. Por favor selecciónelo de la lista.'
+        });
     }
 
-    onPersonaCreated(nuevaPersonaId: string) {
+    onPersonaCreated() {
         // El modal de persona devuelve solo el ID
         this.showPersonaCreateModal = false;
         this.messageService.add({
