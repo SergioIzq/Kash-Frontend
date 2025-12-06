@@ -6,8 +6,8 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
-import { ProveedorService } from '@/core/services/api/proveedor.service';
 import { Proveedor } from '@/core/models/proveedor.model';
+import { ProveedorStore } from '@/shared/stores/proveedor.store';
 
 @Component({
     selector: 'app-proveedor-create-modal',
@@ -58,7 +58,7 @@ import { Proveedor } from '@/core/models/proveedor.model';
 })
 export class ProveedorCreateModalComponent {
     private messageService = inject(MessageService);
-    private proveedorService = inject(ProveedorService);
+    private proveedorStore = inject(ProveedorStore);
     private confirmationService = inject(ConfirmationService);
 
     // Inputs/Outputs
@@ -113,11 +113,10 @@ export class ProveedorCreateModalComponent {
     private confirmedCreate() {
         this.loading.set(true);
 
-        this.proveedorService.create(this.nombre.trim()).subscribe({
-            next: (response) => {
-                // El backend devuelve Result<string> con el UUID
-                const nuevoProveedorId = response.value;
-                
+        this.proveedorStore
+            .create(this.nombre.trim())
+            .then((nuevoProveedorId) => {
+                // El store devuelve el UUID
                 const nuevoProveedor: Proveedor = {
                     id: nuevoProveedorId,
                     nombre: this.nombre.trim(),
@@ -127,13 +126,12 @@ export class ProveedorCreateModalComponent {
 
                 this.created.emit(nuevoProveedor);
                 this.closeModal();
-            },
-            error: (error) => {
-                console.error('Error creando proveedor:', error);
-                this.errorMessage.set(error.error?.message || 'Error al crear el proveedor');
+            })
+            .catch((err) => {
+                console.error('Error creando proveedor:', err);
+                this.errorMessage.set(err.message || 'Error al crear el proveedor');
                 this.loading.set(false);
-            }
-        });
+            });
     }
 
     onCancel() {

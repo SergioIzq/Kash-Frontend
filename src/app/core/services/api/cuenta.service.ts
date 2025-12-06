@@ -34,7 +34,7 @@ export class CuentaService {
     /**
      * Crear un nuevo concepto
      */
-    create(nombre: string): Observable<Result<void>> {
-        return this.http.post<Result<void>>(this.apiUrl, { nombre });
+    create(nombre: string): Observable<Result<string>> {
+        return this.http.post<Result<string>>(this.apiUrl, { nombre });
     }
 }

@@ -6,8 +6,8 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
-import { CategoriaService } from '@/core/services/api/categoria.service';
 import { Categoria } from '@/core/models/categoria.model';
+import { CategoriaStore } from '@/shared/stores/categoria.store';
 
 @Component({
     selector: 'app-categoria-create-modal',
@@ -58,7 +58,7 @@ import { Categoria } from '@/core/models/categoria.model';
 })
 export class CategoriaCreateModalComponent {
     private messageService = inject(MessageService);
-    private categoriaService = inject(CategoriaService);
+    private categoriaStore = inject(CategoriaStore);
     private confirmationService = inject(ConfirmationService);
 
     // Inputs/Outputs
@@ -114,11 +114,10 @@ export class CategoriaCreateModalComponent {
     private confirmedCreate() {
         this.loading.set(true);
 
-        this.categoriaService.create(this.nombre.trim()).subscribe({
-            next: (response) => {
-                // El backend devuelve Result<string> con el UUID
-                const nuevaCategoriaId = response.value;
-                
+        this.categoriaStore
+            .create(this.nombre.trim())
+            .then((nuevaCategoriaId) => {
+                // El store devuelve el UUID
                 const nuevaCategoria: Categoria = {
                     id: nuevaCategoriaId,
                     nombre: this.nombre.trim(),
@@ -129,13 +128,12 @@ export class CategoriaCreateModalComponent {
 
                 this.created.emit(nuevaCategoria);
                 this.closeModal();
-            },
-            error: (error) => {
-                console.error('Error creando categoría:', error);
-                this.errorMessage.set(error.error?.message || 'Error al crear la categoría');
+            })
+            .catch((err) => {
+                console.error('Error creando categoría:', err);
+                this.errorMessage.set(err.message || 'Error al crear la categoría');
                 this.loading.set(false);
-            }
-        });
+            });
     }
 
     onCancel() {

@@ -6,8 +6,8 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
-import { PersonaService } from '@/core/services/api/persona.service';
 import { Persona } from '@/core/models/persona.model';
+import { PersonaStore } from '@/shared/stores/persona.store';
 
 @Component({
     selector: 'app-persona-create-modal',
@@ -16,32 +16,14 @@ import { Persona } from '@/core/models/persona.model';
     providers: [ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <p-dialog
-            [(visible)]="isVisible"
-            [style]="{ width: '450px' }"
-            header="Crear Nueva Persona"
-            [modal]="true"
-            [contentStyle]="{ padding: '2rem' }"
-            styleClass="p-fluid"
-            (onHide)="onCancel()"
-        >
+        <p-dialog [(visible)]="isVisible" [style]="{ width: '450px' }" header="Crear Nueva Persona" [modal]="true" [contentStyle]="{ padding: '2rem' }" styleClass="p-fluid" (onHide)="onCancel()">
             <ng-template #content>
                 <div class="flex flex-col gap-4">
                     <div>
                         <label for="nombre" class="block font-bold mb-3">Nombre de Persona *</label>
-                        <input
-                            pInputText
-                            id="nombre"
-                            [(ngModel)]="nombre"
-                            placeholder="Ej: Juan Pérez"
-                            [maxlength]="100"
-                            fluid
-                            autofocus
-                        />
+                        <input pInputText id="nombre" [(ngModel)]="nombre" placeholder="Ej: Juan Pérez" [maxlength]="100" fluid autofocus />
                         @if (submitted() && !nombre) {
-                            <small class="text-red-500">
-                                El nombre es requerido.
-                            </small>
+                            <small class="text-red-500"> El nombre es requerido. </small>
                         }
                     </div>
                 </div>
@@ -49,19 +31,14 @@ import { Persona } from '@/core/models/persona.model';
 
             <ng-template #footer>
                 <p-button label="Cancelar" icon="pi pi-times" text (click)="onCancel()" [disabled]="isCreating()" />
-                <p-button
-                    label="Crear"
-                    icon="pi pi-check"
-                    (click)="onCreate()"
-                    [loading]="isCreating()"
-                />
+                <p-button label="Crear" icon="pi pi-check" (click)="onCreate()" [loading]="isCreating()" />
             </ng-template>
         </p-dialog>
         <p-confirmdialog />
-    `,
+    `
 })
 export class PersonaCreateModalComponent {
-    private personaService = inject(PersonaService);
+    private personaStore = inject(PersonaStore);
     private messageService = inject(MessageService);
     private confirmationService = inject(ConfirmationService);
 
@@ -109,32 +86,24 @@ export class PersonaCreateModalComponent {
     private confirmedCreate() {
         this.isCreating.set(true);
 
-        this.personaService.create(this.nombre.trim()).subscribe({
-            next: (response) => {
-                // El backend devuelve Result<string> con el UUID
-                const nuevaPersonaId = response.value;
-                
+        this.personaStore
+            .create(this.nombre.trim())
+            .then((nuevaPersonaId) => {
+                // El store devuelve el UUID
                 const nuevaPersona: Persona = {
                     id: nuevaPersonaId,
                     nombre: this.nombre.trim(),
                     fechaCreacion: new Date(),
                     usuarioId: ''
                 };
-                
+
                 this.created.emit(nuevaPersona);
                 this.closeModal();
-            },
-            error: (error) => {
-                console.error('Error creando persona:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: 'No se pudo crear la persona. Intente nuevamente.',
-                    life: 3000
-                });
+            })
+            .catch((err) => {
+                console.error('Error creando persona:', err);
                 this.isCreating.set(false);
-            },
-        });
+            });
     }
 
     onCancel() {

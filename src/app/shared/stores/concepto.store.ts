@@ -20,10 +20,10 @@ export const ConceptoStore = signalStore(
     { providedIn: 'root' },
     withState(initialState),
     withMethods((store, conceptoService = inject(ConceptoService)) => ({
-        async search(query: string, limit: number = 10): Promise<Concepto[]> {
+        async search(query: string, limit: number = 10, categoriaId?: string): Promise<Concepto[]> {
             patchState(store, { loading: true });
             try {
-                const response = await firstValueFrom(conceptoService.search(query, limit));
+                const response = await firstValueFrom(conceptoService.search(query, limit, categoriaId));
                 
                 if (response.isSuccess && response.value) {
                     const conceptos = Array.isArray(response.value) ? response.value : (response.value as any).items || [];
@@ -53,10 +53,10 @@ export const ConceptoStore = signalStore(
             }
         },
 
-        async getRecent(limit: number = 5): Promise<Concepto[]> {
+        async getRecent(limit: number = 5, categoriaId?: string): Promise<Concepto[]> {
             patchState(store, { loading: true });
             try {
-                const response = await firstValueFrom(conceptoService.getRecent(limit));
+                const response = await firstValueFrom(conceptoService.getRecent(limit, categoriaId));
                 
                 if (response.isSuccess && response.value) {
                     const conceptos = Array.isArray(response.value) ? response.value : (response.value as any).items || [];

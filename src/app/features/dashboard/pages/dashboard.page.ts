@@ -15,6 +15,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
         <app-base-page-template [loading]="dashboardStore.loading()" [skeletonType]="'card'">
+            @if (dashboardStore.resumen()) {
             <!-- Header -->
             <div class="card flex items-center justify-between flex-wrap gap-3 mb-5 h-full">
                 <div>
@@ -283,6 +284,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                     <p-button label="Ver Ingresos" icon="pi pi-list" [outlined]="true" [routerLink]="['/ingresos']"> </p-button>
                 </div>
             </div>
+            }
         </app-base-page-template>
     `
 })

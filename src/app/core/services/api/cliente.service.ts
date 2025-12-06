@@ -1,14 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import { Result } from '@/core/models/common.model';
-
-export interface ClienteItem {
-    id: string;
-    nombre: string;
-}
+import { Cliente } from '@/core/models/cliente.model';
 
 @Injectable({
     providedIn: 'root'
@@ -21,31 +16,25 @@ export class ClienteService {
      * Búsqueda ligera de clientes por nombre
      * Solo devuelve {id, nombre} para rendimiento óptimo
      */
-    search(searchTerm: string, limit: number = 10): Observable<ClienteItem[]> {
-        let params = new HttpParams()
-            .set('searchTerm', searchTerm)
-            .set('limit', limit.toString());
+    search(search: string, limit: number = 10): Observable<Result<Cliente[]>> {
+        let params = new HttpParams().set('search', search).set('limit', limit.toString());
 
-        return this.http.get<Result<ClienteItem[]>>(`${this.apiUrl}/search`, { params })
-            .pipe(map(response => response.value));
+        return this.http.get<Result<Cliente[]>>(`${this.apiUrl}/search`, { params });
     }
 
     /**
      * Obtener los clientes más usados recientemente
      */
-    getRecent(limit: number = 5): Observable<ClienteItem[]> {
-        let params = new HttpParams()
-            .set('limit', limit.toString());
+    getRecent(limit: number = 5): Observable<Result<Cliente[]>> {
+        let params = new HttpParams().set('limit', limit.toString());
 
-        return this.http.get<Result<ClienteItem[]>>(`${this.apiUrl}/recent`, { params })
-            .pipe(map(response => response.value));
+        return this.http.get<Result<Cliente[]>>(`${this.apiUrl}/recent`, { params });
     }
 
     /**
-     * Crear un nuevo cliente
+     * Crear un nuevo concepto
      */
-    create(nombre: string): Observable<ClienteItem> {
-        return this.http.post<Result<ClienteItem>>(this.apiUrl, { nombre })
-            .pipe(map(response => response.value));
+    create(nombre: string): Observable<Result<string>> {
+        return this.http.post<Result<string>>(this.apiUrl, { nombre });
     }
 }

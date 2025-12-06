@@ -6,7 +6,8 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
-import { ClienteService, ClienteItem } from '@/core/services/api/cliente.service';
+import { Cliente } from '@/core/models/cliente.model';
+import { ClienteStore } from '../stores/cliente.store';
 
 @Component({
     selector: 'app-cliente-create-modal',
@@ -15,27 +16,12 @@ import { ClienteService, ClienteItem } from '@/core/services/api/cliente.service
     providers: [ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <p-dialog 
-            [(visible)]="isVisible" 
-            [style]="{ width: '450px' }" 
-            header="Crear Nuevo Cliente" 
-            [modal]="true" 
-            [contentStyle]="{ padding: '2rem' }" 
-            (onHide)="onCancel()" 
-            styleClass="p-fluid">
+        <p-dialog [(visible)]="isVisible" [style]="{ width: '450px' }" header="Crear Nuevo Cliente" [modal]="true" [contentStyle]="{ padding: '2rem' }" (onHide)="onCancel()" styleClass="p-fluid">
             <ng-template #content>
                 <div class="flex flex-col gap-4">
                     <div>
                         <label for="nombre" class="block font-bold mb-3">Nombre del Cliente *</label>
-                        <input 
-                            type="text" 
-                            pInputText 
-                            id="nombre" 
-                            [(ngModel)]="nombre" 
-                            required 
-                            autofocus 
-                            placeholder="Ej: Empresa XYZ" 
-                            fluid />
+                        <input type="text" pInputText id="nombre" [(ngModel)]="nombre" required autofocus placeholder="Ej: Empresa XYZ" fluid />
                         @if (submitted() && !nombre.trim()) {
                             <small class="text-red-500"> El nombre es requerido. </small>
                         }
@@ -56,14 +42,13 @@ import { ClienteService, ClienteItem } from '@/core/services/api/cliente.service
     `
 })
 export class ClienteCreateModalComponent {
-    private messageService = inject(MessageService);
-    private clienteService = inject(ClienteService);
+    private clienteStore = inject(ClienteStore);
     private confirmationService = inject(ConfirmationService);
 
     // Inputs/Outputs
     visible = input<boolean>(false);
     visibleChange = output<boolean>();
-    created = output<ClienteItem>();
+    created = output<Cliente>();
     cancel = output<void>();
 
     // Estado del formulario
@@ -112,24 +97,24 @@ export class ClienteCreateModalComponent {
     private confirmedCreate() {
         this.loading.set(true);
 
-        this.clienteService.create(this.nombre.trim()).subscribe({
-            next: (nuevoCliente) => {
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Éxito',
-                    detail: `Cliente "${nuevoCliente.nombre}" creado correctamente`,
-                    life: 3000
-                });
+        this.clienteStore
+            .create(this.nombre.trim())
+            .then((nuevoClienteId) => {
+                // El store devuelve el UUID
+                const nuevoCliente: Cliente = {
+                    id: nuevoClienteId,
+                    nombre: this.nombre.trim(),
+                    fechaCreacion: new Date(),
+                    usuarioId: ''
+                };
 
                 this.created.emit(nuevoCliente);
                 this.closeModal();
-            },
-            error: (error) => {
-                console.error('Error creando cliente:', error);
-                this.errorMessage.set(error.error?.message || 'Error al crear el cliente');
+            })
+            .catch((err) => {
+                this.errorMessage.set(err.message || 'Error al crear cliente');
                 this.loading.set(false);
-            }
-        });
+            });
     }
 
     onCancel() {

@@ -26,8 +26,6 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
         FormsModule,
         ButtonModule,
         InputTextModule,
-        ToastModule,
-        ConfirmDialogModule,
         TableModule,
         ToolbarModule,
         TagModule,
@@ -42,9 +40,8 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
         <app-base-page-template [loading]="gastosStore.loading() && gastosStore.gastos().length === 0" [skeletonType]="'table'">
         <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
             <div class="surface-card shadow-2 border-round p-6">
-                <p-toast></p-toast>
 
-                <p-toolbar styleClass="mb-6 gap-2 p-6">
+                <p-toolbar class="mb-6 gap-2 p-6">
                     <ng-template #start>
                         <p-button 
                             label="Nuevo Gasto" 
@@ -222,7 +219,6 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                     (cancel)="hideDialog()"
                 />
 
-                <p-confirmdialog [style]="{ width: '450px' }" />
             </div>
         </div>
         </app-base-page-template>
@@ -367,18 +363,14 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
         this.confirmAction(
             `¿Estás seguro de eliminar el gasto "${gasto.conceptoNombre}"?`,
             async () => {
-                try {
-                    await this.gastosStore.deleteGasto(gasto.id);
-                    this.showSuccess('Gasto eliminado correctamente');
-                    this.reloadGastos();
-                } catch (error: any) {
-                    this.showError(error.userMessage || 'Error al eliminar el gasto');
-                }
+                await this.gastosStore.deleteGasto(gasto.id);
+                this.reloadGastos();
             },
             {
                 header: 'Confirmar eliminación',
                 acceptLabel: 'Sí, eliminar',
-                rejectLabel: 'Cancelar'
+                rejectLabel: 'Cancelar',
+                successMessage: 'Gasto eliminado correctamente'
             }
         );
     }
@@ -387,23 +379,19 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
         this.confirmAction(
             '¿Estás seguro de eliminar los gastos seleccionados?',
             async () => {
-                try {
-                    const deletePromises = this.selectedGastos.map(gasto => 
-                        this.gastosStore.deleteGasto(gasto.id)
-                    );
-                    
-                    await Promise.all(deletePromises);
-                    this.showSuccess('Gastos eliminados correctamente');
-                    this.selectedGastos = [];
-                    this.reloadGastos();
-                } catch (error: any) {
-                    this.showError(error.userMessage || 'Error al eliminar algunos gastos');
-                }
+                const deletePromises = this.selectedGastos.map(gasto => 
+                    this.gastosStore.deleteGasto(gasto.id)
+                );
+                
+                await Promise.all(deletePromises);
+                this.selectedGastos = [];
+                this.reloadGastos();
             },
             {
                 header: 'Confirmar',
                 acceptLabel: 'Sí, eliminar',
-                rejectLabel: 'Cancelar'
+                rejectLabel: 'Cancelar',
+                successMessage: 'Gastos eliminados correctamente'
             }
         );
     }

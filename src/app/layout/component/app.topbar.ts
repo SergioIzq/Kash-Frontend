@@ -3,6 +3,7 @@ import { MenuItem } from 'primeng/api';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { StyleClassModule } from 'primeng/styleclass';
+import { AvatarModule } from 'primeng/avatar';
 import { AppConfigurator } from './app.configurator';
 import { LayoutService } from '../service/layout.service';
 import { AuthStore } from '../../core/stores/auth.store';
@@ -10,7 +11,7 @@ import { AuthStore } from '../../core/stores/auth.store';
 @Component({
     selector: 'app-topbar',
     standalone: true,
-    imports: [RouterModule, CommonModule, StyleClassModule, AppConfigurator],
+    imports: [RouterModule, CommonModule, StyleClassModule, AvatarModule, AppConfigurator],
     template: ` <div class="layout-topbar">
         <div class="layout-topbar-logo-container">
             <button class="layout-menu-button layout-topbar-action" (click)="layoutService.onMenuToggle()">
@@ -66,7 +67,17 @@ import { AuthStore } from '../../core/stores/auth.store';
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
                     <button type="button" class="layout-topbar-action" routerLink="/auth/my-profile">
-                        <i class="pi pi-user"></i>
+                        <p-avatar
+                            [label]="!authStore.user()?.avatar ? authStore.userInitials() : undefined"
+                            [image]="authStore.user()?.avatar || undefined"
+                            shape="circle"
+                            size="normal"
+                            [style]="{
+                                width: '32px',
+                                height: '32px',
+                                'font-size': '0.875rem'
+                            }"
+                        />
                         <span>{{ authStore.userName() }}</span>
                     </button>
                     <button type="button" class="layout-topbar-action" (click)="logout()">
