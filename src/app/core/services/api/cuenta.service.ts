@@ -32,9 +32,16 @@ export class CuentaService {
     }
 
     /**
-     * Crear un nuevo concepto
+     * Crear una nueva cuenta
      */
-    create(nombre: string): Observable<Result<string>> {
-        return this.http.post<Result<string>>(this.apiUrl, { nombre });
+    create(nombre: string, saldo: number): Observable<Result<string>> {
+        return this.http.post<Result<string>>(this.apiUrl, { nombre, saldo });
+    }
+
+    /**
+     * Actualizar una cuenta existente
+     */
+    update(nombre: string): Observable<Result<void>> {
+        return this.http.put<Result<void>>(this.apiUrl, { nombre });
     }
 }

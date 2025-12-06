@@ -24,7 +24,7 @@ export const CuentaStore = signalStore(
             patchState(store, { loading: true, error: null });
             try {
                 const response = await firstValueFrom(cuentaService.search(query, limit));
-                
+
                 // Manejar Result<Cuenta[]> - el backend devuelve array directo en value
                 if (response.isSuccess && response.value) {
                     const cuentas = Array.isArray(response.value) ? response.value : (response.value as any).items || [];
@@ -42,16 +42,32 @@ export const CuentaStore = signalStore(
             }
         },
 
-        async create(nombre: string): Promise<void> {
+        async create(nombre: string, saldo: number): Promise<string> {
             patchState(store, { loading: true });
             try {
-                const response = await firstValueFrom(cuentaService.create(nombre));
-                
+                const response = await firstValueFrom(cuentaService.create(nombre, saldo));
+
+                if (response.isSuccess) {
+                    patchState(store, { loading: false });
+                    return response.value;
+                }
+                throw new Error(response.error?.message || 'Error al crear cuenta');
+            } catch (err) {
+                patchState(store, { loading: false });
+                throw err;
+            }
+        },
+
+        async update(nombre: string): Promise<void> {
+            patchState(store, { loading: true });
+            try {
+                const response = await firstValueFrom(cuentaService.update(nombre));
+
                 if (response.isSuccess) {
                     patchState(store, { loading: false });
                     return;
                 }
-                throw new Error(response.error?.message || 'Error al crear concepto');
+                throw new Error(response.error?.message || 'Error al crear cuenta');
             } catch (err) {
                 patchState(store, { loading: false });
                 throw err;
@@ -62,7 +78,7 @@ export const CuentaStore = signalStore(
             patchState(store, { loading: true, error: null });
             try {
                 const response = await firstValueFrom(cuentaService.getRecent(limit));
-                
+
                 // Manejar Result<Cuenta[]> - el backend devuelve array directo en value
                 if (response.isSuccess && response.value) {
                     const cuentas = Array.isArray(response.value) ? response.value : (response.value as any).items || [];

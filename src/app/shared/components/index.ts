@@ -7,3 +7,5 @@ export * from './concepto-create-modal.component';
 export * from './persona-create-modal.component';
 export * from './proveedor-create-modal.component';
 export * from './cliente-create-modal.component';
+export * from './cuenta-create-modal.component';
+export * from './forma-pago-create-modal.component';
