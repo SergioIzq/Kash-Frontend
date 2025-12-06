@@ -6,3 +6,4 @@ export * from './cliente-create-modal.component';
 export * from './concepto-create-modal.component';
 export * from './persona-create-modal.component';
 export * from './proveedor-create-modal.component';
+export * from './cliente-create-modal.component';

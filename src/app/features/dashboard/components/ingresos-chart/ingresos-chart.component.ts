@@ -54,7 +54,7 @@ import { DashboardStore } from '../../stores/dashboard.store';
                                         <span class="text-900 font-medium">{{ item.tipo }}</span>
                                     </div>
                                     <div class="text-right">
-                                        <div class="text-900 font-bold">{{ item.total | currency:'EUR':'symbol':'1.0-0' }}</div>
+                                        <div class="text-900 font-bold">{{ item.total | number:'1.0-0' }} €</div>
                                         <div class="text-500 text-sm">{{ item.porcentaje | number:'1.0-0' }}%</div>
                                     </div>
                                 </div>

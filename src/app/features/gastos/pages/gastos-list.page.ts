@@ -14,7 +14,7 @@ import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { SkeletonModule } from 'primeng/skeleton';
 import { GastosStore } from '../stores/gastos.store';
-import { Gasto } from '@/core/models';
+import { Gasto, GastoCreate } from '@/core/models';
 import { GastoFormModalComponent } from '../components/gasto-form-modal.component';
 import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
 
@@ -26,8 +26,6 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
         FormsModule,
         ButtonModule,
         InputTextModule,
-        ToastModule,
-        ConfirmDialogModule,
         TableModule,
         ToolbarModule,
         TagModule,
@@ -42,9 +40,8 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
         <app-base-page-template [loading]="gastosStore.loading() && gastosStore.gastos().length === 0" [skeletonType]="'table'">
         <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
             <div class="surface-card shadow-2 border-round p-6">
-                <p-toast></p-toast>
 
-                <p-toolbar styleClass="mb-6 gap-2 p-6">
+                <p-toolbar class="mb-6 gap-2 p-6">
                     <ng-template #start>
                         <p-button 
                             label="Nuevo Gasto" 
@@ -159,7 +156,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                             <td>{{ gasto.proveedorNombre || '-' }}</td>
                             <td>{{ gasto.fecha | date:'dd/MM/yyyy' }}</td>
                             <td>
-                                <span class="font-bold text-red-500">{{ gasto.importe | currency:'EUR':'symbol':'1.2-2' }}</span>
+                                <span class="font-bold text-red-500">{{ gasto.importe | number:'1.2-2' }} €</span>
                             </td>
                             <td>
                                 <p-button 
@@ -222,7 +219,6 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                     (cancel)="hideDialog()"
                 />
 
-                <p-confirmdialog [style]="{ width: '450px' }" />
             </div>
         </div>
         </app-base-page-template>
@@ -337,8 +333,22 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
                 this.showError(error.userMessage || 'Error al actualizar el gasto');
             }
         } else {
-            // TODO: Implementar creación cuando el backend esté listo
-            this.showInfo('La creación de gastos estará disponible cuando se conecten los endpoints de catálogos', 'Próximamente');
+            var gastoCreate: GastoCreate = {
+                conceptoId: gasto.conceptoId!,
+                categoriaId: gasto.categoriaId!,
+                proveedorId: gasto.proveedorId!,
+                fecha: gasto.fecha!,
+                importe: gasto.importe!,
+                descripcion: gasto.descripcion,
+                formaPagoId: gasto.formaPagoId!,
+                personaId: gasto.personaId!,
+                cuentaId: gasto.cuentaId!
+            };
+
+            this.gastosStore.createGasto(gastoCreate).then(() => {
+                this.showSuccess('Gasto creado correctamente');
+                this.reloadGastos();
+            });
             this.gastoDialog = false;
             this.currentGasto = {};
         }
@@ -353,18 +363,14 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
         this.confirmAction(
             `¿Estás seguro de eliminar el gasto "${gasto.conceptoNombre}"?`,
             async () => {
-                try {
-                    await this.gastosStore.deleteGasto(gasto.id);
-                    this.showSuccess('Gasto eliminado correctamente');
-                    this.reloadGastos();
-                } catch (error: any) {
-                    this.showError(error.userMessage || 'Error al eliminar el gasto');
-                }
+                await this.gastosStore.deleteGasto(gasto.id);
+                this.reloadGastos();
             },
             {
                 header: 'Confirmar eliminación',
                 acceptLabel: 'Sí, eliminar',
-                rejectLabel: 'Cancelar'
+                rejectLabel: 'Cancelar',
+                successMessage: 'Gasto eliminado correctamente'
             }
         );
     }
@@ -373,23 +379,19 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
         this.confirmAction(
             '¿Estás seguro de eliminar los gastos seleccionados?',
             async () => {
-                try {
-                    const deletePromises = this.selectedGastos.map(gasto => 
-                        this.gastosStore.deleteGasto(gasto.id)
-                    );
-                    
-                    await Promise.all(deletePromises);
-                    this.showSuccess('Gastos eliminados correctamente');
-                    this.selectedGastos = [];
-                    this.reloadGastos();
-                } catch (error: any) {
-                    this.showError(error.userMessage || 'Error al eliminar algunos gastos');
-                }
+                const deletePromises = this.selectedGastos.map(gasto => 
+                    this.gastosStore.deleteGasto(gasto.id)
+                );
+                
+                await Promise.all(deletePromises);
+                this.selectedGastos = [];
+                this.reloadGastos();
             },
             {
                 header: 'Confirmar',
                 acceptLabel: 'Sí, eliminar',
-                rejectLabel: 'Cancelar'
+                rejectLabel: 'Cancelar',
+                successMessage: 'Gastos eliminados correctamente'
             }
         );
     }

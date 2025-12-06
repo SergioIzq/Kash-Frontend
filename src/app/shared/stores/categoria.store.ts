@@ -21,73 +21,50 @@ export const CategoriaStore = signalStore(
     withState(initialState),
     withMethods((store, categoriaService = inject(CategoriaService)) => ({
         async search(query: string, limit: number = 10): Promise<Categoria[]> {
-            patchState(store, { loading: true, error: null });
+            patchState(store, { loading: true });
             try {
                 const response = await firstValueFrom(categoriaService.search(query, limit));
-                
-                // Manejar Result<Categoria[]> - el backend devuelve array directo en value
+
                 if (response.isSuccess && response.value) {
-                    const categorias = Array.isArray(response.value) ? response.value : (response.value as any).items || [];
-                    patchState(store, { categorias, loading: false });
-                    return categorias;
-                } else {
-                    const errorMsg = response.error?.message || 'Error al buscar categorías';
-                    patchState(store, { loading: false, error: errorMsg });
-                    throw new Error(errorMsg);
+                    patchState(store, { categorias: response.value, loading: false });
+                    return response.value;
                 }
-            } catch (err: any) {
-                const errorMsg = err.message || 'Error al buscar categorías';
-                patchState(store, { loading: false, error: errorMsg });
+                throw new Error(response.error?.message || 'Error al buscar categorías');
+            } catch (err) {
+                patchState(store, { loading: false });
                 throw err;
             }
         },
 
-        async create(nombre: string): Promise<void> {
-            patchState(store, { loading: true, error: null });
+        async create(nombre: string): Promise<string> {
+            patchState(store, { loading: true });
             try {
                 const response = await firstValueFrom(categoriaService.create(nombre));
                 
-                // Manejar Result<CategoriaItem>
                 if (response.isSuccess && response.value) {
-                    const nuevaCategoria = response.value;
-                    
-                    // Agregar a la lista local
-                    patchState(store, { 
-                        categorias: [nuevaCategoria, ...store.categorias()],
-                        loading: false 
-                    });
-                    
-                    return nuevaCategoria;
-                } else {
-                    const errorMsg = response.error?.message || 'Error al crear categoría';
-                    patchState(store, { loading: false, error: errorMsg });
-                    throw new Error(errorMsg);
+                    patchState(store, { loading: false });
+                    return response.value; // Retornar el UUID de la categoría creada
                 }
-            } catch (err: any) {
-                const errorMsg = err.message || 'Error al crear categoría';
-                patchState(store, { loading: false, error: errorMsg });
+                throw new Error(response.error?.message || 'Error al crear categoría');
+            } catch (err) {
+                patchState(store, { loading: false });
                 throw err;
             }
         },
 
         async getRecent(limit: number = 5): Promise<Categoria[]> {
-            patchState(store, { loading: true, error: null });
+            patchState(store, { loading: true });
             try {
                 const response = await firstValueFrom(categoriaService.getRecent(limit));
                 
-                // Manejar Result<Categoria[]> - el backend devuelve array directo en value
                 if (response.isSuccess && response.value) {
                     const categorias = Array.isArray(response.value) ? response.value : (response.value as any).items || [];
                     patchState(store, { loading: false });
                     return categorias;
-                } else {
-                    const errorMsg = response.error?.message || 'Error al cargar categorías recientes';
-                    patchState(store, { loading: false, error: errorMsg });
-                    throw new Error(errorMsg);
                 }
-            } catch (err: any) {
-                const errorMsg = err.message || 'Error al cargar categorías recientes';
-                patchState(store, { loading: false, error: errorMsg });
+                throw new Error(response.error?.message || 'Error al cargar categorías recientes');
+            } catch (err) {
+                patchState(store, { loading: false });
                 throw err;
             }
         },

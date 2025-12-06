@@ -32,9 +32,10 @@ export class CategoriaService {
     }
 
     /**
-     * Crear un nuevo categoria
+     * Crear una nueva categoría
+     * El backend devuelve 201 con Result<string> donde value es el UUID creado
      */
-    create(nombre: string): Observable<Result<void>> {
-        return this.http.post<Result<void>>(this.apiUrl, { nombre });
+    create(nombre: string): Observable<Result<string>> {
+        return this.http.post<Result<string>>(this.apiUrl, { nombre });
     }
 }

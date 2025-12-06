@@ -21,73 +21,51 @@ export const ProveedorStore = signalStore(
     withState(initialState),
     withMethods((store, proveedorService = inject(ProveedorService)) => ({
         async search(query: string, limit: number = 10): Promise<Proveedor[]> {
-            patchState(store, { loading: true, error: null });
+            patchState(store, { loading: true });
             try {
                 const response = await firstValueFrom(proveedorService.search(query, limit));
                 
-                // Manejar Result<Proveedor[]> - el backend devuelve array directo en value
                 if (response.isSuccess && response.value) {
                     const proveedores = Array.isArray(response.value) ? response.value : (response.value as any).items || [];
                     patchState(store, { proveedores, loading: false });
                     return proveedores;
-                } else {
-                    const errorMsg = response.error?.message || 'Error al buscar proveedores';
-                    patchState(store, { loading: false, error: errorMsg });
-                    throw new Error(errorMsg);
                 }
-            } catch (err: any) {
-                const errorMsg = err.message || 'Error al buscar proveedores';
-                patchState(store, { loading: false, error: errorMsg });
+                throw new Error(response.error?.message || 'Error al buscar proveedores');
+            } catch (err) {
+                patchState(store, { loading: false });
                 throw err;
             }
         },
 
-        async create(nombre: string): Promise<void> {
-            patchState(store, { loading: true, error: null });
+        async create(nombre: string): Promise<string> {
+            patchState(store, { loading: true });
             try {
                 const response = await firstValueFrom(proveedorService.create(nombre));
                 
-                // Manejar Result<ProveedorItem>
                 if (response.isSuccess && response.value) {
-                    const nuevaProveedor = response.value;
-                    
-                    // Agregar a la lista local
-                    patchState(store, { 
-                        proveedores: [nuevaProveedor, ...store.proveedores()],
-                        loading: false 
-                    });
-                    
-                    return nuevaProveedor;
-                } else {
-                    const errorMsg = response.error?.message || 'Error al crear categoría';
-                    patchState(store, { loading: false, error: errorMsg });
-                    throw new Error(errorMsg);
+                    patchState(store, { loading: false });
+                    return response.value; // Retornar el UUID del proveedor creado
                 }
-            } catch (err: any) {
-                const errorMsg = err.message || 'Error al crear categoría';
-                patchState(store, { loading: false, error: errorMsg });
+                throw new Error(response.error?.message || 'Error al crear proveedor');
+            } catch (err) {
+                patchState(store, { loading: false });
                 throw err;
             }
         },
 
         async getRecent(limit: number = 5): Promise<Proveedor[]> {
-            patchState(store, { loading: true, error: null });
+            patchState(store, { loading: true });
             try {
                 const response = await firstValueFrom(proveedorService.getRecent(limit));
                 
-                // Manejar Result<Proveedor[]> - el backend devuelve array directo en value
                 if (response.isSuccess && response.value) {
                     const proveedores = Array.isArray(response.value) ? response.value : (response.value as any).items || [];
                     patchState(store, { loading: false });
                     return proveedores;
-                } else {
-                    const errorMsg = response.error?.message || 'Error al cargar proveedores recientes';
-                    patchState(store, { loading: false, error: errorMsg });
-                    throw new Error(errorMsg);
                 }
-            } catch (err: any) {
-                const errorMsg = err.message || 'Error al cargar proveedores recientes';
-                patchState(store, { loading: false, error: errorMsg });
+                throw new Error(response.error?.message || 'Error al cargar proveedores recientes');
+            } catch (err) {
+                patchState(store, { loading: false });
                 throw err;
             }
         },

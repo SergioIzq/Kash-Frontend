@@ -16,8 +16,11 @@ export class ConceptoService {
      * Búsqueda ligera de conceptos por nombre
      * Solo devuelve {id, nombre} para rendimiento óptimo
      */
-    search(search: string, limit: number = 10): Observable<Result<Concepto[]>> {
+    search(search: string, limit: number = 10, categoriaId?: string): Observable<Result<Concepto[]>> {
         let params = new HttpParams().set('search', search).set('limit', limit.toString());
+        if (categoriaId) {
+            params = params.set('categoriaId', categoriaId);
+        }
 
         return this.http.get<Result<Concepto[]>>(`${this.apiUrl}/search`, { params });
     }
@@ -25,16 +28,20 @@ export class ConceptoService {
     /**
      * Obtener los conceptos más usados recientemente
      */
-    getRecent(limit: number = 5): Observable<Result<Concepto[]>> {
+    getRecent(limit: number = 5, categoriaId?: string): Observable<Result<Concepto[]>> {
         let params = new HttpParams().set('limit', limit.toString());
+        if (categoriaId) {
+            params = params.set('categoriaId', categoriaId);
+        }
 
         return this.http.get<Result<Concepto[]>>(`${this.apiUrl}/recent`, { params });
     }
 
     /**
      * Crear un nuevo concepto
+     * El backend devuelve 201 con Result<string> donde value es el UUID creado
      */
-    create(nombre: string): Observable<Result<void>> {
-        return this.http.post<Result<void>>(this.apiUrl, { nombre });
+    create(nombre: string, categoriaId: string): Observable<Result<string>> {
+        return this.http.post<Result<string>>(this.apiUrl, { nombre, categoriaId });
     }
 }

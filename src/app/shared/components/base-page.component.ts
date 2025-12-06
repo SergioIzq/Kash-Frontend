@@ -8,11 +8,13 @@ import { Observable, lastValueFrom } from 'rxjs';
  * - Confirmaciones
  * - Manejo automático de respuestas del servidor
  * - Skeleton loader con signal de loading
+ * 
+ * IMPORTANTE: Los servicios MessageService y ConfirmationService deben ser
+ * provistos por el componente hijo, no por esta clase base.
  */
 @Component({
     template: '',
-    standalone: true,
-    providers: [MessageService, ConfirmationService]
+    standalone: true
 })
 export abstract class BasePageComponent {
     protected messageService = inject(MessageService);

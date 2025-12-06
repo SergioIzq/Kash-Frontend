@@ -1,40 +1,38 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import { Result } from '@/core/models/common.model';
-import { Proveedor } from '@/core/models/proveedor.model';
+import { Cuenta } from '@/core/models/cuenta.model';
 
 @Injectable({
     providedIn: 'root'
 })
-export class ProveedorService {
+export class CuentaService {
     private http = inject(HttpClient);
-    private apiUrl = `${environment.apiUrl}/proveedores`;
+    private apiUrl = `${environment.apiUrl}/cuentas`;
 
     /**
-     * Búsqueda ligera de personas por nombre
+     * Búsqueda ligera de cuentas por nombre
      * Solo devuelve {id, nombre} para rendimiento óptimo
      */
-    search(search: string, limit: number = 10): Observable<Result<Proveedor[]>> {
+    search(search: string, limit: number = 10): Observable<Result<Cuenta[]>> {
         let params = new HttpParams().set('search', search).set('limit', limit.toString());
 
-        return this.http.get<Result<Proveedor[]>>(`${this.apiUrl}/search`, { params });
+        return this.http.get<Result<Cuenta[]>>(`${this.apiUrl}/search`, { params });
     }
 
     /**
-     * Obtener los personas más usados recientemente
+     * Obtener los cuentas más usados recientemente
      */
-    getRecent(limit: number = 5): Observable<Result<Proveedor[]>> {
+    getRecent(limit: number = 5): Observable<Result<Cuenta[]>> {
         let params = new HttpParams().set('limit', limit.toString());
 
-        return this.http.get<Result<Proveedor[]>>(`${this.apiUrl}/recent`, { params });
+        return this.http.get<Result<Cuenta[]>>(`${this.apiUrl}/recent`, { params });
     }
 
     /**
-     * Crear un nuevo proveedor
-     * El backend devuelve 201 con Result<string> donde value es el UUID creado
+     * Crear un nuevo concepto
      */
     create(nombre: string): Observable<Result<string>> {
         return this.http.post<Result<string>>(this.apiUrl, { nombre });
