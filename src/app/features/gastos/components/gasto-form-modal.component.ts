@@ -13,9 +13,11 @@ import { Gasto } from '@/core/models';
 import { Proveedor } from '@/core/models/proveedor.model';
 import { Persona } from '@/core/models/persona.model';
 import { Concepto } from '@/core/models/concepto.model';
-import { ConceptoCreateModalComponent, CategoriaCreateModalComponent, ProveedorCreateModalComponent, PersonaCreateModalComponent } from '@/shared/components';
+import { ConceptoCreateModalComponent, CategoriaCreateModalComponent, ProveedorCreateModalComponent, PersonaCreateModalComponent, CuentaCreateModalComponent, FormaPagoCreateModalComponent } from '@/shared/components';
 import { Categoria } from '@/core/models/categoria.model';
 import { ConceptoStore, CategoriaStore, ProveedorStore, PersonaStore, CuentaStore, FormaPagoStore } from '@/shared/stores';
+import { Cuenta } from '@/core/models/cuenta.model';
+import { FormaPago } from '@/core/models/forma-pago.model';
 
 interface CatalogItem {
     id: string;
@@ -42,7 +44,9 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
         ConceptoCreateModalComponent,
         CategoriaCreateModalComponent,
         ProveedorCreateModalComponent,
-        PersonaCreateModalComponent
+        PersonaCreateModalComponent,
+        FormaPagoCreateModalComponent,
+        CuentaCreateModalComponent
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
@@ -135,7 +139,7 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                                 optionLabel="nombre"
                                 [dropdown]="true"
                                 placeholder="Buscar o seleccionar persona"
-                                styleClass="flex-1"
+                                class="flex-1"
                                 [forceSelection]="false"
                                 (onSelect)="onPersonaSelect($event)"
                             />
@@ -231,6 +235,8 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
         <app-proveedor-create-modal [visible]="showProveedorCreateModal" (visibleChange)="showProveedorCreateModal = $event" (created)="onProveedorCreated($event)" (cancel)="showProveedorCreateModal = false" />
 
         <app-persona-create-modal [visible]="showPersonaCreateModal" (visibleChange)="showPersonaCreateModal = $event" (created)="onPersonaCreated($event)" (cancel)="showPersonaCreateModal = false" />
+        <app-forma-pago-create-modal [visible]="showFormaPagoCreateModal" (visibleChange)="showFormaPagoCreateModal = $event" (created)="onFormaPagoCreated($event)" (cancel)="showFormaPagoCreateModal = false" />
+        <app-cuenta-create-modal [visible]="showCuentaCreateModal" (visibleChange)="showCuentaCreateModal = $event" (created)="onCuentaCreated($event)" (cancel)="showCuentaCreateModal = false" />
     `,
     styles: [
         `
@@ -726,6 +732,54 @@ export class GastoFormModalComponent {
             severity: 'success',
             summary: 'Persona creada',
             detail: `Persona "${nuevaPersona.nombre}" creada y seleccionada correctamente`
+        });
+    }
+
+    onCuentaCreated(nuevaCuenta: Cuenta) {
+        this.showCuentaCreateModal = false;
+
+        // Convertir a CatalogItem para el autocomplete
+        const cuentaItem: CatalogItem = {
+            id: nuevaCuenta.id,
+            nombre: nuevaCuenta.nombre
+        };
+
+        // Seleccionar automáticamente la cuenta recién creada
+        this.selectedCuenta = cuentaItem;
+        this.formData.cuentaId = cuentaItem.id;
+        this.formData.cuentaNombre = cuentaItem.nombre;
+
+        // Añadir a la lista de filtrados
+        this.filteredCuentas.set([cuentaItem, ...this.filteredCuentas()]);
+
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Cuenta creada',
+            detail: `Cuenta "${nuevaCuenta.nombre}" creada y seleccionada correctamente`
+        });
+    }
+
+    onFormaPagoCreated(nuevaFormaPago: FormaPago) {
+        this.showFormaPagoCreateModal = false;
+
+        // Convertir a CatalogItem para el autocomplete
+        const formaPagoItem: CatalogItem = {
+            id: nuevaFormaPago.id,
+            nombre: nuevaFormaPago.nombre
+        };
+
+        // Seleccionar automáticamente la cuenta recién creada
+        this.selectedFormaPago = formaPagoItem;
+        this.formData.formaPagoId = formaPagoItem.id;
+        this.formData.formaPagoNombre = formaPagoItem.nombre;
+
+        // Añadir a la lista de filtrados
+        this.filteredFormasPago.set([formaPagoItem, ...this.filteredFormasPago()]);
+
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Forma de Pago creada',
+            detail: `Forma de Pago "${nuevaFormaPago.nombre}" creada y seleccionada correctamente`
         });
     }
 

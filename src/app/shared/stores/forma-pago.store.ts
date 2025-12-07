@@ -42,14 +42,14 @@ export const FormaPagoStore = signalStore(
             }
         },
 
-        async create(nombre: string): Promise<void> {
+        async create(nombre: string): Promise<string> {
             patchState(store, { loading: true });
             try {
                 const response = await firstValueFrom(formaPagoService.create(nombre));
 
                 if (response.isSuccess) {
                     patchState(store, { loading: false });
-                    return;
+                    return response.value;
                 }
                 throw new Error(response.error?.message || 'Error al crear concepto');
             } catch (err) {

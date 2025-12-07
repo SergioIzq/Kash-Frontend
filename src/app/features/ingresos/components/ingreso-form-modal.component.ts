@@ -13,9 +13,11 @@ import { Ingreso } from '@/core/models';
 import { Cliente } from '@/core/models/cliente.model';
 import { Persona } from '@/core/models/persona.model';
 import { Concepto } from '@/core/models/concepto.model';
-import { ConceptoCreateModalComponent, CategoriaCreateModalComponent, ClienteCreateModalComponent, PersonaCreateModalComponent } from '@/shared/components';
+import { ConceptoCreateModalComponent, CategoriaCreateModalComponent, ClienteCreateModalComponent, PersonaCreateModalComponent, CuentaCreateModalComponent, FormaPagoCreateModalComponent } from '@/shared/components';
 import { Categoria } from '@/core/models/categoria.model';
 import { ConceptoStore, CategoriaStore, ClienteStore, PersonaStore, CuentaStore, FormaPagoStore } from '@/shared/stores';
+import { FormaPago } from '@/core/models/forma-pago.model';
+import { Cuenta } from '@/core/models/cuenta.model';
 
 interface CatalogItem {
     id: string;
@@ -42,7 +44,9 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
         ConceptoCreateModalComponent,
         CategoriaCreateModalComponent,
         ClienteCreateModalComponent,
-        PersonaCreateModalComponent
+        PersonaCreateModalComponent,
+        CuentaCreateModalComponent,
+        FormaPagoCreateModalComponent
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
@@ -231,6 +235,8 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
         <app-cliente-create-modal [visible]="showClienteCreateModal" (visibleChange)="showClienteCreateModal = $event" (created)="onClienteCreated($event)" (cancel)="showClienteCreateModal = false" />
 
         <app-persona-create-modal [visible]="showPersonaCreateModal" (visibleChange)="showPersonaCreateModal = $event" (created)="onPersonaCreated($event)" (cancel)="showPersonaCreateModal = false" />
+        <app-forma-pago-create-modal [visible]="showFormaPagoCreateModal" (visibleChange)="showFormaPagoCreateModal = $event" (created)="onFormaPagoCreated($event)" (cancel)="showFormaPagoCreateModal = false" />
+        <app-cuenta-create-modal [visible]="showCuentaCreateModal" (visibleChange)="showCuentaCreateModal = $event" (created)="onCuentaCreated($event)" (cancel)="showCuentaCreateModal = false" />
     `,
     styles: [
         `
@@ -726,6 +732,54 @@ export class IngresoFormModalComponent {
             severity: 'success',
             summary: 'Persona creada',
             detail: `Persona "${nuevaPersona.nombre}" creada y seleccionada correctamente`
+        });
+    }
+
+    onCuentaCreated(nuevaCuenta: Cuenta) {
+        this.showCuentaCreateModal = false;
+
+        // Convertir a CatalogItem para el autocomplete
+        const cuentaItem: CatalogItem = {
+            id: nuevaCuenta.id,
+            nombre: nuevaCuenta.nombre
+        };
+
+        // Seleccionar automáticamente la cuenta recién creada
+        this.selectedCuenta = cuentaItem;
+        this.formData.cuentaId = cuentaItem.id;
+        this.formData.cuentaNombre = cuentaItem.nombre;
+
+        // Añadir a la lista de filtrados
+        this.filteredCuentas.set([cuentaItem, ...this.filteredCuentas()]);
+
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Cuenta creada',
+            detail: `Cuenta "${nuevaCuenta.nombre}" creada y seleccionada correctamente`
+        });
+    }
+
+    onFormaPagoCreated(nuevaFormaPago: FormaPago) {
+        this.showFormaPagoCreateModal = false;
+
+        // Convertir a CatalogItem para el autocomplete
+        const formaPagoItem: CatalogItem = {
+            id: nuevaFormaPago.id,
+            nombre: nuevaFormaPago.nombre
+        };
+
+        // Seleccionar automáticamente la cuenta recién creada
+        this.selectedFormaPago = formaPagoItem;
+        this.formData.formaPagoId = formaPagoItem.id;
+        this.formData.formaPagoNombre = formaPagoItem.nombre;
+
+        // Añadir a la lista de filtrados
+        this.filteredFormasPago.set([formaPagoItem, ...this.filteredFormasPago()]);
+
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Forma de Pago creada',
+            detail: `Forma de Pago "${nuevaFormaPago.nombre}" creada y seleccionada correctamente`
         });
     }
 

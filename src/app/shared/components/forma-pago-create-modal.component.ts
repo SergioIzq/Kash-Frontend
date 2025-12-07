@@ -1,77 +1,89 @@
-import { Component, input, output, signal, ChangeDetectionStrategy, inject, effect } from '@angular/core';
+import { Component, inject, input, output, effect, ChangeDetectionStrategy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { MessageService, ConfirmationService } from 'primeng/api';
-import { Persona } from '@/core/models/persona.model';
-import { PersonaStore } from '@/shared/stores/persona.store';
+import { ConfirmationService } from 'primeng/api';
+import { FormaPago } from '@/core/models/forma-pago.model';
+import { FormaPagoStore } from '../stores';
 
 @Component({
-    selector: 'app-persona-create-modal',
+    selector: 'app-forma-pago-create-modal',
     standalone: true,
     imports: [CommonModule, FormsModule, DialogModule, ButtonModule, InputTextModule, ConfirmDialogModule],
     providers: [ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <p-dialog [(visible)]="isVisible" [style]="{ width: '450px' }" header="Crear Nueva Persona" [modal]="true" [contentStyle]="{ padding: '2rem' }" styleClass="p-fluid" (onHide)="onCancel()">
+        <p-dialog [(visible)]="isVisible" [style]="{ width: '450px' }" header="Crear Nueva FormaPago" [modal]="true" [contentStyle]="{ padding: '2rem' }" (onHide)="onCancel()" styleClass="p-fluid">
             <ng-template #content>
                 <div class="flex flex-col gap-4">
                     <div>
-                        <label for="nombre" class="block font-bold mb-3">Nombre de Persona *</label>
-                        <input pInputText id="nombre" [(ngModel)]="nombre" placeholder="Ej: Juan Pérez" [maxlength]="100" fluid autofocus />
-                        @if (submitted() && !nombre) {
+                        <label for="nombre" class="block font-bold mb-3">Nombre del FormaPago *</label>
+                        <input type="text" pInputText id="nombre" [(ngModel)]="nombre" required autofocus placeholder="Ej: Empresa XYZ" fluid />
+                        @if (submitted() && !nombre.trim()) {
                             <small class="text-red-500"> El nombre es requerido. </small>
                         }
                     </div>
+
+                    @if (errorMessage()) {
+                        <small class="text-red-500">{{ errorMessage() }}</small>
+                    }
                 </div>
             </ng-template>
 
             <ng-template #footer>
-                <p-button label="Cancelar" icon="pi pi-times" text (click)="onCancel()" [disabled]="isCreating()" />
-                <p-button label="Crear" icon="pi pi-check" (click)="onCreate()" [loading]="isCreating()" />
+                <p-button label="Cancelar" icon="pi pi-times" text (click)="onCancel()" [disabled]="loading()" />
+                <p-button label="Crear" icon="pi pi-check" (click)="onCreate()" [loading]="loading()" />
             </ng-template>
         </p-dialog>
         <p-confirmdialog />
     `
 })
-export class PersonaCreateModalComponent {
-    private personaStore = inject(PersonaStore);
+export class FormaPagoCreateModalComponent {
+    private formaPagoStore = inject(FormaPagoStore);
     private confirmationService = inject(ConfirmationService);
 
     // Inputs/Outputs
     visible = input<boolean>(false);
     visibleChange = output<boolean>();
-    created = output<Persona>();
+    created = output<FormaPago>();
     cancel = output<void>();
 
     // Estado del formulario
-    nombre = '';
+    nombre: string = '';
     submitted = signal(false);
-    isCreating = signal(false);
+    loading = signal(false);
+    errorMessage = signal<string>('');
+
     isVisible = false;
 
     constructor() {
         // Sincronizar visible con isVisible interno
         effect(() => {
             this.isVisible = this.visible();
-            if (this.isVisible) {
-                this.resetForm();
+
+            // Limpiar formulario cuando se abre
+            if (this.visible()) {
+                this.nombre = '';
+                this.submitted.set(false);
+                this.loading.set(false);
+                this.errorMessage.set('');
             }
         });
     }
 
     onCreate() {
         this.submitted.set(true);
+        this.errorMessage.set('');
 
-        if (!this.nombre || this.nombre.trim().length === 0) {
+        if (!this.nombre.trim()) {
             return;
         }
 
         this.confirmationService.confirm({
-            message: `¿Está seguro que desea crear la persona "${this.nombre.trim()}"?`,
+            message: `¿Está seguro que desea crear el formaPago "${this.nombre.trim()}"?`,
             header: 'Confirmar Creación',
             icon: 'pi pi-exclamation-triangle',
             acceptLabel: 'Sí, crear',
@@ -83,25 +95,25 @@ export class PersonaCreateModalComponent {
     }
 
     private confirmedCreate() {
-        this.isCreating.set(true);
+        this.loading.set(true);
 
-        this.personaStore
+        this.formaPagoStore
             .create(this.nombre.trim())
-            .then((nuevaPersonaId) => {
+            .then((nuevaFormaPagoId) => {
                 // El store devuelve el UUID
-                const nuevaPersona: Persona = {
-                    id: nuevaPersonaId,
+                const nuevaFormaPago: FormaPago = {
+                    id: nuevaFormaPagoId,
                     nombre: this.nombre.trim(),
                     fechaCreacion: new Date(),
                     usuarioId: ''
                 };
 
-                this.created.emit(nuevaPersona);
+                this.created.emit(nuevaFormaPago);
                 this.closeModal();
             })
             .catch((err) => {
-                console.error('Error creando persona:', err);
-                this.isCreating.set(false);
+                this.errorMessage.set(err.message || 'Error al crear formaPago');
+                this.loading.set(false);
             });
     }
 
@@ -113,12 +125,9 @@ export class PersonaCreateModalComponent {
     private closeModal() {
         this.isVisible = false;
         this.visibleChange.emit(false);
-        this.resetForm();
-    }
-
-    private resetForm() {
         this.nombre = '';
         this.submitted.set(false);
-        this.isCreating.set(false);
+        this.loading.set(false);
+        this.errorMessage.set('');
     }
 }
