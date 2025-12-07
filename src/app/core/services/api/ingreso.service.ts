@@ -122,8 +122,8 @@ export class IngresoService {
     /**
      * Actualizar ingreso
      */
-    update(id: string, ingreso: Partial<Ingreso>): Observable<Ingreso> {
-        return this.http.put<Result<Ingreso>>(`${this.apiUrl}/${id}`, ingreso).pipe(
+    update(id: string, ingreso: Partial<Ingreso>): Observable<string> {
+        return this.http.put<Result<string>>(`${this.apiUrl}/${id}`, ingreso).pipe(
             map(response => {
                 this.invalidateCache();
                 return response.value;

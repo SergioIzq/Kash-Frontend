@@ -99,7 +99,7 @@ export const PersonaStore = signalStore(
             )
         ),
 
-        async update(id: string, persona: Partial<Persona>): Promise<Persona> {
+        async update(id: string, persona: Partial<Persona>): Promise<string> {
             patchState(store, { loading: true });
             try {
                 const response = await firstValueFrom(personaService.update(id, persona));

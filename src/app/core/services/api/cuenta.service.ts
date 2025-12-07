@@ -71,8 +71,8 @@ export class CuentaService {
     /**
      * Actualizar una cuenta existente
      */
-    update(id: string, cuenta: Partial<Cuenta>): Observable<Result<Cuenta>> {
-        return this.http.put<Result<Cuenta>>(`${this.apiUrl}/${id}`, cuenta);
+    update(id: string, cuenta: Partial<Cuenta>): Observable<Result<string>> {
+        return this.http.put<Result<string>>(`${this.apiUrl}/${id}`, cuenta);
     }
 
     /**

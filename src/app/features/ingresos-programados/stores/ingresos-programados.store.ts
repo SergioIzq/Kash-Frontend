@@ -1,7 +1,7 @@
 import { computed, inject } from '@angular/core';
 import { patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { pipe, switchMap, tap } from 'rxjs';
+import { firstValueFrom, pipe, switchMap, tap } from 'rxjs';
 import { tapResponse } from '@ngrx/operators';
 import { IngresoProgramadoService } from '@/core/services/api/ingreso-programado.service';
 import { IngresoProgramado } from '@/core/models/ingreso-programado.model';
@@ -86,33 +86,21 @@ export const IngresosProgramadosStore = signalStore(
             )
         ),
 
-        updateIngreso: rxMethod<{ id: string; ingreso: Partial<IngresoProgramado> }>(
-            pipe(
-                tap(() => patchState(store, { loading: true })),
-                switchMap(({ id, ingreso }) =>
-                    service.update(id, ingreso).pipe(
-                        tapResponse({
-                            next: (updatedIngreso) => {
-                                const ingresos = store.ingresosProgramados().map((i) => 
-                                    i.id === id ? updatedIngreso : i
-                                );
-                                patchState(store, {
-                                    ingresosProgramados: ingresos,
-                                    loading: false,
-                                    error: null
-                                });
-                            },
-                            error: (error: any) => {
-                                patchState(store, {
-                                    loading: false,
-                                    error: error.message || 'Error al actualizar ingreso programado'
-                                });
-                            }
-                        })
-                    )
-                )
-            )
-        ),
+        async update(id: string, ingreso: Partial<IngresoProgramado>): Promise<string> {
+            patchState(store, { loading: true });
+            try {
+                const response = await firstValueFrom(service.update(id, ingreso));
+
+                if (response.isSuccess) {
+                    patchState(store, { loading: false });
+                    return response.value;
+                }
+                throw new Error(response.error?.message || 'Error al actualizar proveedor');
+            } catch (err) {
+                patchState(store, { loading: false });
+                throw err;
+            }
+        },
 
         deleteIngreso: rxMethod<string>(
             pipe(

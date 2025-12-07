@@ -76,10 +76,9 @@ export class IngresoProgramadoService {
     /**
      * Actualizar ingreso programado
      */
-    update(id: string, ingreso: Partial<IngresoProgramado>): Observable<IngresoProgramado> {
+    update(id: string, ingreso: Partial<IngresoProgramado>): Observable<Result<string>> {
         return this.http
-            .put<Result<IngresoProgramado>>(`${this.apiUrl}/${id}`, ingreso)
-            .pipe(map((response) => response.value));
+            .put<Result<string>>(`${this.apiUrl}/${id}`, ingreso);
     }
 
     /**

@@ -15,6 +15,7 @@ import { IngresosProgramadosStore } from '../stores/ingresos-programados.store';
 import { IngresoProgramado } from '@/core/models/ingreso-programado.model';
 import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
+import { IngresoProgramadoFormModalComponent } from '../components/ingreso-programado-form-modal.component';
 
 @Component({
     selector: 'app-ingresos-programados-list-page',
@@ -31,7 +32,8 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
         IconFieldModule,
         SkeletonModule,
         TagModule,
-        BasePageTemplateComponent
+        BasePageTemplateComponent,
+        IngresoProgramadoFormModalComponent
     ],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -160,6 +162,14 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
                 </div>
             </div>
         </app-base-page-template>
+
+        <!-- Modal de Formulario -->
+        <app-ingreso-programado-form-modal
+            [visible]="ingresoDialog"
+            [ingresoProgramado]="currentIngreso"
+            (save)="saveIngreso($event)"
+            (cancel)="hideDialog()"
+        />
     `
 })
 export class IngresosProgramadosListPage extends BasePageComponent {
@@ -177,6 +187,10 @@ export class IngresosProgramadosListPage extends BasePageComponent {
     searchTerm: string = '';
     sortColumn: string = 'fechaEjecucion';
     sortOrder: string = 'asc';
+
+    // Propiedades del modal
+    ingresoDialog: boolean = false;
+    currentIngreso: Partial<IngresoProgramado> | null = null;
 
     constructor() {
         super();
@@ -222,13 +236,32 @@ export class IngresosProgramadosListPage extends BasePageComponent {
     }
 
     openNew() {
-        this.showInfo('Funcionalidad en desarrollo', 'Crear Ingreso Programado');
-        // TODO: Implementar modal de creación
+        this.currentIngreso = null;
+        this.ingresoDialog = true;
     }
 
     editIngreso(ingreso: IngresoProgramado) {
-        this.showInfo('Funcionalidad en desarrollo', 'Editar Ingreso Programado');
-        // TODO: Implementar modal de edición
+        this.currentIngreso = { ...ingreso };
+        this.ingresoDialog = true;
+    }
+
+    hideDialog() {
+        this.ingresoDialog = false;
+        this.currentIngreso = null;
+    }
+
+    saveIngreso(ingreso: Partial<IngresoProgramado>) {
+        if (ingreso.id) {
+            // Actualizar
+            this.ingresosStore.update(ingreso.id, ingreso);
+            this.showSuccess('Ingreso programado actualizado correctamente');
+        } else {
+            // Crear
+            this.ingresosStore.createIngreso(ingreso);
+            this.showSuccess('Ingreso programado creado correctamente');
+        }
+        this.hideDialog();
+        setTimeout(() => this.reloadIngresos(), 300);
     }
 
     toggleActivo(ingreso: IngresoProgramado) {

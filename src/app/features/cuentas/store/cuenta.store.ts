@@ -99,7 +99,7 @@ export const CuentaStore = signalStore(
             )
         ),
 
-        async update(id: string, cuenta: Partial<Cuenta>): Promise<Cuenta> {
+        async update(id: string, cuenta: Partial<Cuenta>): Promise<string> {
             patchState(store, { loading: true });
             try {
                 const response = await firstValueFrom(cuentaService.update(id, cuenta));

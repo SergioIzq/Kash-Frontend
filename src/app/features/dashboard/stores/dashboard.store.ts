@@ -51,8 +51,7 @@ export const DashboardStore = signalStore(
         diasTranscurridosMes: computed(() => store.resumen()?.diasTranscurridosMes ?? 0),
         diasRestantesMes: computed(() => store.resumen()?.diasRestantesMes ?? 0),
         historicoUltimos6Meses: computed(() => store.resumen()?.historicoUltimos6Meses ?? []),
-        alertas: computed(() => store.resumen()?.alertas ?? []),
-        historico: computed(() => store.historico())
+        alertas: computed(() => store.resumen()?.alertas ?? [])
     })),
     withMethods((store, dashboardService = inject(DashboardService)) => ({
         loadResumen: rxMethod<void>(

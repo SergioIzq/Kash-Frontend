@@ -99,7 +99,7 @@ export const FormaPagoStore = signalStore(
             )
         ),
 
-        async update(id: string, formaPago: Partial<FormaPago>): Promise<FormaPago> {
+        async update(id: string, formaPago: Partial<FormaPago>): Promise<string> {
             patchState(store, { loading: true });
             try {
                 const response = await firstValueFrom(formaPagoService.update(id, formaPago));

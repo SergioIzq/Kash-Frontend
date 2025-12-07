@@ -1,7 +1,7 @@
 import { computed, inject } from '@angular/core';
 import { patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { pipe, switchMap, tap } from 'rxjs';
+import { firstValueFrom, pipe, switchMap, tap } from 'rxjs';
 import { tapResponse } from '@ngrx/operators';
 import { GastoProgramadoService } from '@/core/services/api/gasto-programado.service';
 import { GastoProgramado } from '@/core/models/gasto-programado.model';
@@ -28,8 +28,8 @@ export const GastosProgramadosStore = signalStore(
 
     withComputed((store) => ({
         count: computed(() => store.gastosProgramados().length),
-        activos: computed(() => store.gastosProgramados().filter(g => g.activo)),
-        inactivos: computed(() => store.gastosProgramados().filter(g => !g.activo))
+        activos: computed(() => store.gastosProgramados().filter((g) => g.activo)),
+        inactivos: computed(() => store.gastosProgramados().filter((g) => !g.activo))
     })),
 
     withMethods((store, service = inject(GastoProgramadoService)) => ({
@@ -86,33 +86,21 @@ export const GastosProgramadosStore = signalStore(
             )
         ),
 
-        updateGasto: rxMethod<{ id: string; gasto: Partial<GastoProgramado> }>(
-            pipe(
-                tap(() => patchState(store, { loading: true })),
-                switchMap(({ id, gasto }) =>
-                    service.update(id, gasto).pipe(
-                        tapResponse({
-                            next: (updatedGasto) => {
-                                const gastos = store.gastosProgramados().map((g) => 
-                                    g.id === id ? updatedGasto : g
-                                );
-                                patchState(store, {
-                                    gastosProgramados: gastos,
-                                    loading: false,
-                                    error: null
-                                });
-                            },
-                            error: (error: any) => {
-                                patchState(store, {
-                                    loading: false,
-                                    error: error.message || 'Error al actualizar gasto programado'
-                                });
-                            }
-                        })
-                    )
-                )
-            )
-        ),
+        async update(id: string, gasto: Partial<GastoProgramado>): Promise<string> {
+            patchState(store, { loading: true });
+            try {
+                const response = await firstValueFrom(service.update(id, gasto));
+
+                if (response.isSuccess) {
+                    patchState(store, { loading: false });
+                    return response.value;
+                }
+                throw new Error(response.error?.message || 'Error al actualizar proveedor');
+            } catch (err) {
+                patchState(store, { loading: false });
+                throw err;
+            }
+        },
 
         deleteGasto: rxMethod<string>(
             pipe(
@@ -143,9 +131,7 @@ export const GastosProgramadosStore = signalStore(
                     service.toggleActivo(id, activo).pipe(
                         tapResponse({
                             next: () => {
-                                const gastos = store.gastosProgramados().map((g) =>
-                                    g.id === id ? { ...g, activo } : g
-                                );
+                                const gastos = store.gastosProgramados().map((g) => (g.id === id ? { ...g, activo } : g));
                                 patchState(store, { gastosProgramados: gastos, error: null });
                             },
                             error: (error: any) => {

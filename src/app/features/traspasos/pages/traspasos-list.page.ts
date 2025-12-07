@@ -11,14 +11,14 @@ import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
-import { GastosProgramadosStore } from '../stores/gastos-programados.store';
-import { GastoProgramado } from '@/core/models/gasto-programado.model';
+import { TraspasosStore } from '../stores/traspasos.store';
+import { Traspaso } from '@/core/models/traspaso.model';
 import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
-import { GastoProgramadoFormModalComponent } from '../components/gasto-programado-form-modal.component';
+import { TraspasoFormModalComponent } from '../components/traspaso-form-modal.component';
 
 @Component({
-    selector: 'app-gastos-programados-list-page',
+    selector: 'app-traspasos-list-page',
     standalone: true,
     imports: [
         CommonModule,
@@ -33,19 +33,19 @@ import { GastoProgramadoFormModalComponent } from '../components/gasto-programad
         SkeletonModule,
         TagModule,
         BasePageTemplateComponent,
-        GastoProgramadoFormModalComponent
+        TraspasoFormModalComponent
     ],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <app-base-page-template [loading]="gastosStore.loading()" [skeletonType]="'table'">
+        <app-base-page-template [loading]="traspasosStore.loading()" [skeletonType]="'table'">
             <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
                 <div class="surface-card shadow-2 border-round p-6">
                     <p-toast></p-toast>
 
                     <p-toolbar styleClass="mb-6 gap-2 p-6">
                         <ng-template #start>
-                            <p-button label="Nuevo Gasto Programado" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+                            <p-button label="Nuevo Traspaso" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
                         </ng-template>
 
                         <ng-template #end>
@@ -55,15 +55,15 @@ import { GastoProgramadoFormModalComponent } from '../components/gasto-programad
 
                     <p-table
                         #dt
-                        [value]="gastosStore.gastosProgramados()"
-                        [loading]="gastosStore.loading()"
+                        [value]="traspasosStore.traspasos()"
+                        [loading]="traspasosStore.loading()"
                         [lazy]="true"
                         (onLazyLoad)="onLazyLoad($event)"
                         [paginator]="true"
                         [rows]="pageSize"
-                        [totalRecords]="gastosStore.totalRecords()"
+                        [totalRecords]="traspasosStore.totalRecords()"
                         [showCurrentPageReport]="true"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} gastos programados"
+                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} traspasos"
                         [rowsPerPageOptions]="[10, 25, 50]"
                         [tableStyle]="{ 'min-width': '50rem' }"
                         styleClass="p-datatable-gridlines"
@@ -72,60 +72,60 @@ import { GastoProgramadoFormModalComponent } from '../components/gasto-programad
                     >
                         <ng-template #caption>
                             <div class="flex items-center justify-between py-3 px-4">
-                                <h5 class="m-0 font-semibold text-xl">Gestión de Gastos Programados</h5>
+                                <h5 class="m-0 font-semibold text-xl">Gestión de Traspasos</h5>
                                 <p-iconfield>
                                     <p-inputicon styleClass="pi pi-search" />
-                                    <input pInputText type="text" [(ngModel)]="searchTerm" (input)="onSearchChange($event)" placeholder="Buscar gastos programados..." />
+                                    <input pInputText type="text" [(ngModel)]="searchTerm" (input)="onSearchChange($event)" placeholder="Buscar traspasos..." />
                                 </p-iconfield>
                             </div>
                         </ng-template>
 
                         <ng-template #header>
                             <tr>
-                                <th pSortableColumn="importe" style="min-width:10rem; padding: 1rem">
+                                <th pSortableColumn="fecha" style="min-width:10rem; padding: 1rem">
+                                    Fecha
+                                    <p-sortIcon field="fecha" />
+                                </th>
+                                <th pSortableColumn="importe" style="min-width:10rem">
                                     Importe
                                     <p-sortIcon field="importe" />
                                 </th>
-                                <th pSortableColumn="frecuencia" style="min-width:10rem">
-                                    Frecuencia
-                                    <p-sortIcon field="frecuencia" />
-                                </th>
-                                <th pSortableColumn="fechaEjecucion" style="min-width:12rem">
-                                    Próxima Ejecución
-                                    <p-sortIcon field="fechaEjecucion" />
-                                </th>
-                                <th pSortableColumn="activo" style="min-width:8rem">
-                                    Estado
-                                    <p-sortIcon field="activo" />
-                                </th>
+                                <th style="min-width:12rem">Cuenta Origen</th>
+                                <th style="min-width:12rem">Cuenta Destino</th>
+                                <th style="min-width:15rem">Descripción</th>
                                 <th style="min-width:10rem">Acciones</th>
                             </tr>
                         </ng-template>
 
-                        <ng-template #body let-gasto>
+                        <ng-template #body let-traspaso>
                             <tr>
                                 <td style="padding: 1rem">
-                                    <span class="font-bold text-red-600">{{ gasto.importe | number: '1.2-2' }} €</span>
+                                    {{ traspaso.fecha | date: 'dd/MM/yyyy' }}
                                 </td>
                                 <td>
-                                    <p-tag [value]="gasto.frecuencia" [severity]="getFrecuenciaSeverity(gasto.frecuencia)" />
+                                    <span class="font-bold text-blue-600">{{ traspaso.importe | number: '1.2-2' }} €</span>
                                 </td>
                                 <td>
-                                    {{ gasto.fechaEjecucion | date: 'dd/MM/yyyy HH:mm' }}
+                                    <div class="flex items-center gap-2">
+                                        <i class="pi pi-arrow-circle-right text-red-500"></i>
+                                        <span>{{ traspaso.cuentaOrigenNombre }}</span>
+                                    </div>
                                 </td>
                                 <td>
-                                    <p-tag [value]="gasto.activo ? 'Activo' : 'Inactivo'" [severity]="gasto.activo ? 'success' : 'danger'" />
+                                    <div class="flex items-center gap-2">
+                                        <i class="pi pi-arrow-circle-left text-green-500"></i>
+                                        <span>{{ traspaso.cuentaDestinoNombre }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span [title]="traspaso.descripcion">
+                                        {{ traspaso.descripcion || '-' }}
+                                    </span>
                                 </td>
                                 <td>
                                     <div class="flex gap-2">
-                                        <p-button 
-                                            [icon]="gasto.activo ? 'pi pi-pause' : 'pi pi-play'"
-                                            [rounded]="true"
-                                            [outlined]="true"
-                                            (click)="toggleActivo(gasto)"
-                                        />
-                                        <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editGasto(gasto)" pTooltip="Editar" />
-                                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteGasto(gasto)" pTooltip="Eliminar" />
+                                        <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editTraspaso(traspaso)" pTooltip="Editar" />
+                                        <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteTraspaso(traspaso)" pTooltip="Eliminar" />
                                     </div>
                                 </td>
                             </tr>
@@ -137,9 +137,9 @@ import { GastoProgramadoFormModalComponent } from '../components/gasto-programad
                                 <td><p-skeleton width="70%" /></td>
                                 <td><p-skeleton width="70%" /></td>
                                 <td><p-skeleton width="70%" /></td>
+                                <td><p-skeleton width="90%" /></td>
                                 <td>
                                     <div class="flex gap-2">
-                                        <p-skeleton shape="circle" size="2.5rem" />
                                         <p-skeleton shape="circle" size="2.5rem" />
                                         <p-skeleton shape="circle" size="2.5rem" />
                                     </div>
@@ -149,11 +149,11 @@ import { GastoProgramadoFormModalComponent } from '../components/gasto-programad
 
                         <ng-template #emptymessage>
                             <tr>
-                                <td colspan="5" style="padding: 2rem">
+                                <td colspan="6" style="padding: 2rem">
                                     <div class="text-center py-8">
                                         <i class="pi pi-inbox text-500 text-5xl mb-3"></i>
-                                        <p class="text-900 font-semibold text-xl mb-2">No hay gastos programados</p>
-                                        <p class="text-600 mb-4">Comienza agregando tu primer gasto programado</p>
+                                        <p class="text-900 font-semibold text-xl mb-2">No hay traspasos</p>
+                                        <p class="text-600 mb-4">Comienza agregando tu primer traspaso entre cuentas</p>
                                     </div>
                                 </td>
                             </tr>
@@ -164,18 +164,18 @@ import { GastoProgramadoFormModalComponent } from '../components/gasto-programad
         </app-base-page-template>
 
         <!-- Modal de Formulario -->
-        <app-gasto-programado-form-modal
-            [visible]="gastoDialog"
-            [gastoProgramado]="currentGasto"
-            (save)="saveGasto($event)"
+        <app-traspaso-form-modal
+            [visible]="traspasoDialog"
+            [traspaso]="currentTraspaso"
+            (save)="saveTraspaso($event)"
             (cancel)="hideDialog()"
         />
     `
 })
-export class GastosProgramadosListPage extends BasePageComponent {
-    gastosStore = inject(GastosProgramadosStore);
+export class TraspasosListPage extends BasePageComponent {
+    traspasosStore = inject(TraspasosStore);
 
-    protected override loadingSignal = this.gastosStore.loading;
+    protected override loadingSignal = this.traspasosStore.loading;
     protected override skeletonType = 'table' as const;
 
     @ViewChild('dt') dt!: Table;
@@ -185,19 +185,19 @@ export class GastosProgramadosListPage extends BasePageComponent {
     pageSize: number = 10;
     pageNumber: number = 1;
     searchTerm: string = '';
-    sortColumn: string = 'fechaEjecucion';
-    sortOrder: string = 'asc';
+    sortColumn: string = 'fecha';
+    sortOrder: string = 'desc';
 
     // Propiedades del modal
-    gastoDialog: boolean = false;
-    currentGasto: Partial<GastoProgramado> | null = null;
+    traspasoDialog: boolean = false;
+    currentTraspaso: Partial<Traspaso> | null = null;
 
     constructor() {
         super();
         this.searchSubject.pipe(debounceTime(500), distinctUntilChanged()).subscribe((searchValue) => {
             this.searchTerm = searchValue;
             this.pageNumber = 1;
-            this.reloadGastos();
+            this.reloadTraspasos();
         });
     }
 
@@ -210,7 +210,7 @@ export class GastosProgramadosListPage extends BasePageComponent {
             this.sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
         }
 
-        this.reloadGastos();
+        this.reloadTraspasos();
     }
 
     onSearchChange(event: Event) {
@@ -218,8 +218,8 @@ export class GastosProgramadosListPage extends BasePageComponent {
         this.searchSubject.next(value);
     }
 
-    private reloadGastos() {
-        this.gastosStore.loadGastosProgramadosPaginated({
+    private reloadTraspasos() {
+        this.traspasosStore.loadTraspasosPaginated({
             page: this.pageNumber,
             pageSize: this.pageSize,
             searchTerm: this.searchTerm || undefined,
@@ -231,62 +231,52 @@ export class GastosProgramadosListPage extends BasePageComponent {
     refreshTable() {
         this.pageNumber = 1;
         this.searchTerm = '';
-        this.reloadGastos();
+        this.reloadTraspasos();
         this.showInfo('Datos actualizados', 'Actualización');
     }
 
     openNew() {
-        this.currentGasto = null;
-        this.gastoDialog = true;
+        this.currentTraspaso = null;
+        this.traspasoDialog = true;
     }
 
-    editGasto(gasto: GastoProgramado) {
-        this.currentGasto = { ...gasto };
-        this.gastoDialog = true;
+    editTraspaso(traspaso: Traspaso) {
+        this.currentTraspaso = { ...traspaso };
+        this.traspasoDialog = true;
     }
 
     hideDialog() {
-        this.gastoDialog = false;
-        this.currentGasto = null;
+        this.traspasoDialog = false;
+        this.currentTraspaso = null;
     }
 
-    saveGasto(gasto: Partial<GastoProgramado>) {
-        if (gasto.id) {
+    saveTraspaso(traspaso: Partial<Traspaso>) {
+        if (traspaso.id) {
             // Actualizar
-            this.gastosStore.update(gasto.id, gasto);
-            this.showSuccess('Gasto programado actualizado correctamente');
+            this.traspasosStore.updateTraspaso({ id: traspaso.id, traspaso });
+            this.showSuccess('Traspaso actualizado correctamente');
         } else {
-            // Crear
-            this.gastosStore.createGasto(gasto);
-            this.showSuccess('Gasto programado creado correctamente');
+            // Crear - asegurar que todos los campos requeridos están presentes
+            const traspasoCreate = {
+                cuentaOrigenId: traspaso.cuentaOrigenId!,
+                cuentaDestinoId: traspaso.cuentaDestinoId!,
+                importe: traspaso.importe!,
+                fecha: traspaso.fecha!,
+                descripcion: traspaso.descripcion
+            };
+            this.traspasosStore.createTraspaso(traspasoCreate as any);
+            this.showSuccess('Traspaso creado correctamente');
         }
         this.hideDialog();
-        setTimeout(() => this.reloadGastos(), 300);
+        setTimeout(() => this.reloadTraspasos(), 300);
     }
 
-    toggleActivo(gasto: GastoProgramado) {
+    deleteTraspaso(traspaso: Traspaso) {
         this.confirmAction(
-            `¿Estás seguro de ${gasto.activo ? 'pausar' : 'activar'} el gasto programado?`,
+            `¿Estás seguro de eliminar este traspaso de ${traspaso.importe}€?`,
             () => {
-                this.gastosStore.toggleActivo({ id: gasto.id, activo: !gasto.activo });
-                this.showSuccess(`Gasto programado ${gasto.activo ? 'pausado' : 'activado'} correctamente`);
-                setTimeout(() => this.reloadGastos(), 300);
-            },
-            {
-                header: 'Confirmar cambio de estado',
-                acceptLabel: 'Sí, cambiar',
-                rejectLabel: 'Cancelar'
-            }
-        );
-    }
-
-    deleteGasto(gasto: GastoProgramado) {
-        this.confirmAction(
-            `¿Estás seguro de eliminar este gasto programado?`,
-            () => {
-                this.gastosStore.deleteGasto(gasto.id);
-                this.showSuccess('Gasto programado eliminado correctamente');
-                setTimeout(() => this.reloadGastos(), 300);
+                this.traspasosStore.deleteTraspaso(traspaso.id);
+                this.showSuccess('Traspaso eliminado correctamente');
             },
             {
                 header: 'Confirmar eliminación',
@@ -294,20 +284,5 @@ export class GastosProgramadosListPage extends BasePageComponent {
                 rejectLabel: 'Cancelar'
             }
         );
-    }
-
-    getFrecuenciaSeverity(frecuencia: string): 'success' | 'info' | 'warning' | 'danger' {
-        switch (frecuencia) {
-            case 'DIARIO':
-                return 'danger';
-            case 'SEMANAL':
-                return 'warning';
-            case 'MENSUAL':
-                return 'info';
-            case 'ANUAL':
-                return 'success';
-            default:
-                return 'info';
-        }
     }
 }

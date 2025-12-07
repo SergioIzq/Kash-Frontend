@@ -72,8 +72,8 @@ export class PersonaService {
     /**
      * Actualizar una persona existente
      */
-    update(id: string, persona: Partial<Persona>): Observable<Result<Persona>> {
-        return this.http.put<Result<Persona>>(`${this.apiUrl}/${id}`, persona);
+    update(id: string, persona: Partial<Persona>): Observable<Result<string>> {
+        return this.http.put<Result<string>>(`${this.apiUrl}/${id}`, persona);
     }
 
     /**

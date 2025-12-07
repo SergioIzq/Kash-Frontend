@@ -71,8 +71,8 @@ export class ClienteService {
     /**
      * Actualizar una cliente existente
      */
-    update(id: string, cliente: Partial<Cliente>): Observable<Result<Cliente>> {
-        return this.http.put<Result<Cliente>>(`${this.apiUrl}/${id}`, cliente);
+    update(id: string, cliente: Partial<Cliente>): Observable<Result<string>> {
+        return this.http.put<Result<string>>(`${this.apiUrl}/${id}`, cliente);
     }
 
     /**

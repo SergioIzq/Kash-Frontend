@@ -99,7 +99,7 @@ export const ClienteStore = signalStore(
             )
         ),
 
-        async update(id: string, cliente: Partial<Cliente>): Promise<Cliente> {
+        async update(id: string, cliente: Partial<Cliente>): Promise<string> {
             patchState(store, { loading: true });
             try {
                 const response = await firstValueFrom(clienteService.update(id, cliente));

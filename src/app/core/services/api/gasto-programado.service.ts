@@ -76,10 +76,9 @@ export class GastoProgramadoService {
     /**
      * Actualizar gasto programado
      */
-    update(id: string, gasto: Partial<GastoProgramado>): Observable<GastoProgramado> {
+    update(id: string, gasto: Partial<GastoProgramado>): Observable<Result<string>> {
         return this.http
-            .put<Result<GastoProgramado>>(`${this.apiUrl}/${id}`, gasto)
-            .pipe(map((response) => response.value));
+            .put<Result<string>>(`${this.apiUrl}/${id}`, gasto)
     }
 
     /**

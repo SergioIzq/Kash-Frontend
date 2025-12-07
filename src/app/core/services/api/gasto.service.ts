@@ -34,7 +34,7 @@ export class GastoService {
         if (timestamp) {
             params = params.set('_t', timestamp.toString());
         }
-console.log(timestamp)
+
         // API devuelve Result<PaginatedList<Gasto>>, extraer data
         return this.http.get<Result<PaginatedList<Gasto>>>(`${this.apiUrl}`, { params }).pipe(map((response) => response.value));
     }
@@ -112,8 +112,8 @@ console.log(timestamp)
     /**
      * Actualizar gasto
      */
-    update(id: string, gasto: Partial<Gasto>): Observable<Gasto> {
-        return this.http.put<Result<Gasto>>(`${this.apiUrl}/${id}`, gasto).pipe(
+    update(id: string, gasto: Partial<Gasto>): Observable<string> {
+        return this.http.put<Result<string>>(`${this.apiUrl}/${id}`, gasto).pipe(
             map((response) => {
                 this.invalidateCache();
                 return response.value;

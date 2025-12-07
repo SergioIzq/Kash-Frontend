@@ -71,8 +71,8 @@ export class ProveedorService {
     /**
      * Actualizar una proveedor existente
      */
-    update(id: string, proveedor: Partial<Proveedor>): Observable<Result<Proveedor>> {
-        return this.http.put<Result<Proveedor>>(`${this.apiUrl}/${id}`, proveedor);
+    update(id: string, proveedor: Partial<Proveedor>): Observable<Result<string>> {
+        return this.http.put<Result<string>>(`${this.apiUrl}/${id}`, proveedor);
     }
 
     /**

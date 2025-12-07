@@ -71,8 +71,8 @@ export class FormaPagoService {
     /**
      * Actualizar una forma de pago existente
      */
-    update(id: string, formaPago: Partial<FormaPago>): Observable<Result<FormaPago>> {
-        return this.http.put<Result<FormaPago>>(`${this.apiUrl}/${id}`, formaPago);
+    update(id: string, formaPago: Partial<FormaPago>): Observable<Result<string>> {
+        return this.http.put<Result<string>>(`${this.apiUrl}/${id}`, formaPago);
     }
 
     /**
