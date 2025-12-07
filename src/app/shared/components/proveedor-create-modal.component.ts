@@ -7,7 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { Proveedor } from '@/core/models/proveedor.model';
-import { ProveedorStore } from '@/shared/stores/proveedor.store';
+import { ProveedorStore } from '@/features/proveedores/store/proveedor.store';
 
 @Component({
     selector: 'app-proveedor-create-modal',

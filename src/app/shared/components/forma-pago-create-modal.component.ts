@@ -7,7 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { FormaPago } from '@/core/models/forma-pago.model';
-import { FormaPagoStore } from '../stores';
+import { FormaPagoStore } from '@/features/formas-pago/store/forma-pago.store';
 
 @Component({
     selector: 'app-forma-pago-create-modal',

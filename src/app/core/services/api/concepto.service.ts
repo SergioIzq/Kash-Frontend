@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { Result } from '@/core/models/common.model';
+import { Result, PaginatedList } from '@/core/models/common.model';
 import { Concepto } from '@/core/models/concepto.model';
 
 @Injectable({
@@ -11,6 +11,19 @@ import { Concepto } from '@/core/models/concepto.model';
 export class ConceptoService {
     private http = inject(HttpClient);
     private apiUrl = `${environment.apiUrl}/conceptos`;
+
+    /**
+     * Obtener conceptos paginados
+     */
+    getConceptos(page: number = 1, pageSize: number = 10, searchTerm: string = '', sortColumn: string = 'nombre', sortOrder: string = 'asc'): Observable<PaginatedList<Concepto>> {
+        let params = new HttpParams().set('page', page.toString()).set('pageSize', pageSize.toString()).set('sortColumn', sortColumn).set('sortOrder', sortOrder);
+
+        if (searchTerm) {
+            params = params.set('searchTerm', searchTerm);
+        }
+
+        return this.http.get<Result<PaginatedList<Concepto>>>(`${this.apiUrl}`, { params }).pipe(map((response) => response.value));
+    }
 
     /**
      * Búsqueda ligera de conceptos por nombre
@@ -43,5 +56,19 @@ export class ConceptoService {
      */
     create(nombre: string, categoriaId: string): Observable<Result<string>> {
         return this.http.post<Result<string>>(this.apiUrl, { nombre, categoriaId });
+    }
+
+    /**
+     * Actualizar un concepto existente
+     */
+    update(id: string, concepto: Partial<Concepto>): Observable<Result<string>> {
+        return this.http.put<Result<string>>(`${this.apiUrl}/${id}`, concepto);
+    }
+
+    /**
+     * Eliminar un concepto
+     */
+    delete(id: string): Observable<Result<void>> {
+        return this.http.delete<Result<void>>(`${this.apiUrl}/${id}`);
     }
 }

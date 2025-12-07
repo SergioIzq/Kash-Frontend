@@ -25,12 +25,28 @@ export const appRoutes: Routes = [
                 loadChildren: () => import('./app/features/cuentas/cuentas.routes')
             },
             {
+                path: 'formas-pago',
+                loadChildren: () => import('./app/features/formas-pago/formas-pago.routes')
+            },
+            {
                 path: 'clientes',
                 loadChildren: () => import('./app/features/clientes/clientes.routes')
             },
             {
                 path: 'proveedores',
                 loadChildren: () => import('./app/features/proveedores/proveedores.routes')
+            },
+            {
+                path: 'personas',
+                loadChildren: () => import('./app/features/personas/personas.routes')
+            },
+            {
+                path: 'categorias',
+                loadChildren: () => import('./app/features/categorias/categorias.routes')
+            },
+            {
+                path: 'conceptos',
+                loadChildren: () => import('./app/features/conceptos/conceptos.routes')
             },
             {
                 path: 'auth/my-profile',

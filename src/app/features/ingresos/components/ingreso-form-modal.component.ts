@@ -13,11 +13,17 @@ import { Ingreso } from '@/core/models';
 import { Cliente } from '@/core/models/cliente.model';
 import { Persona } from '@/core/models/persona.model';
 import { Concepto } from '@/core/models/concepto.model';
-import { ConceptoCreateModalComponent, CategoriaCreateModalComponent, ClienteCreateModalComponent, PersonaCreateModalComponent, CuentaCreateModalComponent, FormaPagoCreateModalComponent } from '@/shared/components';
+import { CategoriaCreateModalComponent, ClienteCreateModalComponent, PersonaCreateModalComponent, CuentaCreateModalComponent, FormaPagoCreateModalComponent } from '@/shared/components';
 import { Categoria } from '@/core/models/categoria.model';
-import { ConceptoStore, CategoriaStore, ClienteStore, PersonaStore, CuentaStore, FormaPagoStore } from '@/shared/stores';
 import { FormaPago } from '@/core/models/forma-pago.model';
 import { Cuenta } from '@/core/models/cuenta.model';
+import { ClienteStore } from '@/features/clientes/store/cliente.store';
+import { FormaPagoStore } from '@/features/formas-pago/store/forma-pago.store';
+import { CuentaStore } from '@/features/cuentas/store/cuenta.store';
+import { ConceptoCreateModalComponent } from '@/features/conceptos/components/concepto-create-modal.component';
+import { ConceptoStore } from '@/features/conceptos/store/concepto.store';
+import { CategoriaStore } from '@/features/categorias/store/categoria.store';
+import { PersonaStore } from '@/features/personas/store/persona.store';
 
 interface CatalogItem {
     id: string;

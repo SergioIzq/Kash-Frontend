@@ -13,11 +13,17 @@ import { Gasto } from '@/core/models';
 import { Proveedor } from '@/core/models/proveedor.model';
 import { Persona } from '@/core/models/persona.model';
 import { Concepto } from '@/core/models/concepto.model';
-import { ConceptoCreateModalComponent, CategoriaCreateModalComponent, ProveedorCreateModalComponent, PersonaCreateModalComponent, CuentaCreateModalComponent, FormaPagoCreateModalComponent } from '@/shared/components';
+import { CategoriaCreateModalComponent, ProveedorCreateModalComponent, PersonaCreateModalComponent, CuentaCreateModalComponent, FormaPagoCreateModalComponent } from '@/shared/components';
 import { Categoria } from '@/core/models/categoria.model';
-import { ConceptoStore, CategoriaStore, ProveedorStore, PersonaStore, CuentaStore, FormaPagoStore } from '@/shared/stores';
 import { Cuenta } from '@/core/models/cuenta.model';
 import { FormaPago } from '@/core/models/forma-pago.model';
+import { FormaPagoStore } from '@/features/formas-pago/store/forma-pago.store';
+import { ProveedorStore } from '@/features/proveedores/store/proveedor.store';
+import { CuentaStore } from '@/features/cuentas/store/cuenta.store';
+import { ConceptoCreateModalComponent } from '@/features/conceptos/components/concepto-create-modal.component';
+import { ConceptoStore } from '@/features/conceptos/store/concepto.store';
+import { CategoriaStore } from '@/features/categorias/store/categoria.store';
+import { PersonaStore } from '@/features/personas/store/persona.store';
 
 interface CatalogItem {
     id: string;

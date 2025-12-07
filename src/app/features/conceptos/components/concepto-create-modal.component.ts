@@ -7,8 +7,8 @@ import { InputTextModule } from 'primeng/inputtext';
 import { AutoCompleteModule } from 'primeng/autocomplete';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
-import { ConceptoStore } from '@/shared/stores/concepto.store';
-import { CategoriaStore } from '@/shared/stores/categoria.store';
+import { ConceptoStore } from '../store/concepto.store';
+import { CategoriaStore } from '@/features/categorias/store/categoria.store';
 import { Categoria } from '@/core/models/categoria.model';
 import { Concepto } from '@/core/models/concepto.model';
 

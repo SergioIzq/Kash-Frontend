@@ -5,9 +5,9 @@ import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { MessageService, ConfirmationService } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
 import { Persona } from '@/core/models/persona.model';
-import { PersonaStore } from '@/shared/stores/persona.store';
+import { PersonaStore } from '@/features/personas/store/persona.store';
 
 @Component({
     selector: 'app-persona-create-modal',

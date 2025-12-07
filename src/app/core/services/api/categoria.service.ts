@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { Result } from '@/core/models/common.model';
+import { Result, PaginatedList } from '@/core/models/common.model';
 import { Categoria } from '@/core/models/categoria.model';
 
 @Injectable({
@@ -11,6 +11,19 @@ import { Categoria } from '@/core/models/categoria.model';
 export class CategoriaService {
     private http = inject(HttpClient);
     private apiUrl = `${environment.apiUrl}/categorias`;
+
+    /**
+     * Obtener categorías paginadas
+     */
+    getCategorias(page: number = 1, pageSize: number = 10, searchTerm: string = '', sortColumn: string = 'nombre', sortOrder: string = 'asc'): Observable<PaginatedList<Categoria>> {
+        let params = new HttpParams().set('page', page.toString()).set('pageSize', pageSize.toString()).set('sortColumn', sortColumn).set('sortOrder', sortOrder);
+
+        if (searchTerm) {
+            params = params.set('searchTerm', searchTerm);
+        }
+
+        return this.http.get<Result<PaginatedList<Categoria>>>(this.apiUrl, { params }).pipe(map((response) => response.value));
+    }
 
     /**
      * Búsqueda ligera de categorias por nombre
@@ -37,5 +50,19 @@ export class CategoriaService {
      */
     create(nombre: string): Observable<Result<string>> {
         return this.http.post<Result<string>>(this.apiUrl, { nombre });
+    }
+
+    /**
+     * Actualizar una categoría existente
+     */
+    update(id: string, categoria: Partial<Categoria>): Observable<Result<string>> {
+        return this.http.put<Result<string>>(`${this.apiUrl}/${id}`, categoria);
+    }
+
+    /**
+     * Eliminar una categoría
+     */
+    delete(id: string): Observable<Result<void>> {
+        return this.http.delete<Result<void>>(`${this.apiUrl}/${id}`);
     }
 }

@@ -7,7 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { Categoria } from '@/core/models/categoria.model';
-import { CategoriaStore } from '@/shared/stores/categoria.store';
+import { CategoriaStore } from '@/features/categorias/store/categoria.store';
 
 @Component({
     selector: 'app-categoria-create-modal',

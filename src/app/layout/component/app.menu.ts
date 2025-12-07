@@ -54,7 +54,7 @@ export class AppMenu {
                     {
                         label: 'Categorías',
                         icon: 'pi pi-fw pi-tag',
-                        routerLink: ['/catalogos/categorias']
+                        routerLink: ['/categorias']
                     },
                     {
                         label: 'Conceptos',

@@ -1,8 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
-import { Result } from '@/core/models/common.model';
+import { Result, PaginatedList } from '@/core/models/common.model';
 import { FormaPago } from '@/core/models/forma-pago.model';
 
 @Injectable({
@@ -11,6 +12,35 @@ import { FormaPago } from '@/core/models/forma-pago.model';
 export class FormaPagoService {
     private http = inject(HttpClient);
     private apiUrl = `${environment.apiUrl}/formas-pago`;
+
+    /**
+     * Obtener todas las formas de pago con paginación, búsqueda y ordenamiento
+     */
+    getFormasPago(
+        page: number = 1,
+        pageSize: number = 10,
+        searchTerm?: string,
+        sortColumn?: string,
+        sortOrder?: string
+    ): Observable<PaginatedList<FormaPago>> {
+        let params = new HttpParams()
+            .set('page', page.toString())
+            .set('pageSize', pageSize.toString());
+
+        if (searchTerm) {
+            params = params.set('searchTerm', searchTerm);
+        }
+        if (sortColumn) {
+            params = params.set('sortColumn', sortColumn);
+        }
+        if (sortOrder) {
+            params = params.set('sortOrder', sortOrder);
+        }
+
+        // API devuelve Result<PaginatedList<FormaPago>>, extraer data
+        return this.http.get<Result<PaginatedList<FormaPago>>>(`${this.apiUrl}`, { params })
+            .pipe(map(response => response.value));
+    }
 
     /**
      * Búsqueda ligera de formas de pago por nombre
@@ -32,9 +62,25 @@ export class FormaPagoService {
     }
 
     /**
-     * Crear un nuevo concepto
+     * Crear una nueva forma de pago
      */
     create(nombre: string): Observable<Result<string>> {
         return this.http.post<Result<string>>(this.apiUrl, { nombre });
+    }
+
+    /**
+     * Actualizar una forma de pago existente
+     */
+    update(id: string, formaPago: Partial<FormaPago>): Observable<Result<FormaPago>> {
+        return this.http.put<Result<FormaPago>>(`${this.apiUrl}/${id}`, formaPago);
+    }
+
+    /**
+     * Eliminar forma de pago
+     */
+    delete(id: string): Observable<void> {
+        return this.http.delete<void>(`${this.apiUrl}/${id}`, { observe: 'response' }).pipe(
+            map(() => undefined as void)
+        );
     }
 }

@@ -8,7 +8,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ConfirmationService } from 'primeng/api';
 import { Cuenta } from '@/core/models/cuenta.model';
-import { CuentaStore } from '../stores';
+import { CuentaStore } from '@/features/cuentas/store/cuenta.store';
 
 @Component({
     selector: 'app-cuenta-create-modal',

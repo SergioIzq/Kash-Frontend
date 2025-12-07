@@ -5,9 +5,9 @@ import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { MessageService, ConfirmationService } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
 import { Cliente } from '@/core/models/cliente.model';
-import { ClienteStore } from '../stores/cliente.store';
+import { ClienteStore } from '@/features/clientes/store/cliente.store';
 
 @Component({
     selector: 'app-cliente-create-modal',
