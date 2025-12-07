@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { ToastModule } from 'primeng/toast';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { Table, TableModule } from 'primeng/table';
 import { ToolbarModule } from 'primeng/toolbar';
@@ -15,11 +14,12 @@ import { CuentaStore } from '../store/cuenta.store';
 import { Cuenta } from '@/core/models/cuenta.model';
 import { CuentaFormModalComponent } from '../components/cuenta-form-modal.component';
 import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 
 @Component({
     selector: 'app-cuentas-list-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, ConfirmDialogModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, CuentaFormModalComponent, BasePageTemplateComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, CuentaFormModalComponent, BasePageTemplateComponent],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
@@ -38,13 +38,29 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         </ng-template>
                     </p-toolbar>
 
-                    <p-table #dt [value]="cuentaStore.cuentas()" [loading]="cuentaStore.loading()" [globalFilterFields]="['nombre']" [tableStyle]="{ 'min-width': '50rem' }" styleClass="p-datatable-gridlines" [rowHover]="true" dataKey="id">
+                    <p-table
+                        #dt
+                        [value]="cuentaStore.cuentas()"
+                        [loading]="cuentaStore.loading()"
+                        [lazy]="true"
+                        (onLazyLoad)="onLazyLoad($event)"
+                        [paginator]="true"
+                        [rows]="pageSize"
+                        [totalRecords]="cuentaStore.totalRecords()"
+                        [showCurrentPageReport]="true"
+                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} cuentas"
+                        [rowsPerPageOptions]="[10, 25, 50]"
+                        [tableStyle]="{ 'min-width': '50rem' }"
+                        styleClass="p-datatable-gridlines"
+                        [rowHover]="true"
+                        dataKey="id"
+                    >
                         <ng-template #caption>
                             <div class="flex items-center justify-between py-3 px-4">
                                 <h5 class="m-0 font-semibold text-xl">Gestión de Cuentas</h5>
                                 <p-iconfield>
                                     <p-inputicon styleClass="pi pi-search" />
-                                    <input pInputText type="text" (input)="onGlobalFilter(dt, $event)" placeholder="Buscar..." />
+                                    <input pInputText type="text" [(ngModel)]="searchTerm" (input)="onSearchChange($event)" placeholder="Buscar cuentas..." />
                                 </p-iconfield>
                             </div>
                         </ng-template>
@@ -58,10 +74,6 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                                 <th pSortableColumn="saldo" style="min-width:12rem">
                                     Saldo
                                     <p-sortIcon field="saldo" />
-                                </th>
-                                <th pSortableColumn="fechaCreacion" style="min-width:12rem">
-                                    Fecha Creación
-                                    <p-sortIcon field="fechaCreacion" />
                                 </th>
                                 <th style="min-width:10rem">Acciones</th>
                             </tr>
@@ -78,7 +90,6 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                                 <td>
                                     <span [class]="'font-bold ' + (cuenta.saldo >= 0 ? 'text-green-600' : 'text-red-600')"> {{ cuenta.saldo | number: '1.2-2' }} € </span>
                                 </td>
-                                <td>{{ cuenta.fechaCreacion | date: 'dd/MM/yyyy' }}</td>
                                 <td>
                                     <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editCuenta(cuenta)" />
                                     <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteCuenta(cuenta)" />
@@ -115,7 +126,6 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
 
                     <app-cuenta-form-modal [visible]="cuentaDialog" [cuenta]="currentCuenta" (visibleChange)="cuentaDialog = $event" (save)="onSaveCuenta($event)" (cancel)="hideDialog()" />
 
-                    <p-confirmdialog [style]="{ width: '450px' }" />
                 </div>
             </div>
         </app-base-page-template>
@@ -131,23 +141,70 @@ export class CuentasListPage extends BasePageComponent {
 
     cuentaDialog: boolean = false;
     currentCuenta: Partial<Cuenta> = {};
+    private searchSubject = new Subject<string>();
 
-    ngOnInit() {
-        this.loadCuentas();
+    pageSize: number = 10;
+    pageNumber: number = 1;
+    searchTerm: string = '';
+    sortColumn: string = 'nombre';
+    sortOrder: string = 'asc';
+
+    constructor() {
+        super();
+        // Configurar búsqueda con debounce de 500ms
+        this.searchSubject.pipe(debounceTime(500), distinctUntilChanged()).subscribe((searchValue) => {
+            this.searchTerm = searchValue;
+            this.pageNumber = 1; // Resetear a primera página en búsqueda
+            this.reloadCuentas();
+        });
+    }
+
+    /**
+     * Manejar evento lazy load de la tabla (paginación + sort)
+     */
+    onLazyLoad(event: any) {
+        this.pageNumber = (event.first / event.rows) + 1;
+        this.pageSize = event.rows;
+
+        // Manejar ordenamiento
+        if (event.sortField) {
+            this.sortColumn = event.sortField;
+            this.sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
+        }
+
+        this.reloadCuentas();
+    }
+
+    /**
+     * Manejar cambios en la búsqueda con debounce
+     */
+    onSearchChange(event: Event) {
+        const value = (event.target as HTMLInputElement).value;
+        this.searchSubject.next(value);
+    }
+
+    /**
+     * Recargar cuentas con los filtros actuales
+     */
+    private reloadCuentas() {
+        this.cuentaStore.loadCuentasPaginated({
+            page: this.pageNumber,
+            pageSize: this.pageSize,
+            searchTerm: this.searchTerm || undefined,
+            sortColumn: this.sortColumn || undefined,
+            sortOrder: this.sortOrder || undefined
+        });
     }
 
     loadCuentas() {
-        // Cargar todas las cuentas - como es una entidad simple, no necesita paginación
-        this.cuentaStore.search('', 100);
+        this.reloadCuentas();
     }
 
     refreshTable() {
-        this.loadCuentas();
+        this.pageNumber = 1;
+        this.searchTerm = '';
+        this.reloadCuentas();
         this.showInfo('Datos actualizados', 'Actualización');
-    }
-
-    onGlobalFilter(table: Table, event: Event) {
-        table.filterGlobal((event.target as HTMLInputElement).value, 'contains');
     }
 
     openNew() {
@@ -163,20 +220,18 @@ export class CuentasListPage extends BasePageComponent {
     async onSaveCuenta(cuenta: Partial<Cuenta>) {
         if (cuenta.id) {
             try {
-                // Actualizar cuenta existente (si tu API lo soporta)
-                await this.cuentaStore.update(cuenta.nombre!);
+                await this.cuentaStore.update(cuenta.id, cuenta);
                 this.showSuccess('Cuenta actualizada correctamente');
-                this.loadCuentas();
+                this.reloadCuentas();
                 this.hideDialog();
             } catch (error: any) {
                 this.showError(error.message || 'Error al actualizar la cuenta');
             }
         } else {
-            // Crear nueva cuenta
             try {
                 await this.cuentaStore.create(cuenta.nombre!, cuenta.saldo!);
                 this.showSuccess('Cuenta creada correctamente');
-                this.loadCuentas();
+                this.reloadCuentas();
                 this.hideDialog();
             } catch (error: any) {
                 this.showError(error.message || 'Error al crear la cuenta');
@@ -192,16 +247,14 @@ export class CuentasListPage extends BasePageComponent {
     deleteCuenta(cuenta: Cuenta) {
         this.confirmAction(
             `¿Estás seguro de eliminar la cuenta "${cuenta.nombre}"?`,
-            async () => {
-                this.showInfo('Funcionalidad de eliminación pendiente');
-                // Aquí iría: await this.cuentaStore.delete(cuenta.id);
-                // this.loadCuentas();
+            () => {
+                this.cuentaStore.deleteCuenta(cuenta.id);
             },
             {
                 header: 'Confirmar eliminación',
                 acceptLabel: 'Sí, eliminar',
                 rejectLabel: 'Cancelar',
-                successMessage: 'Cuenta eliminada correctamente'
+                successMessage: 'Cuenta eliminado correctamente'
             }
         );
     }

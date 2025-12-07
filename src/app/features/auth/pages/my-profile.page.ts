@@ -32,18 +32,16 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                                     [image]="authStore.user()?.avatar || undefined"
                                     shape="circle"
                                     size="xlarge"
-                                    styleClass="shadow-4"
+                                    class="shadow-4"
                                     [style]="{
                                         width: '120px',
                                         height: '120px',
                                         'font-size': '3rem',
-                                        'object-fit': 'cover'
+                                        'object-fit': 'cover',
+                                        'background-color': 'var(--primary-color)',
+                                        color: 'var(--primary-contrast-color)'
                                     }"
                                 ></p-avatar>
-
-                                <div class="absolute bottom-0 right-0 bg-white border-circle p-2 shadow-2 flex align-items-center justify-content-center transition-colors hover:bg-gray-100" style="width: 2.5rem; height: 2.5rem; cursor: pointer;">
-                                    <i class="pi pi-camera text-primary text-xl"></i>
-                                </div>
                             </div>
 
                             <p-fileUpload #fileUploader mode="basic" name="avatar" accept="image/*" maxFileSize="5000000" [auto]="true" [customUpload]="true" (uploadHandler)="onUploadAvatar($event)" class="hidden"></p-fileUpload>

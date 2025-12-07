@@ -6,7 +6,6 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { ToastModule } from 'primeng/toast';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { Table, TableModule } from 'primeng/table';
 import { ToolbarModule } from 'primeng/toolbar';
 import { TagModule } from 'primeng/tag';
@@ -27,7 +26,6 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
         ButtonModule,
         InputTextModule,
         ToastModule,
-        ConfirmDialogModule,
         TableModule,
         ToolbarModule,
         TagModule,
@@ -222,7 +220,6 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                     (cancel)="hideDialog()"
                 />
 
-                <p-confirmdialog [style]="{ width: '450px' }" />
             </div>
         </div>
         </app-base-page-template>
@@ -365,20 +362,15 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
 
     deleteIngreso(ingreso: Ingreso) {
         this.confirmAction(
-            `¿Estás seguro de eliminar el ingreso "${ingreso.conceptoNombre}"?`,
-            async () => {
-                try {
-                    await this.ingresosStore.deleteIngreso(ingreso.id);
-                    this.showSuccess('Ingreso eliminado correctamente');
-                    this.reloadIngresos();
-                } catch (error: any) {
-                    this.showError(error.userMessage || 'Error al eliminar el ingreso');
-                }
+            `¿Estás seguro de eliminar el gasto "${ingreso.conceptoNombre}"?`,
+            () => {
+                this.ingresosStore.deleteIngreso(ingreso.id);
             },
             {
                 header: 'Confirmar eliminación',
                 acceptLabel: 'Sí, eliminar',
-                rejectLabel: 'Cancelar'
+                rejectLabel: 'Cancelar',
+                successMessage: 'Ingreso eliminado correctamente'
             }
         );
     }

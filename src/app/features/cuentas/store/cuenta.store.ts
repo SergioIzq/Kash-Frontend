@@ -1,17 +1,23 @@
 import { inject } from '@angular/core';
 import { signalStore, withState, withMethods, patchState } from '@ngrx/signals';
-import { firstValueFrom } from 'rxjs';
+import { rxMethod } from '@ngrx/signals/rxjs-interop';
+import { pipe, firstValueFrom } from 'rxjs';
+import { tap, switchMap } from 'rxjs/operators';
+import { tapResponse } from '@ngrx/operators';
 import { CuentaService } from '@/core/services/api/cuenta.service';
 import { Cuenta } from '@/core/models/cuenta.model';
+import { ErrorResponse } from '@/core/models/error-response.model';
 
 interface CuentaState {
     cuentas: Cuenta[];
+    totalRecords: number;
     loading: boolean;
     error: string | null;
 }
 
 const initialState: CuentaState = {
     cuentas: [],
+    totalRecords: 0,
     loading: false,
     error: null
 };
@@ -58,21 +64,79 @@ export const CuentaStore = signalStore(
             }
         },
 
-        async update(nombre: string): Promise<void> {
+        loadCuentasPaginated: rxMethod<{
+            page: number;
+            pageSize: number;
+            searchTerm?: string;
+            sortColumn?: string;
+            sortOrder?: string;
+        }>(
+            pipe(
+                tap(() => {
+                    patchState(store, { loading: true, error: null });
+                }),
+                switchMap(({ page, pageSize, searchTerm, sortColumn, sortOrder }) =>
+                    cuentaService.getCuentas(page, pageSize, searchTerm, sortColumn, sortOrder).pipe(
+                        tapResponse({
+                            next: (response) => {
+                                patchState(store, {
+                                    cuentas: response.items,
+                                    totalRecords: response.totalCount,
+                                    loading: false,
+                                    error: null
+                                });
+                            },
+                            error: (error: any) => {
+                                console.error('[STORE] Error al cargar cuentas:', error);
+                                patchState(store, {
+                                    loading: false,
+                                    error: error.userMessage || 'Error al cargar cuentas'
+                                });
+                            }
+                        })
+                    )
+                )
+            )
+        ),
+
+        async update(id: string, cuenta: Partial<Cuenta>): Promise<Cuenta> {
             patchState(store, { loading: true });
             try {
-                const response = await firstValueFrom(cuentaService.update(nombre));
+                const response = await firstValueFrom(cuentaService.update(id, cuenta));
 
                 if (response.isSuccess) {
                     patchState(store, { loading: false });
-                    return;
+                    return response.value;
                 }
-                throw new Error(response.error?.message || 'Error al crear cuenta');
+                throw new Error(response.error?.message || 'Error al actualizar cuenta');
             } catch (err) {
                 patchState(store, { loading: false });
                 throw err;
             }
         },
+
+        deleteCuenta: rxMethod<string>(
+            pipe(
+                // 1. (Opcional) Actualización Optimista Inmediata: Lo borramos de la vista antes de ir al servidor
+                tap((id) => {
+                    patchState(store, (state) => ({
+                        cuentas: state.cuentas.filter((c) => c.id !== id),
+                        totalRecords: state.totalRecords - 1 // Ajustamos el contador visualmente
+                    }));
+                }),
+                switchMap((id) =>
+                    cuentaService.delete(id).pipe(
+                        tapResponse({
+                            next: () => {},
+                            error: (err: ErrorResponse) => {
+                                console.error(err);
+                                patchState(store, { error: err.detail || 'Error al eliminar cuenta' });
+                            }
+                        })
+                    )
+                )
+            )
+        ),
 
         async getRecent(limit: number = 5): Promise<Cuenta[]> {
             patchState(store, { loading: true, error: null });
