@@ -57,149 +57,150 @@ interface TraspasoProgramadoFormData extends Omit<Partial<TraspasoProgramado>, '
             styleClass="p-sidebar-md surface-ground">
             
             <ng-template pTemplate="header">
-                <div class="flex flex-col">
+                <div class="flex align-items-center gap-2">
                     <span class="font-bold text-xl text-900">{{ isEditMode() ? 'Editar Traspaso Programado' : 'Nuevo Traspaso Programado' }}</span>
-                    <span class="text-500 text-sm mt-1">Configura traspasos automáticos entre cuentas</span>
                 </div>
             </ng-template>
 
-            <div class="flex flex-col gap-5 py-2">
+            <div class="grid grid-cols-12 gap-4 p-fluid py-2">
                 
-                <div class="card surface-card p-4 border-round shadow-1">
-                    <div class="flex flex-col gap-4">
-                        <div class="field">
-                            <label for="cuentaOrigen" class="font-semibold text-gray-700 block mb-2">Cuenta Origen *</label>
-                            <div class="p-inputgroup">
-                                <p-autoComplete
-                                    [(ngModel)]="selectedCuentaOrigen"
-                                    [suggestions]="filteredCuentasOrigen()"
-                                    (completeMethod)="searchCuentasOrigen($event)"
-                                    [showClear]="true"
-                                    (onClear)="onCuentaOrigenClear()"
-                                    optionLabel="nombre"
-                                    [dropdown]="true"
-                                    placeholder="Seleccionar cuenta de origen..."
-                                    [forceSelection]="true"
-                                    (onSelect)="onCuentaOrigenSelect($event)"
-                                    inputStyleClass="font-semibold"
-                                    class="flex-1"
-                                />
-                                <button pButton icon="pi pi-plus" severity="secondary" (click)="openCreateCuenta()" pTooltip="Crear cuenta"></button>
-                            </div>
-                            @if (submitted() && !selectedCuentaOrigen) {
-                                <small class="text-red-500 block mt-1">La cuenta origen es requerida.</small>
-                            }
-                        </div>
+                <!-- Cuenta Origen -->
+                <div class="col-span-12 field">
+                    <label for="cuentaOrigen" class="font-semibold text-gray-700 block mb-2">Cuenta Origen *</label>
+                    <div class="flex align-items-center gap-2">
+                        <p-autoComplete
+                            [(ngModel)]="selectedCuentaOrigen"
+                            [suggestions]="filteredCuentasOrigen()"
+                            (completeMethod)="searchCuentasOrigen($event)"
+                            [showClear]="true"
+                            (onClear)="onCuentaOrigenClear()"
+                            optionLabel="nombre"
+                            [dropdown]="true"
+                            placeholder="Seleccionar cuenta de origen..."
+                            [forceSelection]="true"
+                            (onSelect)="onCuentaOrigenSelect($event)"
+                            inputStyleClass="font-semibold"
+                            class="flex-1 w-full"
+                            styleClass="w-full"
+                        />
+                        <button pButton icon="pi pi-plus" [rounded]="true" [text]="true" severity="primary" (click)="openCreateCuenta()" pTooltip="Crear cuenta"></button>
+                    </div>
+                    @if (submitted() && !selectedCuentaOrigen) {
+                        <small class="text-red-500 block mt-1">La cuenta origen es requerida.</small>
+                    }
+                </div>
 
-                        <div class="field">
-                            <label for="cuentaDestino" class="font-semibold text-gray-700 block mb-2">Cuenta Destino *</label>
-                            <div class="p-inputgroup">
-                                <p-autoComplete
-                                    [(ngModel)]="selectedCuentaDestino"
-                                    [suggestions]="filteredCuentasDestino()"
-                                    (completeMethod)="searchCuentasDestino($event)"
-                                    [showClear]="true"
-                                    (onClear)="onCuentaDestinoClear()"
-                                    optionLabel="nombre"
-                                    [dropdown]="true"
-                                    placeholder="Seleccionar cuenta de destino..."
-                                    [forceSelection]="true"
-                                    (onSelect)="onCuentaDestinoSelect($event)"
-                                    inputStyleClass="font-semibold"
-                                    class="flex-1"
-                                />
-                            </div>
-                            @if (submitted() && !selectedCuentaDestino) {
-                                <small class="text-red-500 block mt-1">La cuenta destino es requerida.</small>
-                            }
-                            @if (submitted() && selectedCuentaOrigen && selectedCuentaDestino && selectedCuentaOrigen.id === selectedCuentaDestino.id) {
-                                <small class="text-red-500 block mt-1">La cuenta origen y destino no pueden ser iguales.</small>
-                            }
-                        </div>
+                <!-- Cuenta Destino -->
+                <div class="col-span-12 field">
+                    <label for="cuentaDestino" class="font-semibold text-gray-700 block mb-2">Cuenta Destino *</label>
+                    <div class="flex align-items-center gap-2">
+                        <p-autoComplete
+                            [(ngModel)]="selectedCuentaDestino"
+                            [suggestions]="filteredCuentasDestino()"
+                            (completeMethod)="searchCuentasDestino($event)"
+                            [showClear]="true"
+                            (onClear)="onCuentaDestinoClear()"
+                            optionLabel="nombre"
+                            [dropdown]="true"
+                            placeholder="Seleccionar cuenta de destino..."
+                            [forceSelection]="true"
+                            (onSelect)="onCuentaDestinoSelect($event)"
+                            inputStyleClass="font-semibold"
+                            class="flex-1 w-full"
+                            styleClass="w-full"
+                        />
+                    </div>
+                    @if (submitted() && !selectedCuentaDestino) {
+                        <small class="text-red-500 block mt-1">La cuenta destino es requerida.</small>
+                    }
+                    @if (submitted() && selectedCuentaOrigen && selectedCuentaDestino && selectedCuentaOrigen.id === selectedCuentaDestino.id) {
+                        <small class="text-red-500 block mt-1">La cuenta origen y destino no pueden ser iguales.</small>
+                    }
+                </div>
 
-                        <div class="field">
-                            <label for="importe" class="font-semibold text-gray-700 block mb-2">Importe a Traspasar *</label>
-                            <p-inputNumber 
-                                id="importe" 
-                                [(ngModel)]="formData.importe" 
-                                mode="currency" 
-                                currency="EUR" 
-                                locale="es-ES" 
-                                [min]="0" 
-                                placeholder="0,00 €"
-                                inputStyleClass="text-right font-bold text-xl text-blue-600 w-full" 
-                                class="w-full"
-                            />
-                            @if (submitted() && !formData.importe) {
-                                <small class="text-red-500 block mt-1">El importe es requerido.</small>
-                            }
-                        </div>
+                <!-- Importe -->
+                <div class="col-span-12 md:col-span-6 field">
+                    <label for="importe" class="font-semibold text-gray-700 block mb-2">Importe a Traspasar *</label>
+                    <p-inputNumber 
+                        id="importe" 
+                        [(ngModel)]="formData.importe" 
+                        mode="currency" 
+                        currency="EUR" 
+                        locale="es-ES" 
+                        [min]="0" 
+                        placeholder="0,00 €"
+                        inputStyleClass="text-right font-bold text-xl text-blue-600 w-full" 
+                        class="w-full"
+                    />
+                    @if (submitted() && !formData.importe) {
+                        <small class="text-red-500 block mt-1">El importe es requerido.</small>
+                    }
+                </div>
+
+                <!-- Fecha de Ejecución -->
+                <div class="col-span-12 md:col-span-6 field">
+                    <label class="font-semibold text-gray-700 block mb-2">Fecha de Ejecución *</label>
+                    <p-datePicker 
+                        [(ngModel)]="formData.fechaEjecucion" 
+                        dateFormat="dd/mm/yy" 
+                        [showIcon]="true" 
+                        appendTo="body" 
+                        styleClass="w-full" 
+                        placeholder="Seleccione la fecha"
+                    />
+                    @if (submitted() && !formData.fechaEjecucion) {
+                        <small class="text-red-500 block mt-1">La fecha de ejecución es requerida.</small>
+                    }
+                </div>
+
+                <!-- Sección: Configuración de Recurrencia -->
+                <div class="col-span-12 mt-4">
+                    <h5 class="text-xs font-bold text-500 uppercase tracking-wider border-b border-gray-200 pb-2 mb-2">Configuración de Recurrencia</h5>
+                </div>
+
+                <!-- Frecuencia -->
+                <div class="col-span-12 md:col-span-6 field">
+                    <label class="font-medium text-gray-700 block mb-2 text-sm">Frecuencia *</label>
+                    <p-select
+                        [options]="frecuencias" 
+                        [(ngModel)]="formData.frecuencia" 
+                        placeholder="Selecciona frecuencia" 
+                        class="w-full"
+                        [showClear]="true">
+                    </p-select>
+                    @if (submitted() && !formData.frecuencia) {
+                        <small class="text-red-500 block mt-1">La frecuencia es requerida.</small>
+                    }
+                </div>
+
+                <!-- Activo -->
+                <div class="col-span-12 md:col-span-6 field">
+                    <label class="font-medium text-gray-700 block mb-2 text-sm">Estado</label>
+                    <div class="flex align-items-center gap-2 h-full pt-2">
+                        <label for="activo" class="text-sm font-medium text-gray-700 cursor-pointer">Activo</label>
+                        <p-toggleswitch [(ngModel)]="formData.activo" inputId="activo"></p-toggleswitch>
                     </div>
                 </div>
 
-                <div class="card surface-card p-4 border-round shadow-1 border-blue-100 border">
-                    <div class="flex justify-between items-center mb-4 border-bottom-1 surface-border pb-2">
-                        <h3 class="text-xs font-bold text-blue-600 uppercase tracking-wider m-0">Configuración de Recurrencia</h3>
-                        
-                        <div class="flex items-center gap-2">
-                            <label for="activo" class="text-sm font-medium text-gray-700 cursor-pointer">Activo</label>
-                            <p-toggleswitch [(ngModel)]="formData.activo" inputId="activo"></p-toggleswitch>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="field col-span-2">
-                            <label class="font-medium text-gray-700 block mb-2 text-sm">Frecuencia *</label>
-                            <p-select
-                                [options]="frecuencias" 
-                                [(ngModel)]="formData.frecuencia" 
-                                placeholder="Selecciona frecuencia" 
-                                class="w-full"
-                                [showClear]="true">
-                            </p-select>
-                            @if (submitted() && !formData.frecuencia) {
-                                <small class="text-red-500 block mt-1">La frecuencia es requerida.</small>
-                            }
-                        </div>
-
-                        <div class="field col-span-2">
-                            <label class="font-medium text-gray-700 block mb-2 text-sm">Fecha de Ejecución *</label>
-                            <p-datePicker 
-                                [(ngModel)]="formData.fechaEjecucion" 
-                                dateFormat="dd/mm/yy" 
-                                [showIcon]="true" 
-                                appendTo="body" 
-                                styleClass="w-full" 
-                                placeholder="Seleccione la fecha"
-                            />
-                            <small class="text-gray-500">Fecha en la que se ejecutará el traspaso automático.</small>
-                            @if (submitted() && !formData.fechaEjecucion) {
-                                <small class="text-red-500 block mt-1">La fecha de ejecución es requerida.</small>
-                            }
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card surface-card p-4 border-round shadow-1">
-                    <div class="field">
-                        <label for="descripcion" class="font-semibold text-gray-700 block mb-2">Descripción / Notas</label>
-                        <textarea 
-                            id="descripcion" 
-                            pTextarea 
-                            [(ngModel)]="formData.descripcion" 
-                            rows="3" 
-                            class="w-full" 
-                            placeholder="Añadir detalles adicionales sobre este traspaso programado...">
-                        </textarea>
-                    </div>
+                <!-- Descripción -->
+                <div class="col-span-12 field">
+                    <label for="descripcion" class="font-semibold text-gray-700 block mb-2">Descripción / Notas</label>
+                    <textarea 
+                        id="descripcion" 
+                        pTextarea 
+                        [(ngModel)]="formData.descripcion" 
+                        rows="3" 
+                        class="w-full" 
+                        placeholder="Añadir detalles adicionales sobre este traspaso programado...">
+                    </textarea>
                 </div>
 
             </div>
 
             <ng-template pTemplate="footer">
-                <div class="flex justify-end gap-2 p-3 surface-border border-top-1">
-                    <p-button label="Cancelar" icon="pi pi-times" [text]="true" severity="secondary" (onClick)="onCancel()" />
-                    <p-button label="Guardar Programación" icon="pi pi-check" (onClick)="onSave()" />
+                <div class="flex justify-end gap-2 border-top-1 surface-border pt-3">
+                    <p-button label="Cancelar" icon="pi pi-times" [text]="true" [rounded]="true" severity="secondary" (onClick)="onCancel()" />
+                    <p-button label="{{ isEditMode() ? 'Actualizar' : 'Guardar Programación' }}" icon="pi pi-check" [rounded]="true" severity="primary" (onClick)="onSave()" />
                 </div>
             </ng-template>
         </p-drawer>

@@ -227,13 +227,6 @@ import { TraspasoProgramadoFormModalComponent } from '../components/traspaso-pro
                             </tr>
                         </ng-template>
                     </p-table>
-
-                    @if (traspasosStore.isSyncing()) {
-                        <div class="mt-3 text-center text-sm text-blue-600">
-                            <i class="pi pi-spin pi-spinner mr-2"></i>
-                            Sincronizando datos con el servidor (47ms)...
-                        </div>
-                    }
                 </div>
             </div>
         </app-base-page-template>
