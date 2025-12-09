@@ -296,12 +296,12 @@ export class GastosProgramadosListPage extends BasePageComponent {
         );
     }
 
-    getFrecuenciaSeverity(frecuencia: string): 'success' | 'info' | 'warning' | 'danger' {
+    getFrecuenciaSeverity(frecuencia: string): 'success' | 'info' | 'warn' | 'danger' {
         switch (frecuencia) {
             case 'DIARIO':
                 return 'danger';
             case 'SEMANAL':
-                return 'warning';
+                return 'warn';
             case 'MENSUAL':
                 return 'info';
             case 'ANUAL':
