@@ -104,7 +104,6 @@ import { GastoProgramadoFormModalComponent } from '../components/gasto-programad
                                 </td>
                                 <td>
                                     <div class="flex gap-2">
-                                        <p-button [icon]="gasto.activo ? 'pi pi-pause' : 'pi pi-play'" [rounded]="true" [outlined]="true" (click)="toggleActivo(gasto)" />
                                         <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editGasto(gasto)" pTooltip="Editar" />
                                         <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteGasto(gasto)" pTooltip="Eliminar" />
                                     </div>
@@ -238,23 +237,6 @@ export class GastosProgramadosListPage extends BasePageComponent {
             this.showSuccess('Gasto programado creado correctamente');
         }
         this.hideDialog();
-        setTimeout(() => this.reloadGastos(), 300);
-    }
-
-    toggleActivo(gasto: GastoProgramado) {
-        this.confirmAction(
-            `¿Estás seguro de ${gasto.activo ? 'pausar' : 'activar'} el gasto programado?`,
-            () => {
-                this.gastosStore.toggleActivo({ id: gasto.id, activo: !gasto.activo });
-                this.showSuccess(`Gasto programado ${gasto.activo ? 'pausado' : 'activado'} correctamente`);
-                setTimeout(() => this.reloadGastos(), 300);
-            },
-            {
-                header: 'Confirmar cambio de estado',
-                acceptLabel: 'Sí, cambiar',
-                rejectLabel: 'Cancelar'
-            }
-        );
     }
 
     deleteGasto(gasto: GastoProgramado) {
@@ -263,7 +245,6 @@ export class GastosProgramadosListPage extends BasePageComponent {
             () => {
                 this.gastosStore.deleteGasto(gasto.id);
                 this.showSuccess('Gasto programado eliminado correctamente');
-                setTimeout(() => this.reloadGastos(), 300);
             },
             {
                 header: 'Confirmar eliminación',

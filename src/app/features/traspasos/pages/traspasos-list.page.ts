@@ -250,7 +250,6 @@ export class TraspasosListPage extends BasePageComponent {
             this.showSuccess('Traspaso creado correctamente');
         }
         this.hideDialog();
-        setTimeout(() => this.reloadTraspasos(), 300);
     }
 
     deleteTraspaso(traspaso: Traspaso) {

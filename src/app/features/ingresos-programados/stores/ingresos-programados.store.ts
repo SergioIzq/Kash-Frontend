@@ -125,28 +125,6 @@ export const IngresosProgramadosStore = signalStore(
             )
         ),
 
-        toggleActivo: rxMethod<{ id: string; activo: boolean }>(
-            pipe(
-                switchMap(({ id, activo }) =>
-                    service.toggleActivo(id, activo).pipe(
-                        tapResponse({
-                            next: () => {
-                                const ingresos = store.ingresosProgramados().map((i) =>
-                                    i.id === id ? { ...i, activo } : i
-                                );
-                                patchState(store, { ingresosProgramados: ingresos, error: null });
-                            },
-                            error: (error: any) => {
-                                patchState(store, {
-                                    error: error.message || 'Error al cambiar estado'
-                                });
-                            }
-                        })
-                    )
-                )
-            )
-        ),
-
         selectIngreso(ingreso: IngresoProgramado | null) {
             patchState(store, { selectedIngreso: ingreso });
         },

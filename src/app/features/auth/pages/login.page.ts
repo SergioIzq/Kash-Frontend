@@ -56,7 +56,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                             <p-checkbox [(ngModel)]="rememberMe" [ngModelOptions]="{ standalone: true }" id="rememberme" binary="true" class="mr-2"></p-checkbox>
                             <label for="rememberme">Recordarme</label>
                         </div>
-                        <a routerLink="/auth/forgot-password" class="font-medium ml-2 text-right cursor-pointer text-primary hover:underline"> ¿Olvidaste tu contraseña? </a>
+                        <a [routerLink]="['..', 'forgot-password']" class="font-medium ml-2 text-right cursor-pointer text-primary hover:underline"> ¿Olvidaste tu contraseña? </a>
                     </div>
 
                     <p-button label="Iniciar Sesión" type="submit" styleClass="w-full" [loading]="authStore.loading()" [disabled]="loginForm.invalid"></p-button>
@@ -65,7 +65,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                 <div class="mt-6 text-center">
                     <div class="mb-4 text-surface-600 dark:text-surface-400 font-medium">
                         ¿No tienes cuenta?
-                        <a routerLink="/auth/register" class="text-primary font-medium cursor-pointer hover:underline">Regístrate aquí</a>
+                        <a [routerLink]="['..', 'register']" class="text-primary font-medium cursor-pointer hover:underline">Regístrate aquí</a>
                     </div>
 
                     <div class="font-medium text-surface-600">

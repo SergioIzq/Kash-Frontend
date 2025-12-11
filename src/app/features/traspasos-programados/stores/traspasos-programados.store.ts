@@ -279,46 +279,6 @@ export const TraspasosProgramadosStore = signalStore(
                 )
             ),
 
-            toggleActivo: rxMethod<{ id: string; activo: boolean }>(
-                pipe(
-                    tap(({ id, activo }) => {
-                        // Actualización optimista
-                        const traspasos = store.traspasos().map(t =>
-                            t.id === id ? { ...t, activo } : t
-                        );
-                        patchState(store, {
-                            traspasos,
-                            loading: true,
-                            searchCache: new Map()
-                        });
-                    }),
-                    switchMap(({ id, activo }) =>
-                        service.toggleActivo(id, activo).pipe(
-                            tapResponse({
-                                next: () => {
-                                    patchState(store, {
-                                        loading: false,
-                                        error: null,
-                                        lastUpdated: Date.now()
-                                    });
-                                },
-                                error: (error: any) => {
-                                    // Rollback: revertir el toggle
-                                    const traspasos = store.traspasos().map(t =>
-                                        t.id === id ? { ...t, activo: !activo } : t
-                                    );
-                                    patchState(store, {
-                                        traspasos,
-                                        loading: false,
-                                        error: error.message || 'Error al cambiar estado'
-                                    });
-                                }
-                            })
-                        )
-                    )
-                )
-            ),
-
             selectTraspaso(traspaso: TraspasoProgramado | null) {
                 patchState(store, { selectedTraspaso: traspaso });
             },

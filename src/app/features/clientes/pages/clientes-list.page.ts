@@ -217,7 +217,6 @@ export class ClientesListPage extends BasePageComponent {
             try {
                 await this.clienteStore.update(cliente.id, cliente);
                 this.showSuccess('Cliente actualizado correctamente');
-                this.reloadClientees();
                 this.hideDialog();
             } catch (error: any) {
                 this.showError(error.message || 'Error al actualizar el cliente');
@@ -226,7 +225,6 @@ export class ClientesListPage extends BasePageComponent {
             try {
                 await this.clienteStore.create(cliente.nombre!);
                 this.showSuccess('Cliente creado correctamente');
-                this.reloadClientees();
                 this.hideDialog();
             } catch (error: any) {
                 this.showError(error.message || 'Error al crear el cliente');

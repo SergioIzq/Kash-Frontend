@@ -104,7 +104,6 @@ import { IngresoProgramadoFormModalComponent } from '../components/ingreso-progr
                                 </td>
                                 <td>
                                     <div class="flex gap-2">
-                                        <p-button [icon]="ingreso.activo ? 'pi pi-pause' : 'pi pi-play'" [rounded]="true" [outlined]="true" (click)="toggleActivo(ingreso)" />
                                         <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editIngreso(ingreso)" pTooltip="Editar" />
                                         <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteIngreso(ingreso)" pTooltip="Eliminar" />
                                     </div>
@@ -238,23 +237,6 @@ export class IngresosProgramadosListPage extends BasePageComponent {
             this.showSuccess('Ingreso programado creado correctamente');
         }
         this.hideDialog();
-        setTimeout(() => this.reloadIngresos(), 300);
-    }
-
-    toggleActivo(ingreso: IngresoProgramado) {
-        this.confirmAction(
-            `¿Estás seguro de ${ingreso.activo ? 'pausar' : 'activar'} el ingreso programado?`,
-            () => {
-                this.ingresosStore.toggleActivo({ id: ingreso.id, activo: !ingreso.activo });
-                this.showSuccess(`Ingreso programado ${ingreso.activo ? 'pausado' : 'activado'} correctamente`);
-                setTimeout(() => this.reloadIngresos(), 300);
-            },
-            {
-                header: 'Confirmar cambio de estado',
-                acceptLabel: 'Sí, cambiar',
-                rejectLabel: 'Cancelar'
-            }
-        );
     }
 
     deleteIngreso(ingreso: IngresoProgramado) {
@@ -263,7 +245,6 @@ export class IngresosProgramadosListPage extends BasePageComponent {
             () => {
                 this.ingresosStore.deleteIngreso(ingreso.id);
                 this.showSuccess('Ingreso programado eliminado correctamente');
-                setTimeout(() => this.reloadIngresos(), 300);
             },
             {
                 header: 'Confirmar eliminación',

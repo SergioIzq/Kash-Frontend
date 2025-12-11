@@ -93,6 +93,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                                     <span class="text-gray-600">{{ getCategoriaName(concepto.categoriaId) }}</span>
                                 </td>
                                 <td>
+                                    <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editConcepto(concepto)" />
                                     <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteConcepto(concepto)" />
                                 </td>
                             </tr>
@@ -124,7 +125,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         </ng-template>
                     </p-table>
 
-                    <app-concepto-create-modal [visible]="conceptoDialog" (visibleChange)="conceptoDialog = $event" (created)="onConceptoCreated($event)" (cancel)="hideDialog()" />
+                    <app-concepto-create-modal [visible]="conceptoDialog" [concepto]="currentConcepto" (visibleChange)="conceptoDialog = $event" (save)="onSaveConcepto($event)" (cancel)="hideDialog()" />
                 </div>
             </div>
         </app-base-page-template>
@@ -140,6 +141,7 @@ export class ConceptosListPage extends BasePageComponent {
     @ViewChild('dt') dt!: Table;
 
     conceptoDialog: boolean = false;
+    currentConcepto: Partial<Concepto> = {};
     private searchSubject = new Subject<string>();
     private categoriasMap = new Map<string, string>();
 
@@ -151,21 +153,11 @@ export class ConceptosListPage extends BasePageComponent {
 
     constructor() {
         super();
-        this.loadCategorias();
         this.searchSubject.pipe(debounceTime(500), distinctUntilChanged()).subscribe((searchValue) => {
             this.searchTerm = searchValue;
             this.pageNumber = 1;
             this.reloadConceptos();
         });
-    }
-
-    private async loadCategorias() {
-        try {
-            const categorias = await this.categoriaStore.getRecent(100);
-            categorias.forEach((cat) => this.categoriasMap.set(cat.id, cat.nombre));
-        } catch (error) {
-            console.error('Error loading categories:', error);
-        }
     }
 
     getCategoriaName(categoriaId: string): string {
@@ -211,17 +203,38 @@ export class ConceptosListPage extends BasePageComponent {
     }
 
     openNew() {
+        this.currentConcepto = {};
         this.conceptoDialog = true;
     }
 
     hideDialog() {
         this.conceptoDialog = false;
+        this.currentConcepto = {};
     }
 
-    onConceptoCreated(concepto: Concepto) {
-        this.showSuccess('Concepto creado correctamente');
-        this.reloadConceptos();
-        this.hideDialog();
+    async onSaveConcepto(concepto: Partial<Concepto>) {
+        if (concepto.id) {
+            try {
+                await this.conceptoStore.update(concepto.id, concepto);
+                this.showSuccess('Concepto actualizado correctamente');
+                this.hideDialog();
+            } catch (error: any) {
+                this.showError(error.message || 'Error al actualizar el concepto');
+            }
+        } else {
+            try {
+                await this.conceptoStore.create(concepto.nombre!, concepto.categoriaId!);
+                this.showSuccess('Concepto creado correctamente');
+                this.hideDialog();
+            } catch (error: any) {
+                this.showError(error.message || 'Error al crear el concepto');
+            }
+        }
+    }
+
+    editConcepto(concepto: Concepto) {
+        this.currentConcepto = { ...concepto };
+        this.conceptoDialog = true;
     }
 
     deleteConcepto(concepto: Concepto) {

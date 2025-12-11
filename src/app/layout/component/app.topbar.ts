@@ -70,8 +70,12 @@ import { AuthStore } from '../../core/stores/auth.store';
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
                     <button type="button" class="layout-topbar-action" routerLink="/auth/my-profile">
-                        <p-avatar [label]="avatarLabel()" [image]="avatarImage()" shape="circle" size="normal" class="custom-avatar" />
-                        <span>{{ authStore.userName() }}</span>
+                        @if (showUserIcon()) {
+                            <p-avatar icon="pi pi-user" shape="circle" size="normal" class="custom-avatar" />
+                        } @else {
+                            <p-avatar [label]="avatarLabel()" [image]="avatarImage()" shape="circle" size="normal" class="custom-avatar" />
+                        }
+                        <span>{{ authStore.userName() || 'Usuario' }}</span>
                     </button>
                     <button type="button" class="layout-topbar-action" (click)="logout()">
                         <i class="pi pi-sign-out"></i>
@@ -97,18 +101,30 @@ export class AppTopbar {
         return undefined;
     });
 
-    // 2. Determinar el label (iniciales)
-    // Solo devolvemos iniciales si NO hay imagen válida
+    // Determinar el label (iniciales)
     avatarLabel = computed(() => {
-        // Si tenemos imagen, no necesitamos label (o viceversa, según prefieras)
+        // Si tenemos imagen, no necesitamos label
         if (this.avatarImage()) {
             return undefined;
         }
 
-        // Aquí asegúrate de que userInitials devuelva algo visible por defecto si falla
-        const initials = this.authStore.userInitials();
+        const user = this.authStore.user();
+        const nombre = user?.nombre?.trim();
+        const apellidos = user?.apellidos?.trim();
 
-        return initials ? initials : '?'; // '?' o un fallback visual
+        // Si no hay nombre Y no hay apellidos, devolvemos undefined para mostrar icono
+        if (!nombre && !apellidos) {
+            return undefined;
+        }
+
+        // Si hay nombre o apellidos, calcular iniciales
+        const initials = this.authStore.userInitials();
+        return initials || undefined;
+    });
+
+    // Determinar si mostrar icono de usuario
+    showUserIcon = computed(() => {
+        return !this.avatarImage() && !this.avatarLabel();
     });
 
     constructor(public layoutService: LayoutService) {}

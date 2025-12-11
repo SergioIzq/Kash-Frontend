@@ -167,14 +167,6 @@ import { TraspasoProgramadoFormModalComponent } from '../components/traspaso-pro
                                 <td>
                                     <div class="flex gap-2">
                                         <p-button 
-                                            [icon]="traspaso.activo ? 'pi pi-pause' : 'pi pi-play'"
-                                            [rounded]="true"
-                                            [outlined]="true"
-                                            [severity]="traspaso.activo ? 'warn' : 'success'"
-                                            (onClick)="toggleActivo(traspaso)"
-                                            [pTooltip]="traspaso.activo ? 'Desactivar' : 'Activar'"
-                                        />
-                                        <p-button 
                                             icon="pi pi-pencil" 
                                             [rounded]="true" 
                                             [outlined]="true" 
@@ -361,7 +353,6 @@ export class TraspasosProgramadosListPage {
         }
         
         this.hideDialog();
-        setTimeout(() => this.reloadTraspasos(), 100);
     }
 
     deleteTraspaso(traspaso: TraspasoProgramado) {
@@ -379,18 +370,7 @@ export class TraspasosProgramadosListPage {
                     summary: 'Eliminado',
                     detail: 'Traspaso programado eliminado correctamente'
                 });
-                setTimeout(() => this.reloadTraspasos(), 100);
             }
-        });
-    }
-
-    toggleActivo(traspaso: TraspasoProgramado) {
-        const nuevoEstado = !traspaso.activo;
-        this.traspasosStore.toggleActivo({ id: traspaso.id, activo: nuevoEstado });
-        this.messageService.add({
-            severity: 'info',
-            summary: nuevoEstado ? 'Activado' : 'Desactivado',
-            detail: `Traspaso programado ${nuevoEstado ? 'activado' : 'desactivado'} correctamente`
         });
     }
 

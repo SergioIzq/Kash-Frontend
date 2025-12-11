@@ -125,26 +125,6 @@ export const GastosProgramadosStore = signalStore(
             )
         ),
 
-        toggleActivo: rxMethod<{ id: string; activo: boolean }>(
-            pipe(
-                switchMap(({ id, activo }) =>
-                    service.toggleActivo(id, activo).pipe(
-                        tapResponse({
-                            next: () => {
-                                const gastos = store.gastosProgramados().map((g) => (g.id === id ? { ...g, activo } : g));
-                                patchState(store, { gastosProgramados: gastos, error: null });
-                            },
-                            error: (error: any) => {
-                                patchState(store, {
-                                    error: error.message || 'Error al cambiar estado'
-                                });
-                            }
-                        })
-                    )
-                )
-            )
-        ),
-
         selectGasto(gasto: GastoProgramado | null) {
             patchState(store, { selectedGasto: gasto });
         },

@@ -19,7 +19,7 @@ import { Concepto } from '@/core/models/concepto.model';
     providers: [ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <p-dialog [(visible)]="isVisible" [style]="{ width: '500px' }" header="Crear Nuevo Concepto" [modal]="true" [contentStyle]="{ padding: '2rem' }" (onHide)="onCancel()" styleClass="p-fluid">
+        <p-dialog [(visible)]="isVisible" [style]="{ width: '500px' }" [header]="isEditMode() ? 'Editar Concepto' : 'Crear Nuevo Concepto'" [modal]="true" [contentStyle]="{ padding: '2rem' }" (onHide)="onCancel()" styleClass="p-fluid">
             <ng-template #content>
                 <div class="flex flex-col gap-4">
                     <div>
@@ -75,7 +75,7 @@ import { Concepto } from '@/core/models/concepto.model';
 
             <ng-template #footer>
                 <p-button label="Cancelar" icon="pi pi-times" text (click)="onCancel()" [disabled]="loading()" />
-                <p-button label="Crear" icon="pi pi-check" (click)="onCreate()" [loading]="loading()" />
+                <p-button [label]="isEditMode() ? 'Guardar' : 'Crear'" icon="pi pi-check" (click)="onSave()" [loading]="loading()" />
             </ng-template>
         </p-dialog>
         <p-confirmdialog />
@@ -89,8 +89,10 @@ export class ConceptoCreateModalComponent {
 
     // Inputs/Outputs
     visible = input<boolean>(false);
+    concepto = input<Partial<Concepto> | null>(null);
     placeholder = input<string>('Ej: Pago cliente');
     visibleChange = output<boolean>();
+    save = output<Partial<Concepto>>();
     created = output<Concepto>();
     cancel = output<void>();
 
@@ -103,8 +105,9 @@ export class ConceptoCreateModalComponent {
 
     // Estado de categorías
     categoriasSugeridas = signal<Categoria[]>([]);
-    categoriaSearchTerm = signal<string>('');
+    categoriaSearchTerm = signal<string>('');  
     categoriasRecientes = signal<Categoria[]>([]);
+    isEditMode = signal(false);
 
     isVisible = false;
 
@@ -115,12 +118,16 @@ export class ConceptoCreateModalComponent {
 
             // Limpiar formulario cuando se abre
             if (this.visible()) {
-                this.nombre = '';
-                this.selectedCategoria = null;
-                this.submitted.set(false);
-                this.loading.set(false);
-                this.errorMessage.set('');
-                this.categoriaSearchTerm.set('');
+                const conceptoData = this.concepto();
+                if (conceptoData && conceptoData.id) {
+                    // Modo edición
+                    this.isEditMode.set(true);
+                    this.loadConceptoData(conceptoData);
+                } else {
+                    // Modo creación
+                    this.isEditMode.set(false);
+                    this.resetForm();
+                }
 
                 // Cargar categorías recientes al abrir
                 this.loadCategoriasRecientes();
@@ -128,7 +135,29 @@ export class ConceptoCreateModalComponent {
         });
     }
 
-    private loadCategoriasRecientes() {
+    private loadConceptoData(concepto: Partial<Concepto>) {
+        this.nombre = concepto.nombre || '';
+        
+        // Cargar categoría seleccionada
+        if (concepto.categoriaId) {
+            const categorias = this.categoriaStore.categorias();
+            this.selectedCategoria = categorias.find(c => c.id === concepto.categoriaId) || null;
+        }
+        
+        this.submitted.set(false);
+        this.loading.set(false);
+        this.errorMessage.set('');
+        this.categoriaSearchTerm.set('');
+    }
+
+    private resetForm() {
+        this.nombre = '';
+        this.selectedCategoria = null;
+        this.submitted.set(false);
+        this.loading.set(false);
+        this.errorMessage.set('');
+        this.categoriaSearchTerm.set('');
+    }    private loadCategoriasRecientes() {
         this.categoriaStore.getRecent(5).then((categorias) => {
             this.categoriasRecientes.set(categorias);
             this.categoriasSugeridas.set([...categorias]);
@@ -217,7 +246,7 @@ export class ConceptoCreateModalComponent {
             });
     }
 
-    onCreate() {
+    onSave() {
         this.submitted.set(true);
         this.errorMessage.set('');
 
@@ -229,41 +258,29 @@ export class ConceptoCreateModalComponent {
             return;
         }
 
+        const conceptoData: Partial<Concepto> = {
+            nombre: this.nombre.trim(),
+            categoriaId: this.selectedCategoria.id
+        };
+
+        if (this.isEditMode()) {
+            conceptoData.id = this.concepto()?.id;
+        }
+
+        const action = this.isEditMode() ? 'actualizar' : 'crear';
+        const actionPast = this.isEditMode() ? 'actualizado' : 'creado';
+
         this.confirmationService.confirm({
-            message: `¿Está seguro que desea crear el concepto "${this.nombre.trim()}" con la categoría "${this.selectedCategoria.nombre}"?`,
-            header: 'Confirmar Creación',
+            message: `¿Está seguro que desea ${action} el concepto "${this.nombre.trim()}" con la categoría "${this.selectedCategoria.nombre}"?`,
+            header: `Confirmar ${this.isEditMode() ? 'Actualización' : 'Creación'}`,
             icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Sí, crear',
+            acceptLabel: `Sí, ${action}`,
             rejectLabel: 'Cancelar',
             accept: () => {
-                this.confirmedCreate();
+                this.save.emit(conceptoData);
+                this.closeModal();
             }
         });
-    }
-
-    private confirmedCreate() {
-        this.loading.set(true);
-
-        this.conceptoStore
-            .create(this.nombre.trim(), this.selectedCategoria!.id)
-            .then((nuevoConceptoId) => {
-                // El backend devuelve el UUID del concepto recién creado
-                const nuevoConcepto: Concepto = {
-                    id: nuevoConceptoId,
-                    nombre: this.nombre.trim(),
-                    categoriaId: this.selectedCategoria!.id,
-                    fechaCreacion: new Date(),
-                    usuarioId: ''
-                };
-
-                this.created.emit(nuevoConcepto);
-                this.closeModal();
-            })
-            .catch((error) => {
-                console.error('Error creando concepto:', error);
-                this.errorMessage.set(error.message || 'Error al crear el concepto');
-                this.loading.set(false);
-            });
     }
 
     onCancel() {
@@ -274,11 +291,6 @@ export class ConceptoCreateModalComponent {
     private closeModal() {
         this.isVisible = false;
         this.visibleChange.emit(false);
-        this.nombre = '';
-        this.selectedCategoria = null;
-        this.submitted.set(false);
-        this.loading.set(false);
-        this.errorMessage.set('');
-        this.categoriaSearchTerm.set('');
+        this.resetForm();
     }
 }

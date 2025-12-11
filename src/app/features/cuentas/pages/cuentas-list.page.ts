@@ -222,7 +222,6 @@ export class CuentasListPage extends BasePageComponent {
             try {
                 await this.cuentaStore.update(cuenta.id, cuenta);
                 this.showSuccess('Cuenta actualizada correctamente');
-                this.reloadCuentas();
                 this.hideDialog();
             } catch (error: any) {
                 this.showError(error.message || 'Error al actualizar la cuenta');
@@ -231,7 +230,6 @@ export class CuentasListPage extends BasePageComponent {
             try {
                 await this.cuentaStore.create(cuenta.nombre!, cuenta.saldo!);
                 this.showSuccess('Cuenta creada correctamente');
-                this.reloadCuentas();
                 this.hideDialog();
             } catch (error: any) {
                 this.showError(error.message || 'Error al crear la cuenta');

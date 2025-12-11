@@ -19,6 +19,22 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
     selector: 'app-my-profile',
     standalone: true,
     imports: [CommonModule, ReactiveFormsModule, CardModule, InputTextModule, ButtonModule, AvatarModule, FileUploadModule, DividerModule, InputIconModule, IconFieldModule, BasePageTemplateComponent],
+    styles: [
+        `
+            :host ::ng-deep .profile-avatar {
+                width: 120px;
+                height: 120px;
+                font-size: 3rem;
+                background-color: var(--primary-color);
+                color: var(--primary-contrast-color) !important;
+            }
+
+            :host ::ng-deep .profile-avatar .p-avatar-icon {
+                font-size: 4rem;
+                color: var(--primary-contrast-color) !important;
+            }
+        `
+    ],
     template: `
         <app-base-page-template [loading]="loadingSignal() || isLoadingInitial()" [skeletonType]="'profile'">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-y-2 md:gap-x-2">
@@ -27,29 +43,36 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                     <div class="grid grid-flow-col grid-rows-1 gap-4">
                         <div class="flex flex-column align-items-center justify-content-center mb-6 pb-5 border-bottom-1 surface-border">
                             <div class="relative mb-3 cursor-pointer group" (click)="fileUploader.basicFileInput?.nativeElement.click()">
-                                <p-avatar
-                                    [label]="!authStore.user()?.avatar ? authStore.userInitials() : undefined"
-                                    [image]="authStore.user()?.avatar || undefined"
-                                    shape="circle"
-                                    size="xlarge"
-                                    class="shadow-4"
-                                    [style]="{
-                                        width: '120px',
-                                        height: '120px',
-                                        'font-size': '3rem',
-                                        'object-fit': 'cover',
-                                        'background-color': 'var(--primary-color)',
-                                        color: 'var(--primary-contrast-color)'
-                                    }"
-                                ></p-avatar>
+                                @if (hasAvatar()) {
+                                    <p-avatar
+                                        [image]="authStore.user()?.avatar!"
+                                        shape="circle"
+                                        size="xlarge"
+                                        class="shadow-4 profile-avatar"
+                                    ></p-avatar>
+                                } @else if (hasInitials()) {
+                                    <p-avatar
+                                        [label]="authStore.userInitials()"
+                                        shape="circle"
+                                        size="xlarge"
+                                        class="shadow-4 profile-avatar"
+                                    ></p-avatar>
+                                } @else {
+                                    <p-avatar
+                                        icon="pi pi-user"
+                                        shape="circle"
+                                        size="xlarge"
+                                        class="shadow-4 profile-avatar"
+                                    ></p-avatar>
+                                }
                             </div>
 
                             <p-fileUpload #fileUploader mode="basic" name="avatar" accept="image/*" maxFileSize="5000000" [auto]="true" [customUpload]="true" (uploadHandler)="onUploadAvatar($event)" class="hidden"></p-fileUpload>
                         </div>
 
                         <div class="text-center col-span-2">
-                            <h2 class="text-900 font-bold text-2xl mb-1 mt-0">{{ authStore.userName() }}</h2>
-                            <span class="text-600 font-medium">{{ authStore.user()?.correo }}</span>
+                            <h2 class="text-900 font-bold text-2xl mb-1 mt-0">{{ displayName() }}</h2>
+                            <span class="text-600 font-medium">{{ authStore.user()?.correo || 'Sin correo' }}</span>
                             <div class="mt-2">
                                 <span class="inline-flex align-items-center justify-content-center px-2 py-1 bg-primary-100 text-primary-700 border-round font-medium text-xs">
                                     {{ authStore.user()?.rol || 'Usuario' }}
@@ -115,6 +138,24 @@ export class MyProfilePage extends BasePageComponent implements OnInit {
 
     saving = signal(false);
     isLoadingInitial = signal(true);
+
+    // Computed properties para controlar visualización
+    hasAvatar = () => {
+        const avatar = this.authStore.user()?.avatar;
+        return avatar && avatar.trim() !== '';
+    };
+
+    hasInitials = () => {
+        const user = this.authStore.user();
+        const nombre = user?.nombre?.trim();
+        const apellidos = user?.apellidos?.trim();
+        return !!(nombre || apellidos);
+    };
+
+    displayName = () => {
+        const userName = this.authStore.userName();
+        return userName && userName.trim() !== '' ? userName : 'Sin Nombre';
+    };
 
     form = this.fb.group({
         correo: ['', [Validators.required, Validators.email]],

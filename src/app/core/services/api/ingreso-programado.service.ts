@@ -91,13 +91,4 @@ export class IngresoProgramadoService {
             })
         );
     }
-
-    /**
-     * Activar/Desactivar ingreso programado
-     */
-    toggleActivo(id: string, activo: boolean): Observable<void> {
-        return this.http
-            .patch<void>(`${this.apiUrl}/${id}/toggle`, { activo })
-            .pipe(map(() => undefined as void));
-    }
 }

@@ -32,30 +32,37 @@ export const authGuard: CanActivateFn = (route, state) => {
     );
 };
 
-// auth.guard.ts (o donde tengas tus guards)
-
-export const noAuthGuard: CanActivateFn = () => {
+export const noAuthGuard: CanActivateFn = (route, state) => {
     const authStore = inject(AuthStore);
     const router = inject(Router);
 
-    return toObservable(authStore.initialized).pipe(
-        filter(initialized => initialized === true),
-        take(1),
-        map(() => {
-            // ✅ CASO 1: Estamos en proceso de logout
-            // Permitimos entrar al Login para que la transición sea suave
-            if (authStore.isLoggingOut()) {
+    // Si el store no está inicializado, esperamos a que lo esté
+    if (!authStore.initialized()) {
+        return toObservable(authStore.initialized).pipe(
+            filter(initialized => initialized === true),
+            take(1),
+            map(() => {
+                // Una vez inicializado, verificamos autenticación
+                if (authStore.isAuthenticated() && !authStore.isLoggingOut()) {
+                    return router.createUrlTree(['/']);
+                }
                 return true;
-            }
+            })
+        );
+    }
 
-            // ❌ CASO 2: Usuario autenticado intentando ir al Login manualmente
-            // Lo mandamos a casa
-            if (authStore.isAuthenticated()) {
-                return router.createUrlTree(['/']);
-            }
+    // Si ya está inicializado, verificación síncrona
+    // ✅ CASO 1: Estamos en proceso de logout - permitir acceso
+    if (authStore.isLoggingOut()) {
+        return true;
+    }
 
-            // ✅ CASO 3: Usuario anónimo normal
-            return true;
-        })
-    );
+    // ❌ CASO 2: Usuario autenticado intentando acceder a páginas de auth
+    // Lo mandamos al dashboard
+    if (authStore.isAuthenticated()) {
+        return router.createUrlTree(['/']);
+    }
+
+    // ✅ CASO 3: Usuario anónimo - permitir acceso
+    return true;
 };

@@ -215,7 +215,6 @@ export class PersonasListPage extends BasePageComponent {
             try {
                 await this.personaStore.update(persona.id, persona);
                 this.showSuccess('Persona actualizada correctamente');
-                this.reloadPersonas();
                 this.hideDialog();
             } catch (error: any) {
                 this.showError(error.message || 'Error al actualizar la persona');
@@ -224,7 +223,6 @@ export class PersonasListPage extends BasePageComponent {
             try {
                 await this.personaStore.create(persona.nombre!);
                 this.showSuccess('Persona creada correctamente');
-                this.reloadPersonas();
                 this.hideDialog();
             } catch (error: any) {
                 this.showError(error.message || 'Error al crear la persona');

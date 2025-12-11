@@ -15,7 +15,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
     imports: [CommonModule, AuthWrapperComponent, ReactiveFormsModule, ButtonModule, InputTextModule, RouterModule, BasePageTemplateComponent],
     template: `
         <app-base-page-template [loading]="authStore.loading() && !correoSent()" [skeletonType]="'form'">
-            <app-auth-wrapper 700 [title]="correoSent() ? '¡Correo Enviado!' : 'Recuperar cuenta'" [subtitle]="correoSent() ? 'Revisa tu bandeja de entrada' : 'Ingresa tu correo para buscar tu cuenta'">
+            <app-auth-wrapper [title]="correoSent() ? '¡Correo Enviado!' : 'Recuperar cuenta'" [subtitle]="correoSent() ? 'Revisa tu bandeja de entrada' : 'Ingresa tu correo para buscar tu cuenta'">
                 @if (!correoSent()) {
                     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="w-full md:w-120 animate-fadein">
                         <div class="flex flex-col gap-2 mb-6">
@@ -40,7 +40,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         <p-button label="Enviar Instrucciones" type="submit" styleClass="w-full" [loading]="authStore.loading()" [disabled]="form.invalid"></p-button>
 
                         <div class="mt-6 text-center">
-                            <a routerLink="/auth/login" class="text-primary hover:underline font-medium cursor-pointer text-sm"> <i class="pi pi-arrow-left mr-1"></i> Volver al inicio de sesión </a>
+                            <a [routerLink]="['..', 'login']" class="text-primary hover:underline font-medium cursor-pointer text-sm"> <i class="pi pi-arrow-left mr-1"></i> Volver al inicio de sesión </a>
                         </div>
                     </form>
 
@@ -54,7 +54,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                             Si el correo <strong>{{ form.get('correo')?.value }}</strong> está registrado, recibirás un enlace para restablecer tu contraseña en unos momentos.
                         </p>
 
-                        <p-button label="Volver al Login" routerLink="/auth/login" [outlined]="true" styleClass="w-full"></p-button>
+                        <p-button label="Volver al Login" [routerLink]="['..', 'login']" [outlined]="true" styleClass="w-full"></p-button>
                     </div>
                 }
             </app-auth-wrapper>

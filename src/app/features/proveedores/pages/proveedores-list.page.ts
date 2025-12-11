@@ -217,7 +217,6 @@ export class ProveedoresListPage extends BasePageComponent {
             try {
                 await this.proveedorStore.update(proveedor.id, proveedor);
                 this.showSuccess('Proveedor actualizado correctamente');
-                this.reloadProveedores();
                 this.hideDialog();
             } catch (error: any) {
                 this.showError(error.message || 'Error al actualizar el proveedor');
@@ -226,7 +225,6 @@ export class ProveedoresListPage extends BasePageComponent {
             try {
                 await this.proveedorStore.create(proveedor.nombre!);
                 this.showSuccess('Proveedor creado correctamente');
-                this.reloadProveedores();
                 this.hideDialog();
             } catch (error: any) {
                 this.showError(error.message || 'Error al crear el proveedor');

@@ -213,7 +213,6 @@ export class FormasPagoListPage extends BasePageComponent {
             try {
                 await this.formaPagoStore.update(formaPago.id, formaPago);
                 this.showSuccess('Forma de pago actualizada correctamente');
-                this.reloadFormasPago();
                 this.hideDialog();
             } catch (error: any) {
                 this.showError(error.message || 'Error al actualizar la forma de pago');
@@ -222,7 +221,6 @@ export class FormasPagoListPage extends BasePageComponent {
             try {
                 await this.formaPagoStore.create(formaPago.nombre!);
                 this.showSuccess('Forma de pago creada correctamente');
-                this.reloadFormasPago();
                 this.hideDialog();
             } catch (error: any) {
                 this.showError(error.message || 'Error al crear la forma de pago');

@@ -80,14 +80,6 @@ export class TraspasoProgramadoService {
     }
 
     /**
-     * Activar/Desactivar traspaso programado
-     */
-    toggleActivo(id: string, activo: boolean): Observable<void> {
-        return this.http
-            .patch<void>(`${this.apiUrl}/${id}/toggle`, { activo });
-    }
-
-    /**
      * Reprogramar traspaso (cambiar fecha y/o frecuencia)
      */
     reprogramar(id: string, nuevaFecha: string, nuevaFrecuencia: string): Observable<void> {
