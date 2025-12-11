@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { ToastModule } from 'primeng/toast';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { Table, TableModule, TableLazyLoadEvent } from 'primeng/table';
 import { ToolbarModule } from 'primeng/toolbar';
@@ -11,7 +10,6 @@ import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { TooltipModule } from 'primeng/tooltip';
 import { TraspasosProgramadosStore } from '../stores/traspasos-programados.store';
 import { TraspasoProgramado } from '@/core/models/traspaso-programado.model';
@@ -27,14 +25,12 @@ import { TraspasoProgramadoFormModalComponent } from '../components/traspaso-pro
         FormsModule,
         ButtonModule,
         InputTextModule,
-        ToastModule,
         TableModule,
         ToolbarModule,
         InputIconModule,
         IconFieldModule,
         SkeletonModule,
         TagModule,
-        ConfirmDialogModule,
         TooltipModule,
         BasePageTemplateComponent,
         TraspasoProgramadoFormModalComponent
@@ -45,10 +41,7 @@ import { TraspasoProgramadoFormModalComponent } from '../components/traspaso-pro
         <app-base-page-template [loading]="traspasosStore.loading()" [skeletonType]="'table'">
             <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
                 <div class="surface-card shadow-2 border-round p-6">
-                    <p-toast></p-toast>
-                    <p-confirmDialog></p-confirmDialog>
-
-                    <p-toolbar styleClass="mb-6 gap-2 p-6">
+                    <p-toolbar class="mb-6 gap-2 p-6">
                         <ng-template #start>
                             <p-button 
                                 label="Nuevo Traspaso Programado" 

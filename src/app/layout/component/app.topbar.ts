@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -15,19 +15,42 @@ import { AuthStore } from '../../core/stores/auth.store';
     imports: [RouterModule, CommonModule, StyleClassModule, AvatarModule, AppConfigurator, AppLogo],
     styles: [
         `
-            /* Estilo del contenedor del avatar */
             :host ::ng-deep .custom-avatar {
                 width: 32px;
                 height: 32px;
-                font-size: 0.875rem;
-                background-color: var(--primary-color, #3b82f6);
-                color: #ffffff !important; /* Forzamos color en el contenedor */
+                background-color: var(--primary-color, var(--p-primary-color, #10b981)) !important;
+                color: var(--primary-color-text, var(--p-primary-contrast-color, #ffffff)) !important;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
 
-            /* AGREGA ESTO: Atacamos específicamente al texto interno */
+            /* AQUI ESTÁ LA CORRECCIÓN:
+           Atacamos al span interno (.p-avatar-icon) que contiene la clase del icono.
+        */
+            :host ::ng-deep .custom-avatar .p-avatar-icon {
+                /* 1. Forzamos la fuente PrimeIcons, si no, usa Segoe UI y no se ve nada */
+                font-family: 'primeicons' !important;
+
+                /* 2. Heredamos el color blanco del padre */
+                color: inherit !important;
+
+                /* 3. Ajustamos tamaño y centrado */
+                font-size: 1rem !important;
+                display: inline-block;
+
+                /* 4. Reset de estilos de fuente por seguridad */
+                font-style: normal;
+                font-weight: normal;
+                font-variant: normal;
+                text-transform: none;
+                line-height: 1;
+            }
+
+            /* Aseguramos que si hay texto (iniciales) también herede el color */
             :host ::ng-deep .custom-avatar .p-avatar-text {
-                color: #ffffff !important;
-                line-height: 1; /* Asegura que el texto no se desplace verticalmente */
+                color: inherit !important;
             }
         `
     ],
@@ -70,13 +93,16 @@ import { AuthStore } from '../../core/stores/auth.store';
             <div class="layout-topbar-menu hidden lg:block">
                 <div class="layout-topbar-menu-content">
                     <button type="button" class="layout-topbar-action" routerLink="/auth/my-profile">
-                        @if (showUserIcon()) {
-                            <p-avatar icon="pi pi-user" shape="circle" size="normal" class="custom-avatar" />
+                        @if (shouldShowImage()) {
+                            <p-avatar [image]="userAvatar()!" shape="circle" size="normal" class="custom-avatar" (onImageError)="onImageError()" />
+
                         } @else {
-                            <p-avatar [label]="avatarLabel()" [image]="avatarImage()" shape="circle" size="normal" class="custom-avatar" />
+                            <p-avatar icon="pi pi-user" shape="circle" size="normal" class="custom-avatar" />
                         }
+
                         <span>{{ authStore.userName() || 'Usuario' }}</span>
                     </button>
+
                     <button type="button" class="layout-topbar-action" (click)="logout()">
                         <i class="pi pi-sign-out"></i>
                         <span>Cerrar Sesión</span>
@@ -91,43 +117,29 @@ export class AppTopbar {
     authStore = inject(AuthStore);
     private router = inject(Router);
 
-    avatarImage = computed(() => {
-        const user = this.authStore.user();
-        const avatar = user?.avatar;
+    // Señal para controlar si la carga de la imagen falló
+    imageLoadError = signal(false);
 
-        if (avatar && avatar.trim() !== '') {
-            return avatar;
-        }
-        return undefined;
+    // Obtener URL del avatar
+    userAvatar = computed(() => this.authStore.user()?.avatar);
+
+    // Lógica para decidir si mostramos el tag <img>
+    shouldShowImage = computed(() => {
+        const avatar = this.userAvatar();
+        // Verificamos que no sea nulo, ni undefined, ni cadena vacía
+        const hasUrl = !!(avatar && avatar.trim().length > 0);
+        // Y que no haya dado error de carga
+        return hasUrl && !this.imageLoadError();
     });
 
-    // Determinar el label (iniciales)
-    avatarLabel = computed(() => {
-        // Si tenemos imagen, no necesitamos label
-        if (this.avatarImage()) {
-            return undefined;
-        }
-
-        const user = this.authStore.user();
-        const nombre = user?.nombre?.trim();
-        const apellidos = user?.apellidos?.trim();
-
-        // Si no hay nombre Y no hay apellidos, devolvemos undefined para mostrar icono
-        if (!nombre && !apellidos) {
-            return undefined;
-        }
-
-        // Si hay nombre o apellidos, calcular iniciales
-        const initials = this.authStore.userInitials();
-        return initials || undefined;
-    });
-
-    // Determinar si mostrar icono de usuario
-    showUserIcon = computed(() => {
-        return !this.avatarImage() && !this.avatarLabel();
-    });
+    // NOTA: He eliminado 'userInitials' y 'shouldShowInitials'
+    // para forzar que siempre salga el icono si no hay imagen.
 
     constructor(public layoutService: LayoutService) {}
+
+    onImageError() {
+        this.imageLoadError.set(true);
+    }
 
     toggleDarkMode() {
         this.layoutService.layoutConfig.update((state) => ({ ...state, darkTheme: !state.darkTheme }));

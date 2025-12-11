@@ -139,17 +139,19 @@ interface TraspasoProgramadoFormData extends Omit<Partial<TraspasoProgramado>, '
 
                 <!-- Fecha de Ejecución -->
                 <div class="col-span-12 md:col-span-6 field">
-                    <label class="font-semibold text-gray-700 block mb-2">Fecha de Ejecución *</label>
+                    <label class="font-semibold text-gray-700 block mb-2">Fecha y Hora de Ejecución *</label>
                     <p-datePicker 
                         [(ngModel)]="formData.fechaEjecucion" 
                         dateFormat="dd/mm/yy" 
                         [showIcon]="true" 
+                        [showTime]="true" 
+                        hourFormat="24" 
                         appendTo="body" 
                         styleClass="w-full" 
-                        placeholder="Seleccione la fecha"
+                        placeholder="Seleccione la fecha y hora"
                     />
                     @if (submitted() && !formData.fechaEjecucion) {
-                        <small class="text-red-500 block mt-1">La fecha de ejecución es requerida.</small>
+                        <small class="text-red-500 block mt-1">La fecha y hora de ejecución es requerida.</small>
                     }
                 </div>
 

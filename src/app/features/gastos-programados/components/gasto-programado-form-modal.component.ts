@@ -136,10 +136,19 @@ interface GastoProgramadoFormData extends Omit<Partial<GastoProgramado>, 'fechaE
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
-                    <label for="fechaEjecucion" class="font-semibold text-gray-700 block mb-2">Fecha de Ejecución *</label>
-                    <p-datePicker [(ngModel)]="formData.fechaEjecucion" dateFormat="dd/mm/yy" [showIcon]="true" appendTo="body" styleClass="w-full" class="w-full" />
+                    <label for="fechaEjecucion" class="font-semibold text-gray-700 block mb-2">Fecha y Hora de Ejecución *</label>
+                    <p-datePicker 
+                        [(ngModel)]="formData.fechaEjecucion" 
+                        dateFormat="dd/mm/yy" 
+                        [showIcon]="true" 
+                        [showTime]="true" 
+                        hourFormat="24" 
+                        appendTo="body" 
+                        styleClass="w-full" 
+                        class="w-full" 
+                    />
                     @if (!formData.fechaEjecucion) {
-                        <small class="text-gray-500">Fecha en la que se generará el movimiento.</small>
+                        <small class="text-gray-500">Fecha y hora en la que se generará el movimiento.</small>
                     }
                 </div>
 

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, signal, ViewChild, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
@@ -21,49 +21,53 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
     imports: [CommonModule, ReactiveFormsModule, CardModule, InputTextModule, ButtonModule, AvatarModule, FileUploadModule, DividerModule, InputIconModule, IconFieldModule, BasePageTemplateComponent],
     styles: [
         `
+            /* ESTILOS DEL AVATAR DE PERFIL (GRANDE) */
             :host ::ng-deep .profile-avatar {
                 width: 120px;
                 height: 120px;
-                font-size: 3rem;
-                background-color: var(--primary-color);
-                color: var(--primary-contrast-color) !important;
+                background-color: var(--primary-color, var(--p-primary-color, #10b981)) !important;
+                color: var(--primary-color-text, var(--p-primary-contrast-color, #ffffff)) !important;
+
+                /* CENTRADO PERFECTO */
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                border-radius: 50%; /* Asegura círculo perfecto */
+                overflow: hidden; /* Evita desbordes */
+                padding: 0 !important; /* Elimina paddings parásitos */
             }
 
+            /* ICONO INTERNO */
             :host ::ng-deep .profile-avatar .p-avatar-icon {
-                font-size: 4rem;
-                color: var(--primary-contrast-color) !important;
+                font-family: 'primeicons' !important;
+                font-size: 4rem !important; /* Tamaño grande */
+
+                /* TRUCO PARA ALINEACIÓN VERTICAL EXACTA */
+                line-height: 1 !important;
+                height: 1em !important;
+                width: 1em !important;
+                text-align: center;
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+
+                color: inherit !important;
+                margin: 0 !important;
             }
         `
     ],
     template: `
         <app-base-page-template [loading]="loadingSignal() || isLoadingInitial()" [skeletonType]="'profile'">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-y-2 md:gap-x-2">
-                <!-- Card 1: Avatar y Correo -->
                 <div class="card surface-card shadow-2 border-round p-6 h-full">
                     <div class="grid grid-flow-col grid-rows-1 gap-4">
                         <div class="flex flex-column align-items-center justify-content-center mb-6 pb-5 border-bottom-1 surface-border">
                             <div class="relative mb-3 cursor-pointer group" (click)="fileUploader.basicFileInput?.nativeElement.click()">
-                                @if (hasAvatar()) {
-                                    <p-avatar
-                                        [image]="authStore.user()?.avatar!"
-                                        shape="circle"
-                                        size="xlarge"
-                                        class="shadow-4 profile-avatar"
-                                    ></p-avatar>
-                                } @else if (hasInitials()) {
-                                    <p-avatar
-                                        [label]="authStore.userInitials()"
-                                        shape="circle"
-                                        size="xlarge"
-                                        class="shadow-4 profile-avatar"
-                                    ></p-avatar>
+                                @if (shouldShowImage()) {
+                                    <p-avatar [image]="userAvatar()!" shape="circle" class="shadow-4 profile-avatar" (onImageError)="onImageError()"></p-avatar>
+
                                 } @else {
-                                    <p-avatar
-                                        icon="pi pi-user"
-                                        shape="circle"
-                                        size="xlarge"
-                                        class="shadow-4 profile-avatar"
-                                    ></p-avatar>
+                                    <p-avatar icon="pi pi-user" shape="circle" class="shadow-4 profile-avatar"></p-avatar>
                                 }
                             </div>
 
@@ -93,7 +97,6 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                     </form>
                 </div>
 
-                <!-- Card 2: Información Personal -->
                 <div class="card surface-card shadow-2 border-round p-6 h-full">
                     <h3 class="text-900 font-semibold text-xl mb-4">Información Personal</h3>
 
@@ -139,23 +142,25 @@ export class MyProfilePage extends BasePageComponent implements OnInit {
     saving = signal(false);
     isLoadingInitial = signal(true);
 
-    // Computed properties para controlar visualización
-    hasAvatar = () => {
-        const avatar = this.authStore.user()?.avatar;
-        return avatar && avatar.trim() !== '';
-    };
+    // --- NUEVA LÓGICA DE AVATAR (REPLICADA) ---
 
-    hasInitials = () => {
-        const user = this.authStore.user();
-        const nombre = user?.nombre?.trim();
-        const apellidos = user?.apellidos?.trim();
-        return !!(nombre || apellidos);
-    };
+    // Señal para controlar error de carga de imagen
+    imageLoadError = signal(false);
 
-    displayName = () => {
+    // Obtener URL
+    userAvatar = computed(() => this.authStore.user()?.avatar);
+
+    // Decidir si mostrar imagen (URL existe, no vacía, sin error)
+    shouldShowImage = computed(() => {
+        const avatar = this.userAvatar();
+        const hasUrl = !!(avatar && avatar.trim().length > 0);
+        return hasUrl && !this.imageLoadError();
+    });
+
+    displayName = computed(() => {
         const userName = this.authStore.userName();
         return userName && userName.trim() !== '' ? userName : 'Sin Nombre';
-    };
+    });
 
     form = this.fb.group({
         correo: ['', [Validators.required, Validators.email]],
@@ -165,8 +170,12 @@ export class MyProfilePage extends BasePageComponent implements OnInit {
 
     ngOnInit() {
         this.loadUserData();
-        // Marca como no cargando después de cargar datos iniciales
         setTimeout(() => this.isLoadingInitial.set(false), 100);
+    }
+
+    // Manejador de error de imagen (404)
+    onImageError() {
+        this.imageLoadError.set(true);
     }
 
     loadUserData() {
@@ -178,6 +187,9 @@ export class MyProfilePage extends BasePageComponent implements OnInit {
                 apellidos: user.apellidos || ''
             });
             this.form.get('correo')?.disable();
+
+            // Reseteamos el error de imagen al recargar datos, por si el usuario subió una nueva
+            this.imageLoadError.set(false);
         }
     }
 
@@ -190,7 +202,6 @@ export class MyProfilePage extends BasePageComponent implements OnInit {
         try {
             await this.authStore.updateProfile({ nombre: nombre!, apellidos: apellidos || null });
 
-            // Actualización optimista
             const currentUser = this.authStore.user();
             if (currentUser) {
                 this.authStore.setUser({ ...currentUser, nombre: nombre!, apellidos: apellidos || undefined });
@@ -210,13 +221,12 @@ export class MyProfilePage extends BasePageComponent implements OnInit {
         if (!file) return;
 
         try {
-            // Llamamos al store para subir la imagen
             await this.authStore.updateAvatar(file);
 
-            this.showSuccess('Tu foto de perfil se ha actualizado.', 'Avatar Actualizado');
+            // Importante: Reseteamos el error porque acabamos de subir una imagen nueva que debería funcionar
+            this.imageLoadError.set(false);
 
-            // Limpiamos el componente de subida visualmente (opcional, ya que mode=basic se limpia solo)
-            // event.originalEvent.target.value = '';
+            this.showSuccess('Tu foto de perfil se ha actualizado.', 'Avatar Actualizado');
         } catch (error: any) {
             console.error(error);
             this.showError('No se pudo subir la imagen.');
