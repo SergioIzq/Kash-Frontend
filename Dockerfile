@@ -34,7 +34,7 @@ FROM nginx:alpine AS final
 
 # Metadatos
 LABEL maintainer="sergioizqdev"
-LABEL description="AhorroLand Frontend - Angular Application"
+LABEL description="Kash Frontend - Angular Application"
 
 # OPTIMIZACIÓN CRÍTICA PARA ANGULAR 17+:
 # El nuevo 'application builder' suele crear una subcarpeta 'browser' dentro del output.

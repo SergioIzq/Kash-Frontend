@@ -61,7 +61,7 @@ import { AuthStore } from '../../core/stores/auth.store';
             </button>
             <a class="layout-topbar-logo" routerLink="/">
                 <app-logo />
-                <span>AhorroLand</span>
+                <span>Kash</span>
             </a>
         </div>
 

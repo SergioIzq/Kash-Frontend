@@ -18,7 +18,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
     imports: [CommonModule, AuthWrapperComponent, ButtonModule, CheckboxModule, InputTextModule, PasswordModule, ReactiveFormsModule, FormsModule, RouterModule, MessageModule, BasePageTemplateComponent],
     template: `
         <app-base-page-template [loading]="showSkeleton()" [skeletonType]="'form'">
-            <app-auth-wrapper title="Bienvenido a AhorroLand" subtitle="Inicia sesión para continuar">
+            <app-auth-wrapper title="Bienvenido a Kash" subtitle="Inicia sesión para continuar">
                 @if (authStore.error()) {
                     <p-message severity="error" [text]="authStore.error()!" styleClass="mb-4 w-full"></p-message>
                 }

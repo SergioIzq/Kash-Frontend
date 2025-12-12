@@ -43,7 +43,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
 
                         <h2 class="text-2xl font-bold mb-2 text-surface-900 dark:text-surface-0">¡Cuenta Confirmada!</h2>
 
-                        <p class="text-muted-color mb-8 text-lg">Tu correo ha sido verificado correctamente. Ya puedes acceder a todas las funciones de AhorroLand.</p>
+                        <p class="text-muted-color mb-8 text-lg">Tu correo ha sido verificado correctamente. Ya puedes acceder a todas las funciones de Kash.</p>
 
                         <p-button label="Iniciar Sesión" routerLink="/auth/login" styleClass="w-full"></p-button>
                     </div>

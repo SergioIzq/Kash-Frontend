@@ -18,7 +18,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
     imports: [CommonModule, AuthWrapperComponent, ButtonModule, CheckboxModule, InputTextModule, PasswordModule, ReactiveFormsModule, RouterModule, DividerModule, BasePageTemplateComponent],
     template: `
         <app-base-page-template [loading]="authStore.loading() && !showSuccessView()" [skeletonType]="'form'">
-            <app-auth-wrapper title="Crear cuenta" subtitle="Únete a AhorroLand hoy mismo">
+            <app-auth-wrapper title="Crear cuenta" subtitle="Únete a Kash hoy mismo">
                 @if (showSuccessView()) {
                     <div class="w-full md:w-120 flex flex-col items-center text-center animate-fadein">
                         <div class="w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-6">
