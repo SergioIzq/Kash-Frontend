@@ -18,7 +18,7 @@ export class AuthService {
         return this.http.post<Result<any>>(`${this.apiUrl}/login?useCookie=true`, credentials).pipe(switchMap(() => this.fetchCurrentUser()));
     }
 
-    register(payload: { email: string; contrasena: string; nombre: string; apellidos?: string }): Observable<string> {
+    register(payload: { correo: string; contrasena: string; nombre: string; apellidos?: string }): Observable<string> {
         return this.http.post<Result<string>>(`${this.apiUrl}/register`, payload).pipe(map((res) => res.value));
     }
 
