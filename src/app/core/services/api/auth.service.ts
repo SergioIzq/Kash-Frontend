@@ -18,7 +18,7 @@ export class AuthService {
         return this.http.post<Result<any>>(`${this.apiUrl}/login?useCookie=true`, credentials).pipe(switchMap(() => this.fetchCurrentUser()));
     }
 
-    register(payload: { correo: string; contrasena: string; nombre: string; apellidos?: string }): Observable<string> {
+    register(payload: { email: string; contrasena: string; nombre: string; apellidos?: string }): Observable<string> {
         return this.http.post<Result<string>>(`${this.apiUrl}/register`, payload).pipe(map((res) => res.value));
     }
 
@@ -26,12 +26,12 @@ export class AuthService {
         return this.http.get<Result<string>>(`${this.apiUrl}/confirmar-correo?token=${token}`).pipe(map((res) => res.value));
     }
 
-    resendConfirmation(correo: string): Observable<void> {
-        return this.http.post<Result<void>>(`${this.apiUrl}/resend-confirmation`, { correo: correo }).pipe(map(() => undefined));
+    resendConfirmation(email: string): Observable<void> {
+        return this.http.post<Result<void>>(`${this.apiUrl}/resend-confirmation`, { email: email }).pipe(map(() => undefined));
     }
 
-    forgotPassword(correo: string): Observable<string> {
-        return this.http.post<Result<string>>(`${this.apiUrl}/forgot-password`, { correo }, { observe: 'response' }).pipe(
+    forgotPassword(email: string): Observable<string> {
+        return this.http.post<Result<string>>(`${this.apiUrl}/forgot-password`, { email }, { observe: 'response' }).pipe(
             map((response) => {
                 // Si es 204, no hay body
                 if (response.status === 204) {
@@ -43,8 +43,8 @@ export class AuthService {
         );
     }
 
-    resetPassword(correo: string, token: string, newPassword: string): Observable<string> {
-        return this.http.post<Result<string>>(`${this.apiUrl}/reset-password`, { correo, token, newPassword }, { observe: 'response' }).pipe(
+    resetPassword(email: string, token: string, newPassword: string): Observable<string> {
+        return this.http.post<Result<string>>(`${this.apiUrl}/reset-password`, { email, token, newPassword }, { observe: 'response' }).pipe(
             map((response) => {
                 // Si es 204, no hay body
                 if (response.status === 204) {

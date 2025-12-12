@@ -81,7 +81,7 @@ export const AuthStore = signalStore(
             }
         },
 
-        async register(payload: { correo: string; contrasena: string; nombre: string; apellidos?: string }): Promise<void> {
+        async register(payload: { email: string; contrasena: string; nombre: string; apellidos?: string }): Promise<void> {
             await this._executeSimpleRequest(authService.register(payload), 'Error al registrar usuario');
         },
 

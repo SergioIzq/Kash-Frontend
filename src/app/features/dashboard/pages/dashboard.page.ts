@@ -21,7 +21,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
             <div class="card flex items-center justify-between flex-wrap gap-3 mb-5 h-full">
                 <div>
                     <h1 class="text-900 font-bold text-3xl md:text-4xl m-0 mb-2">Panel de Control</h1>
-                    <p class="text-600 text-lg m-0">Bienvenido, {{ authStore.userName() || 'Usuario' }}</p>
+                    <p class="text-600 text-lg m-0">Bienvenid@, {{ authStore.userName() || 'Usuario' }}</p>
                 </div>
                 <div>
                     <p-button label="Actualizar" icon="pi pi-refresh" severity="info" [loading]="dashboardStore.loading()" (click)="dashboardStore.refresh()"> </p-button>

@@ -190,7 +190,7 @@ export class RegisterPage extends BasePageComponent {
         this.isSubmitting = true;
         const { correo, password, nombre, apellidos } = this.registerForm.value;
         this.authStore.register({
-            correo: correo!,
+            email: correo!,
             contrasena: password!,
             nombre: nombre!,
             apellidos: apellidos || undefined
