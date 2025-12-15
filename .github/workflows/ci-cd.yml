@@ -76,7 +76,7 @@ jobs:
     if: github.event_name != 'pull_request'
     # CORRECCIÓN 2: Definir outputs para que el job 'notify' pueda leerlos
     outputs:
-      tags: ${{ steps.meta.outputs.tags }}
+      tags: ${{ steps.meta.outputs.version }}
     
     steps:
       - name: Checkout code
@@ -136,17 +136,19 @@ jobs:
           
       - name: Image digest
         run: echo ${{ steps.meta.outputs.digest }}
-        
+
   notify:
-    name: Notify Deployment
-    runs-on: ubuntu-latest
-    needs: docker-build-and-push
-    if: success()
-    
-    steps:
-      - name: Deployment notification
-        run: |
-          echo "✅ Docker image built and pushed successfully!"
-          echo "Image: ${{ env.DOCKER_IMAGE }}"
-          echo "Tags: ${{ needs.docker-build-and-push.outputs.tags }}"
-          echo "🚀 Deployment webhook will be triggered automatically"
+      name: Notify Deployment
+      runs-on: ubuntu-latest
+      needs: docker-build-and-push
+      if: success()
+      
+      steps:
+        - name: Deployment notification
+          run: |
+            echo "✅ Docker image built and pushed successfully!"
+            echo "📦 Image: ${{ env.DOCKER_IMAGE }}"
+            # CAMBIO AQUÍ: Mostramos la versión limpia
+            echo "🏷️ Version: ${{ needs.docker-build-and-push.outputs.tags }}"
+            # Reconstruimos el comando de pull para que sea útil copiar y pegar
+            echo "🚀 Deploy with: docker pull ${{ env.DOCKER_IMAGE }}:${{ needs.docker-build-and-push.outputs.tags }}"
