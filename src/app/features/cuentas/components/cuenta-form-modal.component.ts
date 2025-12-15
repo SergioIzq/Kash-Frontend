@@ -46,6 +46,25 @@ import { Cuenta } from '@/core/models/cuenta.model';
                             <small class="text-red-500"> El nombre es requerido. </small>
                         }
                     </div>
+
+                    @if (!isEditMode()) {
+                        <div>
+                            <label for="saldo" class="block font-bold mb-3">Saldo Inicial</label>
+                            <p-inputNumber 
+                                id="saldo"
+                                [(ngModel)]="formData.saldo" 
+                                mode="currency" 
+                                currency="EUR" 
+                                locale="es-ES"
+                                placeholder="0,00 €"
+                                [minFractionDigits]="2"
+                                [maxFractionDigits]="2" 
+                                fluid />
+                        @if (submitted() && !formData.saldo) {
+                            <small class="text-red-500">El saldo inicial de la cuenta es requerido. </small>
+                        }
+                        </div>
+                    }
                 </div>
             </ng-template>
 
