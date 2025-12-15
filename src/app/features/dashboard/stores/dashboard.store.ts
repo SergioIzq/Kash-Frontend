@@ -58,6 +58,7 @@ export const DashboardStore = signalStore(
         diasRestantesMes: computed(() => store.resumen()?.diasRestantesMes ?? 0),
         historicoUltimos6Meses: computed(() => store.resumen()?.historicoUltimos6Meses ?? []),
         alertas: computed(() => store.resumen()?.alertas ?? []),
+        presupuestoAnual: computed(() => store.resumen()?.presupuestoAnual ?? []),
         hasData: computed(() => store.resumen() !== null)
     })),
     
