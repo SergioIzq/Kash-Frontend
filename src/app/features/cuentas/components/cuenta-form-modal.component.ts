@@ -60,7 +60,7 @@ import { Cuenta } from '@/core/models/cuenta.model';
                                 [minFractionDigits]="2"
                                 [maxFractionDigits]="2" 
                                 fluid />
-                        @if (submitted() && !formData.saldo) {
+                        @if (submitted() && (this.formData.saldo === undefined || this.formData.saldo === null)) {
                             <small class="text-red-500">El saldo inicial de la cuenta es requerido. </small>
                         }
                         </div>
@@ -129,7 +129,7 @@ export class CuentaFormModalComponent {
         this.submitted.set(true);
 
         // Validaciones
-        if (!this.formData.nombre?.trim()) {
+        if (!this.formData.nombre?.trim() || this.formData.saldo === undefined || this.formData.saldo === null) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Advertencia',
