@@ -13,6 +13,7 @@ export interface DashboardResumen {
     diasTranscurridosMes: number;
     diasRestantesMes: number;
     historicoUltimos6Meses: HistoricoMensual[];
+    presupuestoAnual: PresupuestoAnual[];
     alertas: Alerta[];
 }
 
@@ -63,4 +64,11 @@ export interface Alerta {
     titulo: string;
     mensaje: string;
     icono?: string;
+}
+
+export interface PresupuestoAnual {
+    anio: number;
+    gastoTotalAnual: number;
+    mesesRegistrados: number;
+    promedioMensualNecesario: number;
 }
