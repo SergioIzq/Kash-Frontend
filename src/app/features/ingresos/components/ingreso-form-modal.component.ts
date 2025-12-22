@@ -198,7 +198,7 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
-                    <label class="font-medium text-gray-700 block mb-2 text-sm">Cliente *</label>
+                    <label class="font-medium text-gray-700 block mb-2 text-sm">Cliente</label>
                     <div class="flex align-items-center gap-2">
                         <p-autoComplete
                             [(ngModel)]="selectedCliente"
@@ -214,13 +214,10 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
                         />
                         <button pButton icon="pi pi-plus" [rounded]="true" [text]="true" severity="primary" (click)="openCreateCliente()"></button>
                     </div>
-                    @if (submitted() && !selectedCliente) {
-                        <small class="text-red-500 block mt-1">Requerido.</small>
-                    }
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
-                    <label class="font-medium text-gray-700 block mb-2 text-sm">Persona *</label>
+                    <label class="font-medium text-gray-700 block mb-2 text-sm">Persona</label>
                     <div class="flex align-items-center gap-2">
                         <p-autoComplete
                             [(ngModel)]="selectedPersona"
@@ -236,9 +233,6 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
                         />
                         <button pButton icon="pi pi-plus" [rounded]="true" [text]="true" severity="primary" (click)="openCreatePersona()"></button>
                     </div>
-                    @if (submitted() && !selectedPersona) {
-                        <small class="text-red-500 block mt-1">Requerida.</small>
-                    }
                 </div>
 
                 <div class="col-span-12 field mt-3">
@@ -633,7 +627,7 @@ export class IngresoFormModalComponent {
 
     onSave() {
         this.submitted.set(true);
-        if (!this.selectedConcepto || !this.formData.importe || this.formData.importe <= 0 || !this.selectedCuenta || !this.selectedFormaPago || !this.selectedPersona || !this.selectedCliente) {
+        if (!this.selectedConcepto || !this.formData.importe || this.formData.importe <= 0 || !this.selectedCuenta || !this.selectedFormaPago) {
             this.messageService.add({ severity: 'warn', summary: 'Incompleto', detail: 'Por favor complete todos los campos requeridos.' });
             return;
         }
@@ -642,12 +636,12 @@ export class IngresoFormModalComponent {
             ...this.formData,
             conceptoId: this.selectedConcepto.id,
             conceptoNombre: this.selectedConcepto.nombre,
-            categoriaId: this.selectedCategoria?.id || '',
-            categoriaNombre: this.selectedCategoria?.nombre || '',
-            clienteId: this.selectedCliente?.id || '',
-            clienteNombre: this.selectedCliente?.nombre || '',
-            personaId: this.selectedPersona?.id || '',
-            personaNombre: this.selectedPersona?.nombre || '',
+            categoriaId: this.selectedCategoria?.id || undefined,
+            categoriaNombre: this.selectedCategoria?.nombre || undefined,
+            clienteId: this.selectedCliente?.id || undefined,
+            clienteNombre: this.selectedCliente?.nombre || undefined,
+            personaId: this.selectedPersona?.id || undefined,
+            personaNombre: this.selectedPersona?.nombre || undefined,
             cuentaId: this.selectedCuenta.id,
             cuentaNombre: this.selectedCuenta.nombre,
             formaPagoId: this.selectedFormaPago.id,

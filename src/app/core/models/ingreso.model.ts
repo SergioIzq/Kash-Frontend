@@ -7,10 +7,10 @@ export interface Ingreso {
     conceptoNombre: string;
     categoriaId: string;
     categoriaNombre: string;
-    clienteId: string;
-    clienteNombre: string;
-    personaId: string;
-    personaNombre: string;
+    clienteId?: string | null;
+    clienteNombre?: string | null;
+    personaId?: string | null;
+    personaNombre?: string | null;
     cuentaId: string;
     cuentaNombre: string;
     formaPagoId: string;

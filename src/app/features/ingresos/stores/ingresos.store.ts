@@ -237,8 +237,8 @@ export const IngresosStore = signalStore(
                     // IDs del formulario
                     conceptoId: ingreso.conceptoId,
                     categoriaId: ingreso.categoriaId,
-                    clienteId: ingreso.clienteId,
-                    personaId: ingreso.personaId,
+                    clienteId: ingreso.clienteId ?? null,
+                    personaId: ingreso.personaId ?? null,
                     cuentaId: ingreso.cuentaId,
                     formaPagoId: ingreso.formaPagoId,
                     importe: ingreso.importe,
