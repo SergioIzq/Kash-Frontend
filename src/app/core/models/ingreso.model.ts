@@ -32,8 +32,8 @@ export interface IngresoCreate {
     descripcion?: string;
     conceptoId: string;
     categoriaId: string;
-    clienteId: string;
-    personaId: string;
+    clienteId?: string;
+    personaId?: string;
     cuentaId: string;
     formaPagoId: string;
 }

@@ -342,7 +342,7 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
 
     deleteIngreso(ingreso: Ingreso) {
         this.confirmAction(
-            `¿Estás seguro de eliminar el gasto "${ingreso.conceptoNombre}"?`,
+            `¿Estás seguro de eliminar el ingreso "${ingreso.conceptoNombre}"?`,
             () => {
                 this.ingresosStore.deleteIngreso(ingreso.id);
             },
