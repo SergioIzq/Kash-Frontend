@@ -307,14 +307,20 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
         } else {
             var ingresoCreate: IngresoCreate = {
                 conceptoId: ingreso.conceptoId!,
+                conceptoNombre: ingreso.conceptoNombre!,
                 categoriaId: ingreso.categoriaId!,
+                categoriaNombre: ingreso.categoriaNombre!,
                 clienteId: ingreso.clienteId!,
+                clienteNombre: ingreso.clienteNombre!,
                 fecha: ingreso.fecha!,
                 importe: ingreso.importe!,
                 descripcion: ingreso.descripcion,
                 formaPagoId: ingreso.formaPagoId!,
+                formaPagoNombre: ingreso.formaPagoNombre!,
                 personaId: ingreso.personaId!,
-                cuentaId: ingreso.cuentaId!
+                personaNombre: ingreso.personaNombre!,
+                cuentaId: ingreso.cuentaId!,
+                cuentaNombre: ingreso.cuentaNombre!,
             };
 
             const displayData: Partial<Ingreso> = {

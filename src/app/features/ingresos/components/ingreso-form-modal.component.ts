@@ -338,7 +338,7 @@ export class IngresoFormModalComponent {
             this.isEditMode.set(true);
             const fechaDate = ingresoData.fecha ? new Date(ingresoData.fecha) : new Date();
             fechaDate.setHours(0, 0, 0, 0);
-            
+
             this.formData = {
                 ...ingresoData,
                 fecha: fechaDate
@@ -355,7 +355,7 @@ export class IngresoFormModalComponent {
             this.isEditMode.set(false);
             const fechaActual = new Date();
             fechaActual.setHours(0, 0, 0, 0);
-            
+
             this.formData = {
                 fecha: fechaActual,
                 descripcion: ''
@@ -489,8 +489,8 @@ export class IngresoFormModalComponent {
         // Verificar si el usuario ha escrito un concepto nuevo
         if (typeof this.selectedConcepto === 'string' && (this.selectedConcepto as string).trim()) {
             const conceptoNombre = (this.selectedConcepto as string).trim();
-            const existe = this.filteredConceptos().some(c => c.nombre.toLowerCase() === conceptoNombre.toLowerCase());
-            
+            const existe = this.filteredConceptos().some((c) => c.nombre.toLowerCase() === conceptoNombre.toLowerCase());
+
             if (!existe) {
                 // El concepto no existe, crear uno temporal
                 this.selectedConcepto = { id: '', nombre: conceptoNombre };
@@ -516,8 +516,8 @@ export class IngresoFormModalComponent {
         // Verificar si el usuario ha escrito una categoría nueva
         if (typeof this.selectedCategoria === 'string' && (this.selectedCategoria as string).trim()) {
             const categoriaNombre = (this.selectedCategoria as string).trim();
-            const existe = this.filteredCategorias().some(c => c.nombre.toLowerCase() === categoriaNombre.toLowerCase());
-            
+            const existe = this.filteredCategorias().some((c) => c.nombre.toLowerCase() === categoriaNombre.toLowerCase());
+
             if (!existe) {
                 // La categoría no existe, crear una temporal
                 this.selectedCategoria = { id: '', nombre: categoriaNombre };
@@ -532,8 +532,8 @@ export class IngresoFormModalComponent {
         // Verificar si el usuario ha escrito una forma de pago nueva
         if (typeof this.selectedFormaPago === 'string' && (this.selectedFormaPago as string).trim()) {
             const formaPagoNombre = (this.selectedFormaPago as string).trim();
-            const existe = this.filteredFormasPago().some(f => f.nombre.toLowerCase() === formaPagoNombre.toLowerCase());
-            
+            const existe = this.filteredFormasPago().some((f) => f.nombre.toLowerCase() === formaPagoNombre.toLowerCase());
+
             if (!existe) {
                 // La forma de pago no existe, crear una temporal
                 this.selectedFormaPago = { id: '', nombre: formaPagoNombre };
@@ -554,8 +554,8 @@ export class IngresoFormModalComponent {
         // Verificar si el usuario ha escrito un cliente nuevo
         if (typeof this.selectedCliente === 'string' && (this.selectedCliente as string).trim()) {
             const clienteNombre = (this.selectedCliente as string).trim();
-            const existe = this.filteredClientes().some(c => c.nombre.toLowerCase() === clienteNombre.toLowerCase());
-            
+            const existe = this.filteredClientes().some((c) => c.nombre.toLowerCase() === clienteNombre.toLowerCase());
+
             if (!existe) {
                 // El cliente no existe, crear uno temporal
                 this.selectedCliente = { id: '', nombre: clienteNombre };
@@ -575,8 +575,8 @@ export class IngresoFormModalComponent {
         // Verificar si el usuario ha escrito una persona nueva
         if (typeof this.selectedPersona === 'string' && (this.selectedPersona as string).trim()) {
             const personaNombre = (this.selectedPersona as string).trim();
-            const existe = this.filteredPersonas().some(p => p.nombre.toLowerCase() === personaNombre.toLowerCase());
-            
+            const existe = this.filteredPersonas().some((p) => p.nombre.toLowerCase() === personaNombre.toLowerCase());
+
             if (!existe) {
                 // La persona no existe, crear una temporal
                 this.selectedPersona = { id: '', nombre: personaNombre };
@@ -647,11 +647,11 @@ export class IngresoFormModalComponent {
         if (!fecha) {
             return new Date().toISOString().split('T')[0];
         }
-        
+
         if (typeof fecha === 'string') {
             return fecha;
         }
-        
+
         // Convertir Date a formato YYYY-MM-DD usando fecha local (sin afectar por zona horaria)
         const year = fecha.getFullYear();
         const month = String(fecha.getMonth() + 1).padStart(2, '0');
@@ -677,8 +677,14 @@ export class IngresoFormModalComponent {
             message: '¿Está seguro de que desea registrar este ingreso?',
             header: 'Confirmar Guardado',
             icon: 'pi pi-save',
+
+            acceptLabel: 'Sí, guardar',
+            rejectLabel: 'Cancelar',
+            acceptButtonStyleClass: 'p-button-success',
+
+            rejectButtonStyleClass: 'p-button-text p-button-danger',
+
             accept: () => {
-                // 3. Solo si acepta, preparamos el objeto y emitimos
                 this.ejecutarGuardado();
             }
         });
@@ -707,9 +713,17 @@ export class IngresoFormModalComponent {
     }
 
     onCancel() {
-        if (this.selectedCategoria != null || this.selectedConcepto != null || this.formData.importe != null
-            || this.formData.descripcion != null || this.formData.fecha != null || this.formData.cuentaId != null || this.formData.formaPagoId != null
-            || this.selectedCliente != null || this.selectedPersona != null) {
+        if (
+            this.selectedCategoria != null ||
+            this.selectedConcepto != null ||
+            this.formData.importe != null ||
+            this.formData.descripcion != null ||
+            this.formData.fecha != null ||
+            this.formData.cuentaId != null ||
+            this.formData.formaPagoId != null ||
+            this.selectedCliente != null ||
+            this.selectedPersona != null
+        ) {
             this.#confirmationService.confirm({
                 message: '¿Está seguro de que desea cancelar? Se perderán los cambios no guardados.',
                 header: 'Confirmar Cancelación',

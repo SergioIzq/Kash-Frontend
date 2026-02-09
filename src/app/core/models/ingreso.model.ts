@@ -31,9 +31,15 @@ export interface IngresoCreate {
     fecha: string;
     descripcion?: string;
     conceptoId: string;
+    conceptoNombre: string;
     categoriaId: string;
-    clienteId?: string;
-    personaId?: string;
+    categoriaNombre: string;
+    clienteId?: string | null;
+    clienteNombre?: string | null;
+    personaId?: string | null;
+    personaNombre?: string | null;
     cuentaId: string;
+    cuentaNombre: string;
     formaPagoId: string;
+    formaPagoNombre: string;
 }
