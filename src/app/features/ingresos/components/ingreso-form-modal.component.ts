@@ -48,7 +48,7 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <p-drawer [(visible)]="isVisible" position="right" [style]="{ width: '600px', maxWidth: '100vw' }" [modal]="true" [blockScroll]="true" (onHide)="onCancel()" styleClass="p-sidebar-md surface-ground">
+        <p-drawer [(visible)]="isVisible" position="right" [closeOnEscape]="false" [style]="{ width: '600px', maxWidth: '100vw' }" [modal]="true" [blockScroll]="true" (onHide)="handleDrawerHide()" styleClass="p-sidebar-md surface-ground">
             <ng-template pTemplate="header">
                 <div class="flex align-items-center gap-2">
                     <span class="font-bold text-xl text-900">{{ isEditMode() ? 'Editar Ingreso' : 'Nuevo Ingreso' }}</span>
@@ -177,14 +177,21 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
                             optionLabel="nombre"
                             [dropdown]="true"
                             placeholder="Seleccionar cuenta bancaria / caja..."
-                            [forceSelection]="true"
+                            [forceSelection]="false"
+                            [showEmptyMessage]="false"
                             (onSelect)="onCuentaSelect($event)"
+                            (onBlur)="onCuentaBlur()"
+                            [showClear]="true"
+                            (onClear)="onCuentaClear()"
                             class="flex-1 w-full"
                             styleClass="w-full"
                         />
                     </div>
                     @if (submitted() && !selectedCuenta) {
                         <small class="text-red-500 block mt-1">La cuenta de destino es requerida.</small>
+                    }
+                    @if (newCuentaMessage()) {
+                        <small class="text-blue-600 block mt-1"><i class="pi pi-info-circle"></i> {{ newCuentaMessage() }}</small>
                     }
                 </div>
 
@@ -313,6 +320,15 @@ export class IngresoFormModalComponent {
     newFormaPagoMessage = signal<string>('');
     newClienteMessage = signal<string>('');
     newPersonaMessage = signal<string>('');
+    newCuentaMessage = signal<string>('');
+
+    // Flags para evitar validación en blur después de selección
+    private skipNextConceptoBlur = false;
+    private skipNextCategoriaBlur = false;
+    private skipNextFormaPagoBlur = false;
+    private skipNextClienteBlur = false;
+    private skipNextPersonaBlur = false;
+    private skipNextCuentaBlur = false;
 
     constructor() {
         effect(() => {
@@ -373,6 +389,7 @@ export class IngresoFormModalComponent {
         this.newFormaPagoMessage.set('');
         this.newClienteMessage.set('');
         this.newPersonaMessage.set('');
+        this.newCuentaMessage.set('');
     }
 
     // --- Métodos de búsqueda (Search) ---
@@ -469,6 +486,8 @@ export class IngresoFormModalComponent {
 
     // --- Eventos de selección y limpieza ---
     onConceptoSelect(event: any) {
+        this.skipNextConceptoBlur = true;
+
         let value = event.value;
         this.formData.conceptoId = value.id;
         this.formData.conceptoNombre = value.nombre;
@@ -486,22 +505,37 @@ export class IngresoFormModalComponent {
     }
 
     onConceptoBlur() {
-        // Verificar si el usuario ha escrito un concepto nuevo
-        if (typeof this.selectedConcepto === 'string' && (this.selectedConcepto as string).trim()) {
-            const conceptoNombre = (this.selectedConcepto as string).trim();
-            const existe = this.filteredConceptos().some((c) => c.nombre.toLowerCase() === conceptoNombre.toLowerCase());
-
-            if (!existe) {
-                // El concepto no existe, crear uno temporal
-                this.selectedConcepto = { id: '', nombre: conceptoNombre };
-                this.formData.conceptoId = undefined;
-                this.formData.conceptoNombre = conceptoNombre;
-                this.newConceptoMessage.set(`Ha seleccionado un concepto "${conceptoNombre}" que no existe, se creará automáticamente.`);
+        setTimeout(() => {
+            // Si acabamos de seleccionar, no validar
+            if (this.skipNextConceptoBlur) {
+                this.skipNextConceptoBlur = false;
+                return;
             }
-        }
+
+            // Verificar si el usuario ha escrito un concepto nuevo
+            if (typeof this.selectedConcepto === 'string' && (this.selectedConcepto as string).trim()) {
+                const conceptoNombre = (this.selectedConcepto as string).trim();
+                const existe = this.filteredConceptos().some((c) => c.nombre.toLowerCase() === conceptoNombre.toLowerCase());
+
+                if (!existe) {
+                    // El concepto no existe, crear uno temporal
+                    this.selectedConcepto = { id: '', nombre: conceptoNombre };
+                    this.formData.conceptoId = undefined;
+                    this.formData.conceptoNombre = conceptoNombre;
+                    this.newConceptoMessage.set(`Ha seleccionado un concepto "${conceptoNombre}" que no existe, se creará automáticamente.`);
+                    this.messageService.add({
+                        severity: 'info',
+                        summary: 'Concepto no encontrado',
+                        detail: `El concepto "${conceptoNombre}" no existe, se creará automáticamente con la categoría asociada al guardar.`
+                    });
+                }
+            }
+        }, 200);
     }
 
     onCategoriaSelect(event: any) {
+        this.skipNextCategoriaBlur = true;
+
         this.formData.categoriaId = event.id;
         this.formData.categoriaNombre = event.nombre;
         this.newCategoriaMessage.set('');
@@ -513,84 +547,175 @@ export class IngresoFormModalComponent {
     }
 
     onCategoriaBlur() {
-        // Verificar si el usuario ha escrito una categoría nueva
-        if (typeof this.selectedCategoria === 'string' && (this.selectedCategoria as string).trim()) {
-            const categoriaNombre = (this.selectedCategoria as string).trim();
-            const existe = this.filteredCategorias().some((c) => c.nombre.toLowerCase() === categoriaNombre.toLowerCase());
-
-            if (!existe) {
-                // La categoría no existe, crear una temporal
-                this.selectedCategoria = { id: '', nombre: categoriaNombre };
-                this.formData.categoriaId = undefined;
-                this.formData.categoriaNombre = categoriaNombre;
-                this.newCategoriaMessage.set(`Ha seleccionado una categoría "${categoriaNombre}" que no existe, se creará automáticamente.`);
+        setTimeout(() => {
+            // Si acabamos de seleccionar, no validar
+            if (this.skipNextCategoriaBlur) {
+                this.skipNextCategoriaBlur = false;
+                return;
             }
-        }
+
+            // Verificar si el usuario ha escrito una categoría nueva
+            if (typeof this.selectedCategoria === 'string' && (this.selectedCategoria as string).trim()) {
+                const categoriaNombre = (this.selectedCategoria as string).trim();
+                const existe = this.filteredCategorias().some((c) => c.nombre.toLowerCase() === categoriaNombre.toLowerCase());
+
+                if (!existe) {
+                    // La categoría no existe, crear una temporal
+                    this.selectedCategoria = { id: '', nombre: categoriaNombre };
+                    this.formData.categoriaId = undefined;
+                    this.formData.categoriaNombre = categoriaNombre;
+                    this.newCategoriaMessage.set(`Ha seleccionado una categoría "${categoriaNombre}" que no existe, se creará automáticamente.`);
+                    this.messageService.add({
+                        severity: 'info',
+                        summary: 'Categoría no encontrada',
+                        detail: `La categoría "${categoriaNombre}" no existe, se creará automáticamente al guardar.`
+                    });
+                }
+            }
+        }, 200);
     }
 
     onFormaPagoBlur() {
-        // Verificar si el usuario ha escrito una forma de pago nueva
-        if (typeof this.selectedFormaPago === 'string' && (this.selectedFormaPago as string).trim()) {
-            const formaPagoNombre = (this.selectedFormaPago as string).trim();
-            const existe = this.filteredFormasPago().some((f) => f.nombre.toLowerCase() === formaPagoNombre.toLowerCase());
-
-            if (!existe) {
-                // La forma de pago no existe, crear una temporal
-                this.selectedFormaPago = { id: '', nombre: formaPagoNombre };
-                this.formData.formaPagoId = undefined;
-                this.formData.formaPagoNombre = formaPagoNombre;
-                this.newFormaPagoMessage.set(`Ha seleccionado una forma de pago "${formaPagoNombre}" que no existe, se creará automáticamente.`);
+        setTimeout(() => {
+            // Si acabamos de seleccionar, no validar
+            if (this.skipNextFormaPagoBlur) {
+                this.skipNextFormaPagoBlur = false;
+                return;
             }
-        }
+
+            // Verificar si el usuario ha escrito una forma de pago nueva
+            if (typeof this.selectedFormaPago === 'string' && (this.selectedFormaPago as string).trim()) {
+                const formaPagoNombre = (this.selectedFormaPago as string).trim();
+                const existe = this.filteredFormasPago().some((f) => f.nombre.toLowerCase() === formaPagoNombre.toLowerCase());
+
+                if (!existe) {
+                    // La forma de pago no existe, crear una temporal
+                    this.selectedFormaPago = { id: '', nombre: formaPagoNombre };
+                    this.formData.formaPagoId = undefined;
+                    this.formData.formaPagoNombre = formaPagoNombre;
+                    this.newFormaPagoMessage.set(`Ha seleccionado una forma de pago "${formaPagoNombre}" que no existe, se creará automáticamente.`);
+                    this.messageService.add({
+                        severity: 'info',
+                        summary: 'Forma de pago no encontrada',
+                        detail: `La forma de pago "${formaPagoNombre}" no existe, se creará automáticamente al guardar.`
+                    });
+                }
+            }
+        }, 200);
     }
 
     onClienteSelect(event: any) {
+        this.skipNextClienteBlur = true;
+
         this.formData.clienteId = event.id;
         this.formData.clienteNombre = event.nombre;
         this.newClienteMessage.set('');
     }
 
     onClienteBlur() {
-        // Verificar si el usuario ha escrito un cliente nuevo
-        if (typeof this.selectedCliente === 'string' && (this.selectedCliente as string).trim()) {
-            const clienteNombre = (this.selectedCliente as string).trim();
-            const existe = this.filteredClientes().some((c) => c.nombre.toLowerCase() === clienteNombre.toLowerCase());
-
-            if (!existe) {
-                // El cliente no existe, crear uno temporal
-                this.selectedCliente = { id: '', nombre: clienteNombre };
-                this.formData.clienteId = undefined;
-                this.formData.clienteNombre = clienteNombre;
-                this.newClienteMessage.set(`Ha seleccionado un cliente "${clienteNombre}" que no existe, se creará automáticamente.`);
+        setTimeout(() => {
+            // Si acabamos de seleccionar, no validar
+            if (this.skipNextClienteBlur) {
+                this.skipNextClienteBlur = false;
+                return;
             }
-        }
+
+            // Verificar si el usuario ha escrito un cliente nuevo
+            if (typeof this.selectedCliente === 'string' && (this.selectedCliente as string).trim()) {
+                const clienteNombre = (this.selectedCliente as string).trim();
+                const existe = this.filteredClientes().some((c) => c.nombre.toLowerCase() === clienteNombre.toLowerCase());
+
+                if (!existe) {
+                    // El cliente no existe, crear uno temporal
+                    this.selectedCliente = { id: '', nombre: clienteNombre };
+                    this.formData.clienteId = undefined;
+                    this.formData.clienteNombre = clienteNombre;
+                    this.newClienteMessage.set(`Ha seleccionado un cliente "${clienteNombre}" que no existe, se creará automáticamente.`);
+                    this.messageService.add({
+                        severity: 'info',
+                        summary: 'Cliente no encontrado',
+                        detail: `El cliente "${clienteNombre}" no existe, se creará automáticamente al guardar.`
+                    });
+                }
+            }
+        }, 200);
     }
     onPersonaSelect(event: any) {
+        this.skipNextPersonaBlur = true;
+
         this.formData.personaId = event.id;
         this.formData.personaNombre = event.nombre;
         this.newPersonaMessage.set('');
     }
 
     onPersonaBlur() {
-        // Verificar si el usuario ha escrito una persona nueva
-        if (typeof this.selectedPersona === 'string' && (this.selectedPersona as string).trim()) {
-            const personaNombre = (this.selectedPersona as string).trim();
-            const existe = this.filteredPersonas().some((p) => p.nombre.toLowerCase() === personaNombre.toLowerCase());
-
-            if (!existe) {
-                // La persona no existe, crear una temporal
-                this.selectedPersona = { id: '', nombre: personaNombre };
-                this.formData.personaId = undefined;
-                this.formData.personaNombre = personaNombre;
-                this.newPersonaMessage.set(`Ha seleccionado una persona "${personaNombre}" que no existe, se creará automáticamente.`);
+        setTimeout(() => {
+            // Si acabamos de seleccionar, no validar
+            if (this.skipNextPersonaBlur) {
+                this.skipNextPersonaBlur = false;
+                return;
             }
-        }
+
+            // Verificar si el usuario ha escrito una persona nueva
+            if (typeof this.selectedPersona === 'string' && (this.selectedPersona as string).trim()) {
+                const personaNombre = (this.selectedPersona as string).trim();
+                const existe = this.filteredPersonas().some((p) => p.nombre.toLowerCase() === personaNombre.toLowerCase());
+
+                if (!existe) {
+                    // La persona no existe, crear una temporal
+                    this.selectedPersona = { id: '', nombre: personaNombre };
+                    this.formData.personaId = undefined;
+                    this.formData.personaNombre = personaNombre;
+                    this.newPersonaMessage.set(`Ha seleccionado una persona "${personaNombre}" que no existe, se creará automáticamente.`);
+                    this.messageService.add({
+                        severity: 'info',
+                        summary: 'Persona no encontrada',
+                        detail: `La persona "${personaNombre}" no existe, se creará automáticamente al guardar.`
+                    });
+                }
+            }
+        }, 200);
     }
     onCuentaSelect(event: any) {
+        this.skipNextCuentaBlur = true;
+
         this.formData.cuentaId = event.id;
         this.formData.cuentaNombre = event.nombre;
+        this.newCuentaMessage.set('');
     }
+
+    onCuentaBlur() {
+        setTimeout(() => {
+            // Si acabamos de seleccionar, no validar
+            if (this.skipNextCuentaBlur) {
+                this.skipNextCuentaBlur = false;
+                return;
+            }
+
+            // Verificar si el usuario ha escrito una cuenta nueva
+            if (typeof this.selectedCuenta === 'string' && (this.selectedCuenta as string).trim()) {
+                const cuentaNombre = (this.selectedCuenta as string).trim();
+                const existe = this.filteredCuentas().some((c) => c.nombre.toLowerCase() === cuentaNombre.toLowerCase());
+
+                if (!existe) {
+                    // La cuenta no existe, crear una temporal
+                    this.selectedCuenta = { id: '', nombre: cuentaNombre };
+                    this.formData.cuentaId = undefined;
+                    this.formData.cuentaNombre = cuentaNombre;
+                    this.newCuentaMessage.set(`Ha seleccionado una cuenta "${cuentaNombre}" que no existe, se creará automáticamente.`);
+                    this.messageService.add({
+                        severity: 'info',
+                        summary: 'Cuenta no encontrada',
+                        detail: `La cuenta "${cuentaNombre}" no existe, se creará automáticamente al guardar.`
+                    });
+                }
+            }
+        }, 200);
+    }
+
     onFormaPagoSelect(event: any) {
+        this.skipNextFormaPagoBlur = true;
+
         this.formData.formaPagoId = event.id;
         this.formData.formaPagoNombre = event.nombre;
         this.newFormaPagoMessage.set('');
@@ -629,6 +754,7 @@ export class IngresoFormModalComponent {
         this.formData.cuentaId = undefined;
         this.formData.cuentaNombre = undefined;
         this.filteredCuentas.set([]);
+        this.newCuentaMessage.set('');
     }
     onFormaPagoClear() {
         this.selectedFormaPago = null;
@@ -693,18 +819,22 @@ export class IngresoFormModalComponent {
     private ejecutarGuardado() {
         const ingresoToSave: Partial<Ingreso> = {
             ...this.formData,
-            conceptoId: this.selectedConcepto?.id,
+            conceptoId: this.selectedConcepto?.id || "00000000-0000-0000-0000-000000000000",
+            categoriaId: this.selectedCategoria?.id || "00000000-0000-0000-0000-000000000000",
+            cuentaId: this.selectedCuenta?.id || "00000000-0000-0000-0000-000000000000",
+            formaPagoId: this.selectedFormaPago?.id || "00000000-0000-0000-0000-000000000000",
+
+            // Opcionales (pueden ser null)
+            clienteId: this.selectedCliente?.id || null,
+            personaId: this.selectedPersona?.id || null,
+
+            // Nombres para auto-creación
+            categoriaNombre: this.selectedCategoria?.nombre,
             conceptoNombre: this.selectedConcepto?.nombre,
-            categoriaId: this.selectedCategoria?.id || undefined,
-            categoriaNombre: this.selectedCategoria?.nombre || undefined,
-            clienteId: this.selectedCliente?.id || undefined,
-            clienteNombre: this.selectedCliente?.nombre || undefined,
-            personaId: this.selectedPersona?.id || undefined,
-            personaNombre: this.selectedPersona?.nombre || undefined,
-            cuentaId: this.selectedCuenta?.id || undefined,
-            cuentaNombre: this.selectedCuenta?.nombre || undefined,
-            formaPagoId: this.selectedFormaPago?.id || undefined,
-            formaPagoNombre: this.selectedFormaPago?.nombre || undefined,
+            clienteNombre: this.selectedCliente?.nombre,
+            personaNombre: this.selectedPersona?.nombre,
+            cuentaNombre: this.selectedCuenta?.nombre,
+            formaPagoNombre: this.selectedFormaPago?.nombre,
             fecha: this.formatearFecha(this.formData.fecha)
         };
 
@@ -713,7 +843,63 @@ export class IngresoFormModalComponent {
     }
 
     onCancel() {
-        if (
+        if (this.hasUnsavedChanges()) {
+            this.#confirmationService.confirm({
+                message: '¿Está seguro de que desea salir? Se perderán los cambios no guardados.',
+                header: 'Confirmar Cancelación',
+                icon: 'pi pi-exclamation-triangle',
+                acceptLabel: 'Sí',
+                rejectLabel: 'Cancelar',
+                acceptButtonStyleClass: 'p-button-success',
+
+                rejectButtonStyleClass: 'p-button-text p-button-danger',
+                accept: () => {
+                    // Esto SOLO se ejecuta si el usuario hace clic en "Sí"
+                    this.cancel.emit();
+                    this.closeModal();
+                },
+                reject: () => {
+                    // Si rechaza, reabrimos el drawer
+                    this.isVisible = true;
+                }
+            });
+        } else {
+            // No hay cambios, cerrar directamente
+            this.cancel.emit();
+            this.closeModal();
+        }
+    }
+
+    handleDrawerHide() {
+        // Este método se llama cuando el drawer se cierra (ESC, clic fuera, etc.)
+        if (this.hasUnsavedChanges()) {
+            // Si hay cambios sin guardar, mostrar confirmación
+            this.#confirmationService.confirm({
+                message: '¿Está seguro de que desea salir? Se perderán los cambios no guardados.',
+                header: 'Confirmar Cancelación',
+                icon: 'pi pi-exclamation-triangle',
+                acceptLabel: 'Sí',
+                rejectLabel: 'Cancelar',
+                acceptButtonStyleClass: 'p-button-success',
+                rejectButtonStyleClass: 'p-button-text p-button-danger',
+                accept: () => {
+                    this.cancel.emit();
+                    this.closeModal();
+                },
+                reject: () => {
+                    // Si rechaza, reabrimos el drawer
+                    this.isVisible = true;
+                }
+            });
+        } else {
+            // No hay cambios, permitir el cierre
+            this.cancel.emit();
+            this.closeModal();
+        }
+    }
+
+    private hasUnsavedChanges(): boolean {
+        return (
             this.selectedCategoria != null ||
             this.selectedConcepto != null ||
             this.formData.importe != null ||
@@ -723,21 +909,7 @@ export class IngresoFormModalComponent {
             this.formData.formaPagoId != null ||
             this.selectedCliente != null ||
             this.selectedPersona != null
-        ) {
-            this.#confirmationService.confirm({
-                message: '¿Está seguro de que desea cancelar? Se perderán los cambios no guardados.',
-                header: 'Confirmar Cancelación',
-                icon: 'pi pi-exclamation-triangle',
-                accept: () => {
-                    // Esto SOLO se ejecuta si el usuario hace clic en "Sí"
-                    this.cancel.emit();
-                    this.closeModal();
-                },
-                reject: () => {
-                    return;
-                }
-            });
-        }
+        );
     }
 
     private closeModal() {
