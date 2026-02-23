@@ -234,7 +234,7 @@ export class TraspasoFormModalComponent {
             // Modo creación
             this.isEditMode.set(false);
             this.formData = {
-                importe: 0,
+                importe: undefined,
                 fecha: new Date(),
                 descripcion: ''
             };

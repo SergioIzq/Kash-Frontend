@@ -11,9 +11,9 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { ToolbarModule } from 'primeng/toolbar';
 import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
+import { TagModule } from 'primeng/tag';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ConceptoStore } from '../store/concepto.store';
-import { CategoriaStore } from '@/features/categorias/store/categoria.store';
 import { Concepto } from '@/core/models/concepto.model';
 import { ConceptoCreateModalComponent } from '../components/concepto-create-modal.component';
 import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
@@ -21,7 +21,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
 @Component({
     selector: 'app-conceptos-list',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, TableModule, InputTextModule, ToastModule, ConfirmDialogModule, SkeletonModule, ToolbarModule, InputIconModule, IconFieldModule, ConceptoCreateModalComponent, BasePageTemplateComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, TableModule, InputTextModule, ToastModule, ConfirmDialogModule, SkeletonModule, ToolbarModule, InputIconModule, IconFieldModule, TagModule, ConceptoCreateModalComponent, BasePageTemplateComponent],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
@@ -108,7 +108,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="text-gray-600">{{ getCategoriaName(concepto.categoriaId) }}</span>
+                                    <p-tag [value]="concepto.categoriaNombre || 'Sin categoría'" [severity]="getCategoriaSeverity(concepto.categoriaId)" [rounded]="true" />
                                 </td>
                                 <td>
                                     <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editConcepto(concepto)" />
@@ -151,7 +151,6 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
 })
 export class ConceptosListPage extends BasePageComponent {
     conceptoStore = inject(ConceptoStore);
-    categoriaStore = inject(CategoriaStore);
 
     protected override loadingSignal = this.conceptoStore.loading;
     protected override skeletonType = 'table' as const;
@@ -161,7 +160,10 @@ export class ConceptosListPage extends BasePageComponent {
     conceptoDialog: boolean = false;
     currentConcepto: Partial<Concepto> = {};
     private searchSubject = new Subject<string>();
-    private categoriasMap = new Map<string, string>();
+    private readonly tagSeverities: Array<'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = [
+        'info', 'success', 'warn', 'danger', 'secondary', 'contrast'
+    ];
+    private categoriaSeverityMap = new Map<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'>();
 
     pageSize: number = 10;
     pageNumber: number = 1;
@@ -178,8 +180,12 @@ export class ConceptosListPage extends BasePageComponent {
         });
     }
 
-    getCategoriaName(categoriaId: string): string {
-        return this.categoriasMap.get(categoriaId) || 'Sin categoría';
+    getCategoriaSeverity(categoriaId: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
+        if (!this.categoriaSeverityMap.has(categoriaId)) {
+            const index = this.categoriaSeverityMap.size % this.tagSeverities.length;
+            this.categoriaSeverityMap.set(categoriaId, this.tagSeverities[index]);
+        }
+        return this.categoriaSeverityMap.get(categoriaId)!;
     }
 
     onLazyLoad(event: any) {
