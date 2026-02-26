@@ -425,6 +425,12 @@ export class IngresoProgramadoFormModalComponent {
             this.selectedFormaPago = null;
         }
         this.submitted.set(false);
+        this.newConceptoMessage.set('');
+        this.newCategoriaMessage.set('');
+        this.newFormaPagoMessage.set('');
+        this.newClienteMessage.set('');
+        this.newPersonaMessage.set('');
+        this.newCuentaMessage.set('');
     }
 
     // --- Search Logic (Generic) ---
@@ -627,7 +633,6 @@ export class IngresoProgramadoFormModalComponent {
 
         // Convertimos a ISO y cortamos los primeros 19 caracteres (YYYY-MM-DDTHH:mm:ss)
         const fechaEjecucionStr = fechaLocal.toISOString().slice(0, 19);
-
         const toSave: Partial<IngresoProgramado> = {
             ...this.formData,
             // IDs y Nombres

@@ -48,7 +48,7 @@ export class AppMenu {
                 ]
             },
             {
-                label: 'Catálogos',
+                label: 'Listas',
                 icon: 'pi pi-fw pi-database',
                 items: [
                     {
