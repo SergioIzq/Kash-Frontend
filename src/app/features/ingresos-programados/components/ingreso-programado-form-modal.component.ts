@@ -335,7 +335,7 @@ export class IngresoProgramadoFormModalComponent {
     isVisible = false;
     isEditMode = signal(false);
     submitted = signal(false);
-    
+
     // Inicializamos con un Date para que el datepicker no falle
     formData: IngresoProgramadoFormData = { activo: true, fechaEjecucion: new Date() };
 
@@ -446,7 +446,7 @@ export class IngresoProgramadoFormModalComponent {
             this.conceptoStore.search(query, 10, categoriaId).then((d: CatalogItem[]) => this.filteredConceptos.set(d)).catch(() => this.filteredConceptos.set([]));
         }
     }
-    
+
     searchCategorias(event: AutoCompleteCompleteEvent) { this.genericSearch(this.categoriaStore, event, this.filteredCategorias); }
     searchClientes(event: AutoCompleteCompleteEvent) { this.genericSearch(this.clienteStore, event, this.filteredClientes); }
     searchPersonas(event: AutoCompleteCompleteEvent) { this.genericSearch(this.personaStore, event, this.filteredPersonas); }
@@ -612,32 +612,42 @@ export class IngresoProgramadoFormModalComponent {
     onSave() {
         this.submitted.set(true);
 
-        if (!this.selectedConcepto || !this.formData.importe || !this.formData.frecuencia || 
+        if (!this.selectedConcepto || !this.formData.importe || !this.formData.frecuencia ||
             !this.selectedCuenta || !this.selectedFormaPago || !this.formData.fechaEjecucion) {
             this.messageService.add({ severity: 'warn', summary: 'Incompleto', detail: 'Revise los campos requeridos (*)' });
             return;
         }
 
+        const fecha = this.formData.fechaEjecucion instanceof Date
+            ? this.formData.fechaEjecucion
+            : new Date();
+
+        // Restamos el offset local (en milisegundos) para compensar la conversión a UTC
+        const fechaLocal = new Date(fecha.getTime() - (fecha.getTimezoneOffset() * 60000));
+
+        // Convertimos a ISO y cortamos los primeros 19 caracteres (YYYY-MM-DDTHH:mm:ss)
+        const fechaEjecucionStr = fechaLocal.toISOString().slice(0, 19);
+
         const toSave: Partial<IngresoProgramado> = {
             ...this.formData,
             // IDs y Nombres
-            conceptoId: this.selectedConcepto.id,
+            conceptoId: this.selectedConcepto.id || '00000000-0000-0000-0000-000000000000',
             conceptoNombre: this.selectedConcepto.nombre,
-            categoriaId: this.selectedCategoria?.id,
-            categoriaNombre: this.selectedCategoria?.nombre,
-            clienteId: this.selectedCliente?.id,
-            clienteNombre: this.selectedCliente?.nombre,
-            personaId: this.selectedPersona?.id,
-            personaNombre: this.selectedPersona?.nombre,
-            cuentaId: this.selectedCuenta.id,
+            categoriaId: this.selectedCategoria?.id || '00000000-0000-0000-0000-000000000000',
+            categoriaNombre: this.selectedCategoria?.nombre || '',
+            clienteId: this.selectedCliente?.id || null,
+            clienteNombre: this.selectedCliente?.nombre || null,
+            personaId: this.selectedPersona?.id || null,
+            personaNombre: this.selectedPersona?.nombre || null,
+            cuentaId: this.selectedCuenta.id || '00000000-0000-0000-0000-000000000000',
             cuentaNombre: this.selectedCuenta.nombre,
-            formaPagoId: this.selectedFormaPago.id,
+            formaPagoId: this.selectedFormaPago.id || '00000000-0000-0000-0000-000000000000',
             formaPagoNombre: this.selectedFormaPago.nombre,
-            
-            // Conversión inversa: Date object -> String (ISO) para el backend
-            fechaEjecucion: this.formData.fechaEjecucion instanceof Date 
-                ? this.formData.fechaEjecucion.toISOString().split('T')[0] // 'YYYY-MM-DD' o ISO completo según tu back
-                : new Date().toISOString()
+            descripcion: this.formData.descripcion || null,
+
+
+            // Conversión inversa: Date object -> String (ISO completo) para el backend
+            fechaEjecucion: fechaEjecucionStr
         };
 
         this.save.emit(toSave);
