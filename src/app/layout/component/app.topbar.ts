@@ -67,6 +67,9 @@ import { AuthStore } from '../../core/stores/auth.store';
 
         <div class="layout-topbar-actions">
             <div class="layout-config-menu">
+                <button type="button" class="layout-topbar-action" (click)="descargarGuia()" title="Descargar Guía de Usuario">
+                    <i class="pi pi-file-pdf"></i>
+                </button>
                 <button type="button" class="layout-topbar-action" (click)="toggleDarkMode()">
                     <i [ngClass]="{ 'pi ': true, 'pi-moon': layoutService.isDarkTheme(), 'pi-sun': !layoutService.isDarkTheme() }"></i>
                 </button>
@@ -143,6 +146,13 @@ export class AppTopbar {
 
     toggleDarkMode() {
         this.layoutService.layoutConfig.update((state) => ({ ...state, darkTheme: !state.darkTheme }));
+    }
+
+    descargarGuia() {
+        const link = document.createElement('a');
+        link.href = '/guia-usuario-Kash.pdf';
+        link.download = 'Guia-Usuario-Kash.pdf';
+        link.click();
     }
 
     logout() {

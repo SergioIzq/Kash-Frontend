@@ -48,7 +48,7 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 
                     <p-toolbar class="mb-6 gap-2 p-6">
                         <ng-template #start>
-                            <p-button label="Nueva Proveedor" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
+                            <p-button label="Nuevo Proveedor" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
                         </ng-template>
 
                         <ng-template #end>

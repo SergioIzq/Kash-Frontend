@@ -15,22 +15,6 @@ import { ToggleSwitchModule } from 'primeng/toggleswitch';
 
 // Modelos
 import { IngresoProgramado } from '@/core/models/ingreso-programado.model';
-import { Cliente } from '@/core/models/cliente.model';
-import { Persona } from '@/core/models/persona.model';
-import { Concepto } from '@/core/models/concepto.model';
-import { Categoria } from '@/core/models/categoria.model';
-import { FormaPago } from '@/core/models/forma-pago.model';
-import { Cuenta } from '@/core/models/cuenta.model';
-
-// Componentes compartidos
-import { 
-    CategoriaCreateModalComponent, 
-    ClienteCreateModalComponent, 
-    PersonaCreateModalComponent, 
-    CuentaCreateModalComponent, 
-    FormaPagoCreateModalComponent 
-} from '@/shared/components';
-import { ConceptoCreateModalComponent } from '@/features/conceptos/components/concepto-create-modal.component';
 
 // Stores
 import { ClienteStore } from '@/features/clientes/store/cliente.store';
@@ -65,13 +49,7 @@ interface IngresoProgramadoFormData extends Omit<Partial<IngresoProgramado>, 'fe
         DatePickerModule,
         AutoCompleteModule,
         ToggleSwitchModule,
-        TooltipModule,
-        ConceptoCreateModalComponent,
-        CategoriaCreateModalComponent,
-        ClienteCreateModalComponent,
-        PersonaCreateModalComponent,
-        CuentaCreateModalComponent,
-        FormaPagoCreateModalComponent
+        TooltipModule
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
@@ -105,14 +83,18 @@ interface IngresoProgramadoFormData extends Omit<Partial<IngresoProgramado>, 'fe
                             [dropdown]="true"
                             class="flex-1 w-full"
                             styleClass="w-full"
-                            [forceSelection]="true"
+                            [forceSelection]="false"
+                            [showEmptyMessage]="false"
                             (onSelect)="onConceptoSelect($event)"
+                            (onBlur)="onConceptoBlur()"
                             inputStyleClass="font-semibold"
                         />
-                        <button pButton icon="pi pi-plus" [rounded]="true" [text]="true" severity="primary" (click)="openCreateConcepto()" pTooltip="Crear concepto"></button>
                     </div>
                     @if (submitted() && !selectedConcepto) {
                         <small class="text-red-500 block mt-1">El concepto es requerido.</small>
+                    }
+                    @if (newConceptoMessage()) {
+                        <small class="text-blue-600 block mt-1"><i class="pi pi-info-circle"></i> {{ newConceptoMessage() }}</small>
                     }
                 </div>
 
@@ -196,55 +178,65 @@ interface IngresoProgramadoFormData extends Omit<Partial<IngresoProgramado>, 'fe
                             [dropdown]="true"
                             placeholder="Seleccionar..."
                             [forceSelection]="false"
+                            [showEmptyMessage]="false"
                             (onSelect)="onCategoriaSelect($event)"
+                            (onBlur)="onCategoriaBlur()"
                             class="flex-1 w-full"
                             styleClass="w-full"
                         />
-                        <button pButton icon="pi pi-plus" [rounded]="true" [text]="true" severity="primary" (click)="openCreateCategoria()"></button>
                     </div>
+                    @if (newCategoriaMessage()) {
+                        <small class="text-blue-600 block mt-1"><i class="pi pi-info-circle"></i> {{ newCategoriaMessage() }}</small>
+                    }
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
                     <label class="font-medium text-gray-700 block mb-2 text-sm">Forma de Pago *</label>
-                    <div class="flex align-items-center gap-2">
-                        <p-autoComplete
-                            [(ngModel)]="selectedFormaPago"
-                            [suggestions]="filteredFormasPago()"
-                            (completeMethod)="searchFormasPago($event)"
-                            optionLabel="nombre"
-                            [dropdown]="true"
-                            placeholder="Seleccionar..."
-                            [forceSelection]="true"
-                            (onSelect)="onFormaPagoSelect($event)"
-                            class="flex-1 w-full"
-                            styleClass="w-full"
-                        />
-                        <button pButton icon="pi pi-plus" [rounded]="true" [text]="true" severity="primary" (click)="openCreateFormaPago()"></button>
-                    </div>
+                    <p-autoComplete
+                        [(ngModel)]="selectedFormaPago"
+                        [suggestions]="filteredFormasPago()"
+                        (completeMethod)="searchFormasPago($event)"
+                        optionLabel="nombre"
+                        [dropdown]="true"
+                        placeholder="Seleccionar..."
+                        [forceSelection]="false"
+                        [showEmptyMessage]="false"
+                        (onSelect)="onFormaPagoSelect($event)"
+                        (onBlur)="onFormaPagoBlur()"
+                        class="w-full"
+                        styleClass="w-full"
+                    />
                     @if (submitted() && !selectedFormaPago) {
                         <small class="text-red-500 block mt-1">Requerida.</small>
+                    }
+                    @if (newFormaPagoMessage()) {
+                        <small class="text-blue-600 block mt-1"><i class="pi pi-info-circle"></i> {{ newFormaPagoMessage() }}</small>
                     }
                 </div>
 
                 <div class="col-span-12 field">
                     <label class="font-medium text-gray-700 block mb-2 text-sm">Cuenta de Destino *</label>
-                    <div class="flex align-items-center gap-2">
-                        <p-autoComplete
-                            [(ngModel)]="selectedCuenta"
-                            [suggestions]="filteredCuentas()"
-                            (completeMethod)="searchCuentas($event)"
-                            optionLabel="nombre"
-                            [dropdown]="true"
-                            placeholder="Seleccionar cuenta bancaria / caja..."
-                            [forceSelection]="true"
-                            (onSelect)="onCuentaSelect($event)"
-                            class="flex-1 w-full"
-                            styleClass="w-full"
-                        />
-                        <button pButton icon="pi pi-plus" [rounded]="true" [text]="true" severity="primary" (click)="openCreateCuenta()"></button>
-                    </div>
+                    <p-autoComplete
+                        [(ngModel)]="selectedCuenta"
+                        [suggestions]="filteredCuentas()"
+                        (completeMethod)="searchCuentas($event)"
+                        optionLabel="nombre"
+                        [dropdown]="true"
+                        placeholder="Seleccionar cuenta bancaria / caja..."
+                        [forceSelection]="false"
+                        [showEmptyMessage]="false"
+                        [showClear]="true"
+                        (onClear)="onCuentaClear()"
+                        (onSelect)="onCuentaSelect($event)"
+                        (onBlur)="onCuentaBlur()"
+                        class="w-full"
+                        styleClass="w-full"
+                    />
                     @if (submitted() && !selectedCuenta) {
                         <small class="text-red-500 block mt-1">Requerida.</small>
+                    }
+                    @if (newCuentaMessage()) {
+                        <small class="text-blue-600 block mt-1"><i class="pi pi-info-circle"></i> {{ newCuentaMessage() }}</small>
                     }
                 </div>
 
@@ -253,46 +245,44 @@ interface IngresoProgramadoFormData extends Omit<Partial<IngresoProgramado>, 'fe
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
-                    <label class="font-medium text-gray-700 block mb-2 text-sm">Cliente *</label>
-                    <div class="flex align-items-center gap-2">
-                        <p-autoComplete
-                            [(ngModel)]="selectedCliente"
-                            [suggestions]="filteredClientes()"
-                            (completeMethod)="searchClientes($event)"
-                            optionLabel="nombre"
-                            [dropdown]="true"
-                            placeholder="Buscar cliente..."
-                            [forceSelection]="false"
-                            (onSelect)="onClienteSelect($event)"
-                            class="flex-1 w-full"
-                            styleClass="w-full"
-                        />
-                        <button pButton icon="pi pi-plus" [rounded]="true" [text]="true" severity="primary" (click)="openCreateCliente()"></button>
-                    </div>
-                    @if (submitted() && !selectedCliente) {
-                        <small class="text-red-500 block mt-1">Requerido.</small>
+                    <label class="font-medium text-gray-700 block mb-2 text-sm">Cliente</label>
+                    <p-autoComplete
+                        [(ngModel)]="selectedCliente"
+                        [suggestions]="filteredClientes()"
+                        (completeMethod)="searchClientes($event)"
+                        optionLabel="nombre"
+                        [dropdown]="true"
+                        placeholder="Buscar cliente..."
+                        [forceSelection]="false"
+                        [showEmptyMessage]="false"
+                        (onSelect)="onClienteSelect($event)"
+                        (onBlur)="onClienteBlur()"
+                        class="w-full"
+                        styleClass="w-full"
+                    />
+                    @if (newClienteMessage()) {
+                        <small class="text-blue-600 block mt-1"><i class="pi pi-info-circle"></i> {{ newClienteMessage() }}</small>
                     }
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
-                    <label class="font-medium text-gray-700 block mb-2 text-sm">Persona *</label>
-                    <div class="flex align-items-center gap-2">
-                        <p-autoComplete
-                            [(ngModel)]="selectedPersona"
-                            [suggestions]="filteredPersonas()"
-                            (completeMethod)="searchPersonas($event)"
-                            optionLabel="nombre"
-                            [dropdown]="true"
-                            placeholder="Buscar persona..."
-                            [forceSelection]="false"
-                            (onSelect)="onPersonaSelect($event)"
-                            class="flex-1 w-full"
-                            styleClass="w-full"
-                        />
-                        <button pButton icon="pi pi-plus" [rounded]="true" [text]="true" severity="primary" (click)="openCreatePersona()"></button>
-                    </div>
-                    @if (submitted() && !selectedPersona) {
-                        <small class="text-red-500 block mt-1">Requerida.</small>
+                    <label class="font-medium text-gray-700 block mb-2 text-sm">Persona</label>
+                    <p-autoComplete
+                        [(ngModel)]="selectedPersona"
+                        [suggestions]="filteredPersonas()"
+                        (completeMethod)="searchPersonas($event)"
+                        optionLabel="nombre"
+                        [dropdown]="true"
+                        placeholder="Buscar persona..."
+                        [forceSelection]="false"
+                        [showEmptyMessage]="false"
+                        (onSelect)="onPersonaSelect($event)"
+                        (onBlur)="onPersonaBlur()"
+                        class="w-full"
+                        styleClass="w-full"
+                    />
+                    @if (newPersonaMessage()) {
+                        <small class="text-blue-600 block mt-1"><i class="pi pi-info-circle"></i> {{ newPersonaMessage() }}</small>
                     }
                 </div>
 
@@ -310,12 +300,7 @@ interface IngresoProgramadoFormData extends Omit<Partial<IngresoProgramado>, 'fe
             </ng-template>
         </p-drawer>
 
-        <app-concepto-create-modal [visible]="showConceptoCreateModal" (visibleChange)="showConceptoCreateModal = $event" (created)="onConceptoCreated($event)" (cancel)="showConceptoCreateModal = false" />
-        <app-categoria-create-modal [visible]="showCategoriaCreateModal" (visibleChange)="showCategoriaCreateModal = $event" (created)="onCategoriaCreated($event)" (cancel)="showCategoriaCreateModal = false" />
-        <app-cliente-create-modal [visible]="showClienteCreateModal" (visibleChange)="showClienteCreateModal = $event" (created)="onClienteCreated($event)" (cancel)="showClienteCreateModal = false" />
-        <app-persona-create-modal [visible]="showPersonaCreateModal" (visibleChange)="showPersonaCreateModal = $event" (created)="onPersonaCreated($event)" (cancel)="showPersonaCreateModal = false" />
-        <app-forma-pago-create-modal [visible]="showFormaPagoCreateModal" (visibleChange)="showFormaPagoCreateModal = $event" (created)="onFormaPagoCreated($event)" (cancel)="showFormaPagoCreateModal = false" />
-        <app-cuenta-create-modal [visible]="showCuentaCreateModal" (visibleChange)="showCuentaCreateModal = $event" (created)="onCuentaCreated($event)" (cancel)="showCuentaCreateModal = false" />
+
     `,
     styles: [`
         :host ::ng-deep {
@@ -347,7 +332,7 @@ export class IngresoProgramadoFormModalComponent {
     isVisible = false;
     isEditMode = signal(false);
     submitted = signal(false);
-    
+
     // Inicializamos con un Date para que el datepicker no falle
     formData: IngresoProgramadoFormData = { activo: true, fechaEjecucion: new Date() };
 
@@ -374,13 +359,21 @@ export class IngresoProgramadoFormModalComponent {
     filteredCuentas = signal<CatalogItem[]>([]);
     filteredFormasPago = signal<CatalogItem[]>([]);
 
-    // Modales inline
-    showConceptoCreateModal = false;
-    showCategoriaCreateModal = false;
-    showClienteCreateModal = false;
-    showPersonaCreateModal = false;
-    showFormaPagoCreateModal = false;
-    showCuentaCreateModal = false;
+    // Mensajes para valores nuevos
+    newConceptoMessage = signal<string>('');
+    newCategoriaMessage = signal<string>('');
+    newFormaPagoMessage = signal<string>('');
+    newClienteMessage = signal<string>('');
+    newPersonaMessage = signal<string>('');
+    newCuentaMessage = signal<string>('');
+
+    // Flags para evitar validación en blur después de selección
+    private skipNextConceptoBlur = false;
+    private skipNextCategoriaBlur = false;
+    private skipNextFormaPagoBlur = false;
+    private skipNextClienteBlur = false;
+    private skipNextPersonaBlur = false;
+    private skipNextCuentaBlur = false;
 
     constructor() {
         effect(() => {
@@ -415,10 +408,10 @@ export class IngresoProgramadoFormModalComponent {
         } else {
             this.isEditMode.set(false);
             this.formData = {
-                importe: 0,
+                importe: undefined,
                 activo: true,
                 frecuencia: 'MENSUAL',
-                fechaEjecucion: new Date(), // Fecha actual por defecto
+                fechaEjecucion: new Date(),
                 descripcion: ''
             };
             this.selectedConcepto = null;
@@ -429,6 +422,12 @@ export class IngresoProgramadoFormModalComponent {
             this.selectedFormaPago = null;
         }
         this.submitted.set(false);
+        this.newConceptoMessage.set('');
+        this.newCategoriaMessage.set('');
+        this.newFormaPagoMessage.set('');
+        this.newClienteMessage.set('');
+        this.newPersonaMessage.set('');
+        this.newCuentaMessage.set('');
     }
 
     // --- Search Logic (Generic) ---
@@ -450,7 +449,7 @@ export class IngresoProgramadoFormModalComponent {
             this.conceptoStore.search(query, 10, categoriaId).then((d: CatalogItem[]) => this.filteredConceptos.set(d)).catch(() => this.filteredConceptos.set([]));
         }
     }
-    
+
     searchCategorias(event: AutoCompleteCompleteEvent) { this.genericSearch(this.categoriaStore, event, this.filteredCategorias); }
     searchClientes(event: AutoCompleteCompleteEvent) { this.genericSearch(this.clienteStore, event, this.filteredClientes); }
     searchPersonas(event: AutoCompleteCompleteEvent) { this.genericSearch(this.personaStore, event, this.filteredPersonas); }
@@ -459,56 +458,155 @@ export class IngresoProgramadoFormModalComponent {
 
     // --- Selecciones ---
     onConceptoSelect(event: any) {
+        this.skipNextConceptoBlur = true;
         const value = event.value;
         this.formData.conceptoId = value.id;
         this.formData.conceptoNombre = value.nombre;
+        this.newConceptoMessage.set('');
         if (value.categoriaId && value.categoriaNombre) {
             const cat = { id: value.categoriaId, nombre: value.categoriaNombre };
             this.selectedCategoria = cat;
             this.formData.categoriaId = cat.id;
             this.formData.categoriaNombre = cat.nombre;
-            this.messageService.add({ severity: 'info', summary: 'Info', detail: 'Categoría asignada' });
+            this.newCategoriaMessage.set('');
+            this.messageService.add({ severity: 'info', summary: 'Info', detail: `Categoría ${value.categoriaNombre} asignada` });
         }
     }
 
+    onConceptoBlur() {
+        setTimeout(() => {
+            if (this.skipNextConceptoBlur) { this.skipNextConceptoBlur = false; return; }
+            if (typeof this.selectedConcepto === 'string' && (this.selectedConcepto as string).trim()) {
+                const nombre = (this.selectedConcepto as string).trim();
+                if (!this.filteredConceptos().some(c => c.nombre.toLowerCase() === nombre.toLowerCase())) {
+                    this.selectedConcepto = { id: '', nombre };
+                    this.formData.conceptoId = undefined;
+                    this.formData.conceptoNombre = nombre;
+                    this.newConceptoMessage.set(`Se creará el concepto "${nombre}" automáticamente al guardar.`);
+                    this.messageService.add({ severity: 'info', summary: 'Concepto no encontrado', detail: `El concepto "${nombre}" no existe, se creará automáticamente al guardar.` });
+                }
+            }
+        }, 200);
+    }
+
     onCategoriaSelect(event: any) {
+        this.skipNextCategoriaBlur = true;
         this.formData.categoriaId = event.id;
         this.formData.categoriaNombre = event.nombre;
+        this.newCategoriaMessage.set('');
         this.selectedConcepto = null;
         this.formData.conceptoId = undefined;
+        this.formData.conceptoNombre = undefined;
+        this.newConceptoMessage.set('');
     }
 
-    onClienteSelect(event: any) { this.formData.clienteId = event.id; this.formData.clienteNombre = event.nombre; }
-    onPersonaSelect(event: any) { this.formData.personaId = event.id; this.formData.personaNombre = event.nombre; }
-    onCuentaSelect(event: any) { this.formData.cuentaId = event.id; this.formData.cuentaNombre = event.nombre; }
-    onFormaPagoSelect(event: any) { this.formData.formaPagoId = event.id; this.formData.formaPagoNombre = event.nombre; }
-
-    onConceptoClear() { this.selectedConcepto = null; this.formData.conceptoId = undefined; }
-    onCategoriaClear() { this.selectedCategoria = null; this.formData.categoriaId = undefined; }
-
-    openCreateConcepto() { this.showConceptoCreateModal = true; }
-    openCreateCategoria() { this.showCategoriaCreateModal = true; }
-    openCreateCliente() { this.showClienteCreateModal = true; }
-    openCreatePersona() { this.showPersonaCreateModal = true; }
-    openCreateFormaPago() { this.showFormaPagoCreateModal = true; }
-    openCreateCuenta() { this.showCuentaCreateModal = true; }
-
-    onConceptoCreated(nuevo: Concepto) {
-        this.showConceptoCreateModal = false;
-        this.selectedConcepto = { id: nuevo.id, nombre: nuevo.nombre };
-        this.formData.conceptoId = nuevo.id;
-        this.formData.conceptoNombre = nuevo.nombre;
+    onCategoriaBlur() {
+        setTimeout(() => {
+            if (this.skipNextCategoriaBlur) { this.skipNextCategoriaBlur = false; return; }
+            if (typeof this.selectedCategoria === 'string' && (this.selectedCategoria as string).trim()) {
+                const nombre = (this.selectedCategoria as string).trim();
+                if (!this.filteredCategorias().some(c => c.nombre.toLowerCase() === nombre.toLowerCase())) {
+                    this.selectedCategoria = { id: '', nombre };
+                    this.formData.categoriaId = undefined;
+                    this.formData.categoriaNombre = nombre;
+                    this.newCategoriaMessage.set(`Se creará la categoría "${nombre}" automáticamente al guardar.`);
+                    this.messageService.add({ severity: 'info', summary: 'Categoría no encontrada', detail: `La categoría "${nombre}" no existe, se creará automáticamente al guardar.` });
+                }
+            }
+        }, 200);
     }
-    onCategoriaCreated(nuevo: Categoria) {
-        this.showCategoriaCreateModal = false;
-        this.selectedCategoria = { id: nuevo.id, nombre: nuevo.nombre };
-        this.formData.categoriaId = nuevo.id;
-        this.formData.categoriaNombre = nuevo.nombre;
+
+    onClienteSelect(event: any) {
+        this.skipNextClienteBlur = true;
+        this.formData.clienteId = event.id; this.formData.clienteNombre = event.nombre;
+        this.newClienteMessage.set('');
     }
-    onClienteCreated(nuevo: Cliente) { this.showClienteCreateModal = false; this.selectedCliente = {id: nuevo.id, nombre: nuevo.nombre}; this.formData.clienteId = nuevo.id; }
-    onPersonaCreated(nuevo: Persona) { this.showPersonaCreateModal = false; this.selectedPersona = {id: nuevo.id, nombre: nuevo.nombre}; this.formData.personaId = nuevo.id; }
-    onCuentaCreated(nuevo: Cuenta) { this.showCuentaCreateModal = false; this.selectedCuenta = {id: nuevo.id, nombre: nuevo.nombre}; this.formData.cuentaId = nuevo.id; }
-    onFormaPagoCreated(nuevo: FormaPago) { this.showFormaPagoCreateModal = false; this.selectedFormaPago = {id: nuevo.id, nombre: nuevo.nombre}; this.formData.formaPagoId = nuevo.id; }
+
+    onClienteBlur() {
+        setTimeout(() => {
+            if (this.skipNextClienteBlur) { this.skipNextClienteBlur = false; return; }
+            if (typeof this.selectedCliente === 'string' && (this.selectedCliente as string).trim()) {
+                const nombre = (this.selectedCliente as string).trim();
+                if (!this.filteredClientes().some(c => c.nombre.toLowerCase() === nombre.toLowerCase())) {
+                    this.selectedCliente = { id: '', nombre };
+                    this.formData.clienteId = undefined;
+                    this.formData.clienteNombre = nombre;
+                    this.newClienteMessage.set(`Se creará el cliente "${nombre}" automáticamente al guardar.`);
+                    this.messageService.add({ severity: 'info', summary: 'Cliente no encontrado', detail: `El cliente "${nombre}" no existe, se creará automáticamente al guardar.` });
+                }
+            }
+        }, 200);
+    }
+
+    onPersonaSelect(event: any) {
+        this.skipNextPersonaBlur = true;
+        this.formData.personaId = event.id; this.formData.personaNombre = event.nombre;
+        this.newPersonaMessage.set('');
+    }
+
+    onPersonaBlur() {
+        setTimeout(() => {
+            if (this.skipNextPersonaBlur) { this.skipNextPersonaBlur = false; return; }
+            if (typeof this.selectedPersona === 'string' && (this.selectedPersona as string).trim()) {
+                const nombre = (this.selectedPersona as string).trim();
+                if (!this.filteredPersonas().some(p => p.nombre.toLowerCase() === nombre.toLowerCase())) {
+                    this.selectedPersona = { id: '', nombre };
+                    this.formData.personaId = undefined;
+                    this.formData.personaNombre = nombre;
+                    this.newPersonaMessage.set(`Se creará la persona "${nombre}" automáticamente al guardar.`);
+                    this.messageService.add({ severity: 'info', summary: 'Persona no encontrada', detail: `La persona "${nombre}" no existe, se creará automáticamente al guardar.` });
+                }
+            }
+        }, 200);
+    }
+
+    onCuentaSelect(event: any) {
+        this.skipNextCuentaBlur = true;
+        this.formData.cuentaId = event.id; this.formData.cuentaNombre = event.nombre;
+        this.newCuentaMessage.set('');
+    }
+
+    onCuentaBlur() {
+        setTimeout(() => {
+            if (this.skipNextCuentaBlur) { this.skipNextCuentaBlur = false; return; }
+            if (typeof this.selectedCuenta === 'string' && (this.selectedCuenta as string).trim()) {
+                const nombre = (this.selectedCuenta as string).trim();
+                if (!this.filteredCuentas().some(c => c.nombre.toLowerCase() === nombre.toLowerCase())) {
+                    this.selectedCuenta = { id: '', nombre };
+                    this.formData.cuentaId = undefined;
+                    this.formData.cuentaNombre = nombre;
+                    this.newCuentaMessage.set(`Se creará la cuenta "${nombre}" automáticamente al guardar.`);
+                    this.messageService.add({ severity: 'info', summary: 'Cuenta no encontrada', detail: `La cuenta "${nombre}" no existe, se creará automáticamente al guardar.` });
+                }
+            }
+        }, 200);
+    }
+
+    onFormaPagoSelect(event: any) {
+        this.skipNextFormaPagoBlur = true;
+        this.formData.formaPagoId = event.id; this.formData.formaPagoNombre = event.nombre;
+        this.newFormaPagoMessage.set('');
+    }
+
+    onFormaPagoBlur() {
+        setTimeout(() => {
+            if (this.skipNextFormaPagoBlur) { this.skipNextFormaPagoBlur = false; return; }
+            if (typeof this.selectedFormaPago === 'string' && (this.selectedFormaPago as string).trim()) {
+                const nombre = (this.selectedFormaPago as string).trim();
+                if (!this.filteredFormasPago().some(f => f.nombre.toLowerCase() === nombre.toLowerCase())) {
+                    this.selectedFormaPago = { id: '', nombre };
+                    this.formData.formaPagoId = undefined;
+                    this.formData.formaPagoNombre = nombre;
+                    this.newFormaPagoMessage.set(`Se creará la forma de pago "${nombre}" automáticamente al guardar.`);
+                    this.messageService.add({ severity: 'info', summary: 'Forma de pago no encontrada', detail: `La forma de pago "${nombre}" no existe, se creará automáticamente al guardar.` });
+                }
+            }
+        }, 200);
+    }
+
+    onConceptoClear() { this.selectedConcepto = null; this.formData.conceptoId = undefined; this.newConceptoMessage.set(''); }
+    onCategoriaClear() { this.selectedCategoria = null; this.formData.categoriaId = undefined; this.newCategoriaMessage.set(''); }
+    onCuentaClear() { this.selectedCuenta = null; this.formData.cuentaId = undefined; this.newCuentaMessage.set(''); }
 
     getConceptoPlaceholder(): string {
         return this.selectedCategoria ? `Buscar en ${this.selectedCategoria.nombre}...` : 'Buscar concepto...';
@@ -517,32 +615,41 @@ export class IngresoProgramadoFormModalComponent {
     onSave() {
         this.submitted.set(true);
 
-        if (!this.selectedConcepto || !this.formData.importe || !this.formData.frecuencia || 
-            !this.selectedCuenta || !this.selectedFormaPago || !this.selectedPersona || !this.selectedCliente || !this.formData.fechaEjecucion) {
+        if (!this.selectedConcepto || !this.formData.importe || !this.formData.frecuencia ||
+            !this.selectedCuenta || !this.selectedFormaPago || !this.formData.fechaEjecucion) {
             this.messageService.add({ severity: 'warn', summary: 'Incompleto', detail: 'Revise los campos requeridos (*)' });
             return;
         }
 
+        const fecha = this.formData.fechaEjecucion instanceof Date
+            ? this.formData.fechaEjecucion
+            : new Date();
+
+        // Restamos el offset local (en milisegundos) para compensar la conversión a UTC
+        const fechaLocal = new Date(fecha.getTime() - (fecha.getTimezoneOffset() * 60000));
+
+        // Convertimos a ISO y cortamos los primeros 19 caracteres (YYYY-MM-DDTHH:mm:ss)
+        const fechaEjecucionStr = fechaLocal.toISOString().slice(0, 19);
         const toSave: Partial<IngresoProgramado> = {
             ...this.formData,
             // IDs y Nombres
-            conceptoId: this.selectedConcepto.id,
+            conceptoId: this.selectedConcepto.id || '00000000-0000-0000-0000-000000000000',
             conceptoNombre: this.selectedConcepto.nombre,
-            categoriaId: this.selectedCategoria?.id,
-            categoriaNombre: this.selectedCategoria?.nombre,
-            clienteId: this.selectedCliente.id,
-            clienteNombre: this.selectedCliente.nombre,
-            personaId: this.selectedPersona.id,
-            personaNombre: this.selectedPersona.nombre,
-            cuentaId: this.selectedCuenta.id,
+            categoriaId: this.selectedCategoria?.id || '00000000-0000-0000-0000-000000000000',
+            categoriaNombre: this.selectedCategoria?.nombre || '',
+            clienteId: this.selectedCliente?.id || null,
+            clienteNombre: this.selectedCliente?.nombre || null,
+            personaId: this.selectedPersona?.id || null,
+            personaNombre: this.selectedPersona?.nombre || null,
+            cuentaId: this.selectedCuenta.id || '00000000-0000-0000-0000-000000000000',
             cuentaNombre: this.selectedCuenta.nombre,
-            formaPagoId: this.selectedFormaPago.id,
+            formaPagoId: this.selectedFormaPago.id || '00000000-0000-0000-0000-000000000000',
             formaPagoNombre: this.selectedFormaPago.nombre,
-            
-            // Conversión inversa: Date object -> String (ISO) para el backend
-            fechaEjecucion: this.formData.fechaEjecucion instanceof Date 
-                ? this.formData.fechaEjecucion.toISOString().split('T')[0] // 'YYYY-MM-DD' o ISO completo según tu back
-                : new Date().toISOString()
+            descripcion: this.formData.descripcion || null,
+
+
+            // Conversión inversa: Date object -> String (ISO completo) para el backend
+            fechaEjecucion: fechaEjecucionStr
         };
 
         this.save.emit(toSave);

@@ -119,6 +119,7 @@ export class CuentaFormModalComponent {
             this.isEditMode.set(false);
             this.formData = {
                 nombre: '',
+                saldo: undefined
             };
         }
 
