@@ -1,4 +1,4 @@
-import { Component, inject, ChangeDetectionStrategy, signal, ViewChild, OnDestroy, effect, computed } from '@angular/core';
+import { Component, inject, ChangeDetectionStrategy, signal, computed, effect, ViewChild, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
@@ -6,7 +6,6 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { ToastModule } from 'primeng/toast';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { Table, TableModule } from 'primeng/table';
 import { ToolbarModule } from 'primeng/toolbar';
 import { TagModule } from 'primeng/tag';
@@ -21,7 +20,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
 @Component({
     selector: 'app-gastos-list-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, TableModule, ToolbarModule, TagModule, InputIconModule, IconFieldModule, SkeletonModule, GastoFormModalComponent, BasePageTemplateComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, TagModule, InputIconModule, IconFieldModule, SkeletonModule, GastoFormModalComponent, BasePageTemplateComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
         /* Toolbar responsive en móvil */
@@ -46,7 +45,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
         <app-base-page-template [loading]="gastosStore.loading() && gastosStore.gastos().length === 0" [skeletonType]="'table'">
             <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
                 <div class="surface-card shadow-2 border-round p-6">
-                    <p-toolbar class="mb-6 gap-2 p-6">
+                    <p-toolbar styleClass="mb-6 gap-2 p-6">
                         <ng-template #start>
                             <p-button label="Nuevo Gasto" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
                         </ng-template>
@@ -70,7 +69,8 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         [globalFilterFields]="['conceptoNombre', 'categoriaNombre', 'proveedorNombre', 'descripcion']"
                         [tableStyle]="{ 'min-width': '75rem' }"
                         styleClass="p-datatable-gridlines p-datatable-loading-icon-none"
-                        [(selection)]="selectedGastos"
+                        [selection]="selectedGastos()"
+                        (selectionChange)="selectedGastos.set($event)"
                         [rowHover]="true"
                         dataKey="id"
                         currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} gastos"
@@ -139,7 +139,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                                 </td>
                                 <td>{{ gasto.cuentaNombre || '-' }}</td>
                                 <td>
-                                    <span class="font-bold text-red-500">{{ gasto.importe | number: '1.2-2' : 'es-ES' }} €</span>
+                                    <span class="font-bold text-red-500">- {{ gasto.importe | number: '1.2-2' : 'es-ES' }} €</span>
                                 </td>
                                 <td>
                                     <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editGasto(gasto)" />
@@ -201,18 +201,17 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
 
     @ViewChild('dt') dt!: Table;
 
-    gastoDialog = signal(false);
+    gastoDialog = signal<boolean>(false);
     selectedGastos = signal<Gasto[]>([]);
     currentGasto = signal<Partial<Gasto>>({});
 
-    // Signals para paginación y filtros
-    pageSize = signal(10);
-    pageNumber = signal(1);
-    searchTerm = signal('');
-    sortColumn = signal('fecha');
-    sortOrder = signal('desc');
+    pageSize = signal<number>(10);
+    pageNumber = signal<number>(1);
+    searchTerm = signal<string>('');
+    sortColumn = signal<string>('fecha');
+    sortOrder = signal<string>('desc');
 
-    // Computed signal para total records
+    // Computed signal para totalRecords
     totalRecords = computed(() => this.gastosStore.totalRecords());
 
     // Subject para manejar búsqueda con debounce
@@ -220,18 +219,17 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
 
     constructor() {
         super();
-
         // Configurar búsqueda con debounce de 500ms
         this.searchSubject.pipe(debounceTime(500), distinctUntilChanged()).subscribe((searchValue) => {
             this.searchTerm.set(searchValue);
-            this.pageNumber.set(1);
+            this.pageNumber.set(1); // Resetear a primera página en búsqueda
             this.reloadGastos();
         });
 
-        // Effect para sincronización automática cuando cambian los datos
+        // Effect para detectar sincronización automática
         effect(() => {
-            const lastUpdated = this.gastosStore.lastUpdated();
-            if (lastUpdated) {
+            const lastUpdate = this.gastosStore.lastUpdated();
+            if (lastUpdate) {
             }
         });
     }
@@ -242,46 +240,45 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
 
     /**
      * Recargar gastos con los filtros actuales
-     * @param bypassCache Si es true, añade un timestamp para evitar la caché del navegador
      */
-    private reloadGastos(bypassCache: boolean = false) {
-        const params: any = {
+    private reloadGastos() {
+        this.gastosStore.loadGastosPaginated({
             page: this.pageNumber(),
             pageSize: this.pageSize(),
             searchTerm: this.searchTerm() || undefined,
             sortColumn: this.sortColumn() || undefined,
             sortOrder: this.sortOrder() || undefined
-        };
-
-        if (bypassCache) {
-            params['timestamp'] = Date.now();
-        }
-
-        this.gastosStore.loadGastosPaginated(params);
+        });
     }
 
     /**
      * Refrescar la tabla manualmente
      */
     refreshTable() {
-        this.reloadGastos(true);
+        this.reloadGastos();
         this.showInfo('Datos actualizados', 'Actualización');
     }
 
     loadGastosLazy(event: any) {
+        // Calcular página actual (PrimeNG usa first que es el índice del primer registro)
         this.pageNumber.set(Math.floor(event.first / event.rows) + 1);
         this.pageSize.set(event.rows);
 
+        // Capturar ordenamiento si existe
         if (event.sortField) {
             this.sortColumn.set(event.sortField);
+            // event.sortOrder: 1 = ASC, -1 = DESC
             this.sortOrder.set(event.sortOrder === 1 ? 'asc' : 'desc');
         }
 
+        // Cargar gastos
         this.reloadGastos();
     }
 
     onGlobalFilter(table: Table, event: Event) {
         const searchValue = (event.target as HTMLInputElement).value;
+
+        // Usar Subject para aplicar debounce (esperar 500ms después de dejar de escribir)
         this.searchSubject.next(searchValue);
     }
 
@@ -310,14 +307,20 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
         } else {
             var gastoCreate: GastoCreate = {
                 conceptoId: gasto.conceptoId!,
+                conceptoNombre: gasto.conceptoNombre!,
                 categoriaId: gasto.categoriaId!,
+                categoriaNombre: gasto.categoriaNombre!,
                 proveedorId: gasto.proveedorId!,
+                proveedorNombre: gasto.proveedorNombre!,
                 fecha: gasto.fecha!,
                 importe: gasto.importe!,
                 descripcion: gasto.descripcion,
                 formaPagoId: gasto.formaPagoId!,
+                formaPagoNombre: gasto.formaPagoNombre!,
                 personaId: gasto.personaId!,
-                cuentaId: gasto.cuentaId!
+                personaNombre: gasto.personaNombre!,
+                cuentaId: gasto.cuentaId!,
+                cuentaNombre: gasto.cuentaNombre!,
             };
 
             const displayData: Partial<Gasto> = {
@@ -362,16 +365,21 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
         this.confirmAction(
             '¿Estás seguro de eliminar los gastos seleccionados?',
             async () => {
-                const deletePromises = this.selectedGastos().map((gasto) => this.gastosStore.deleteGasto(gasto.id));
+                try {
+                    const deletePromises = this.selectedGastos().map((gasto) => this.gastosStore.deleteGasto(gasto.id));
 
-                await Promise.all(deletePromises);
-                this.selectedGastos.set([]);
+                    await Promise.all(deletePromises);
+                    this.showSuccess('Gastos eliminados correctamente');
+                    this.selectedGastos.set([]);
+                    // No reloadGastos() - optimistic updates already sync UI
+                } catch (error: any) {
+                    this.showError(error.userMessage || 'Error al eliminar algunos gastos');
+                }
             },
             {
                 header: 'Confirmar',
                 acceptLabel: 'Sí, eliminar',
-                rejectLabel: 'Cancelar',
-                successMessage: 'Gastos eliminados correctamente'
+                rejectLabel: 'Cancelar'
             }
         );
     }

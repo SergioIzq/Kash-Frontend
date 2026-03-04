@@ -9,20 +9,10 @@ import { TextareaModule } from 'primeng/textarea';
 import { DatePickerModule } from 'primeng/datepicker';
 import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
 import { TooltipModule } from 'primeng/tooltip';
-import { MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 
 // Modelos
 import { Gasto } from '@/core/models';
-import { Proveedor } from '@/core/models/proveedor.model';
-import { Persona } from '@/core/models/persona.model';
-import { Concepto } from '@/core/models/concepto.model';
-import { Categoria } from '@/core/models/categoria.model';
-import { FormaPago } from '@/core/models/forma-pago.model';
-import { Cuenta } from '@/core/models/cuenta.model';
-
-// Componentes de creación rápida
-import { CategoriaCreateModalComponent, ProveedorCreateModalComponent, PersonaCreateModalComponent, CuentaCreateModalComponent, FormaPagoCreateModalComponent } from '@/shared/components';
-import { ConceptoCreateModalComponent } from '@/features/conceptos/components/concepto-create-modal.component';
 
 // Stores
 import { ProveedorStore } from '@/features/proveedores/store/proveedor.store';
@@ -54,17 +44,11 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
         TextareaModule,
         DatePickerModule,
         AutoCompleteModule,
-        TooltipModule,
-        ConceptoCreateModalComponent,
-        CategoriaCreateModalComponent,
-        ProveedorCreateModalComponent,
-        PersonaCreateModalComponent,
-        CuentaCreateModalComponent,
-        FormaPagoCreateModalComponent
+        TooltipModule
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <p-drawer [(visible)]="isVisible" position="right" [style]="{ width: '600px', maxWidth: '100vw' }" [modal]="true" [blockScroll]="true" (onHide)="onCancel()" styleClass="p-sidebar-md surface-ground">
+        <p-drawer [(visible)]="isVisible" position="right" [closeOnEscape]="false" [style]="{ width: '600px', maxWidth: '100vw' }" [modal]="true" [blockScroll]="true" (onHide)="handleDrawerHide()" styleClass="p-sidebar-md surface-ground">
             <ng-template pTemplate="header">
                 <div class="flex align-items-center gap-2">
                     <span class="font-bold text-xl text-900">{{ isEditMode() ? 'Editar Gasto' : 'Nuevo Gasto' }}</span>
@@ -73,7 +57,7 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
 
             <div class="grid grid-cols-12 gap-4 p-fluid py-2">
                 <div class="col-span-12 field">
-                    <label for="concepto" class="font-semibold text-gray-700 block mb-2">Concepto *</label>
+                    <label for="concepto" class="font-semibold text-gray-700 block mb-2">Concepto</label>
                     <div class="flex align-items-center gap-2">
                         <p-autoComplete
                             [(ngModel)]="selectedConcepto"
@@ -86,19 +70,23 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                             [dropdown]="true"
                             class="flex-1 w-full"
                             styleClass="w-full"
-                            [forceSelection]="true"
+                            [forceSelection]="false"
+                            [showEmptyMessage]="false"
                             (onSelect)="onConceptoSelect($event)"
+                            (onBlur)="onConceptoBlur()"
                             inputStyleClass="font-semibold"
                         />
-                        <button pButton icon="pi pi-plus" [rounded]="true" [text]="true" severity="primary" (click)="openCreateConcepto()" pTooltip="Crear concepto"></button>
                     </div>
                     @if (submitted() && !selectedConcepto) {
                         <small class="text-red-500 block mt-1">El concepto es requerido.</small>
                     }
+                    @if (newConceptoMessage()) {
+                        <small class="text-blue-600 block mt-1"><i class="pi pi-info-circle"></i> {{ newConceptoMessage() }}</small>
+                    }
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
-                    <label for="importe" class="font-semibold text-gray-700 block mb-2">Importe *</label>
+                    <label for="importe" class="font-semibold text-gray-700 block mb-2">Importe</label>
                     <p-inputNumber
                         id="importe"
                         [(ngModel)]="formData.importe"
@@ -106,20 +94,18 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                         currency="EUR"
                         locale="es-ES"
                         [min]="0"
-                        [minFractionDigits]="2"
-                        [maxFractionDigits]="2"
                         placeholder="0,00 €"
-                        inputStyleClass="text-right font-bold text-xl text-red-600"
+                        inputStyleClass="text-right font-bold text-xl text-green-600"
                         class="w-full"
                         styleClass="w-full"
                     />
                     @if (submitted() && !formData.importe) {
-                        <small class="text-red-500 block mt-1">Requerido.</small>
+                        <small class="text-red-500 block mt-1">El importe es requerido.</small>
                     }
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
-                    <label for="fecha" class="font-semibold text-gray-700 block mb-2">Fecha *</label>
+                    <label for="fecha" class="font-semibold text-gray-700 block mb-2">Fecha</label>
                     <p-datePicker [(ngModel)]="formData.fecha" dateFormat="dd/mm/yy" [showIcon]="true" appendTo="body" styleClass="w-full" class="w-full" />
                 </div>
 
@@ -140,19 +126,23 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                             [dropdown]="true"
                             placeholder="Seleccionar..."
                             [forceSelection]="false"
+                            [showEmptyMessage]="false"
                             (onSelect)="onCategoriaSelect($event)"
+                            (onBlur)="onCategoriaBlur()"
                             class="flex-1 w-full"
                             styleClass="w-full"
                         />
-                        <button pButton icon="pi pi-plus" [rounded]="true" [text]="true" severity="primary" (click)="openCreateCategoria()"></button>
                     </div>
                     @if (submitted() && !selectedCategoria) {
-                        <small class="text-red-500 block mt-1">Requerida.</small>
+                        <small class="text-red-500 block mt-1">La categoría es requerida.</small>
+                    }
+                    @if (newCategoriaMessage()) {
+                        <small class="text-blue-600 block mt-1"><i class="pi pi-info-circle"></i> {{ newCategoriaMessage() }}</small>
                     }
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
-                    <label class="font-medium text-gray-700 block mb-2 text-sm">Forma de Pago *</label>
+                    <label class="font-medium text-gray-700 block mb-2 text-sm">Forma de Pago</label>
                     <div class="flex align-items-center gap-2">
                         <p-autoComplete
                             [(ngModel)]="selectedFormaPago"
@@ -161,20 +151,24 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                             optionLabel="nombre"
                             [dropdown]="true"
                             placeholder="Seleccionar..."
-                            [forceSelection]="true"
+                            [forceSelection]="false"
+                            [showEmptyMessage]="false"
                             (onSelect)="onFormaPagoSelect($event)"
+                            (onBlur)="onFormaPagoBlur()"
                             class="flex-1 w-full"
                             styleClass="w-full"
                         />
-                        <button pButton icon="pi pi-plus" [rounded]="true" [text]="true" severity="primary" (click)="openCreateFormaPago()"></button>
                     </div>
                     @if (submitted() && !selectedFormaPago) {
-                        <small class="text-red-500 block mt-1">Requerida.</small>
+                        <small class="text-red-500 block mt-1">La forma de pago es requerida.</small>
+                    }
+                    @if (newFormaPagoMessage()) {
+                        <small class="text-blue-600 block mt-1"><i class="pi pi-info-circle"></i> {{ newFormaPagoMessage() }}</small>
                     }
                 </div>
 
                 <div class="col-span-12 field">
-                    <label class="font-medium text-gray-700 block mb-2 text-sm">Cuenta de Origen *</label>
+                    <label class="font-medium text-gray-700 block mb-2 text-sm">Cuenta de Destino</label>
                     <div class="flex align-items-center gap-2">
                         <p-autoComplete
                             [(ngModel)]="selectedCuenta"
@@ -183,15 +177,21 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                             optionLabel="nombre"
                             [dropdown]="true"
                             placeholder="Seleccionar cuenta bancaria / caja..."
-                            [forceSelection]="true"
+                            [forceSelection]="false"
+                            [showEmptyMessage]="false"
                             (onSelect)="onCuentaSelect($event)"
+                            (onBlur)="onCuentaBlur()"
+                            [showClear]="true"
+                            (onClear)="onCuentaClear()"
                             class="flex-1 w-full"
                             styleClass="w-full"
                         />
-                        <button pButton icon="pi pi-plus" [rounded]="true" [text]="true" severity="primary" (click)="openCreateCuenta()"></button>
                     </div>
                     @if (submitted() && !selectedCuenta) {
-                        <small class="text-red-500 block mt-1">Requerida.</small>
+                        <small class="text-red-500 block mt-1">La cuenta de destino es requerida.</small>
+                    }
+                    @if (newCuentaMessage()) {
+                        <small class="text-blue-600 block mt-1"><i class="pi pi-info-circle"></i> {{ newCuentaMessage() }}</small>
                     }
                 </div>
 
@@ -200,7 +200,7 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
-                    <label class="font-medium text-gray-700 block mb-2 text-sm">Proveedor *</label>
+                    <label class="font-medium text-gray-700 block mb-2 text-sm">Proveedor</label>
                     <div class="flex align-items-center gap-2">
                         <p-autoComplete
                             [(ngModel)]="selectedProveedor"
@@ -210,19 +210,20 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                             [dropdown]="true"
                             placeholder="Buscar proveedor..."
                             [forceSelection]="false"
+                            [showEmptyMessage]="false"
                             (onSelect)="onProveedorSelect($event)"
+                            (onBlur)="onProveedorBlur()"
                             class="flex-1 w-full"
                             styleClass="w-full"
                         />
-                        <button pButton icon="pi pi-plus" [rounded]="true" [text]="true" severity="primary" (click)="openCreateProveedor()"></button>
                     </div>
-                    @if (submitted() && !selectedProveedor) {
-                        <small class="text-red-500 block mt-1">Requerido.</small>
+                    @if (newProveedorMessage()) {
+                        <small class="text-blue-600 block mt-1"><i class="pi pi-info-circle"></i> {{ newProveedorMessage() }}</small>
                     }
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
-                    <label class="font-medium text-gray-700 block mb-2 text-sm">Persona *</label>
+                    <label class="font-medium text-gray-700 block mb-2 text-sm">Persona</label>
                     <div class="flex align-items-center gap-2">
                         <p-autoComplete
                             [(ngModel)]="selectedPersona"
@@ -232,14 +233,15 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                             [dropdown]="true"
                             placeholder="Buscar persona..."
                             [forceSelection]="false"
+                            [showEmptyMessage]="false"
                             (onSelect)="onPersonaSelect($event)"
+                            (onBlur)="onPersonaBlur()"
                             class="flex-1 w-full"
                             styleClass="w-full"
                         />
-                        <button pButton icon="pi pi-plus" [rounded]="true" [text]="true" severity="primary" (click)="openCreatePersona()"></button>
                     </div>
-                    @if (submitted() && !selectedPersona) {
-                        <small class="text-red-500 block mt-1">Requerida.</small>
+                    @if (newPersonaMessage()) {
+                        <small class="text-blue-600 block mt-1"><i class="pi pi-info-circle"></i> {{ newPersonaMessage() }}</small>
                     }
                 </div>
 
@@ -256,33 +258,21 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                 </div>
             </ng-template>
         </p-drawer>
-
-        <app-concepto-create-modal [visible]="showConceptoCreateModal" (visibleChange)="showConceptoCreateModal = $event" (created)="onConceptoCreated($event)" (cancel)="showConceptoCreateModal = false" />
-        <app-categoria-create-modal [visible]="showCategoriaCreateModal" (visibleChange)="showCategoriaCreateModal = $event" (created)="onCategoriaCreated($event)" (cancel)="showCategoriaCreateModal = false" />
-        <app-proveedor-create-modal [visible]="showProveedorCreateModal" (visibleChange)="showProveedorCreateModal = $event" (created)="onProveedorCreated($event)" (cancel)="showProveedorCreateModal = false" />
-        <app-persona-create-modal [visible]="showPersonaCreateModal" (visibleChange)="showPersonaCreateModal = $event" (created)="onPersonaCreated($event)" (cancel)="showPersonaCreateModal = false" />
-        <app-forma-pago-create-modal [visible]="showFormaPagoCreateModal" (visibleChange)="showFormaPagoCreateModal = $event" (created)="onFormaPagoCreated($event)" (cancel)="showFormaPagoCreateModal = false" />
-        <app-cuenta-create-modal [visible]="showCuentaCreateModal" (visibleChange)="showCuentaCreateModal = $event" (created)="onCuentaCreated($event)" (cancel)="showCuentaCreateModal = false" />
     `,
     styles: [
         `
             :host ::ng-deep {
                 .p-sidebar {
-                    background: #ffffff;
+                    background: #ffffff; /* Fondo blanco limpio en lugar de gris */
                 }
                 .p-autocomplete {
                     width: 100%;
                 }
+                /* Ajuste para que los botones circulares no se deformen */
                 .p-button.p-button-icon-only.p-button-rounded {
                     width: 2.5rem;
                     height: 2.5rem;
                     flex-shrink: 0;
-                }
-                /* En móvil, el drawer a veces necesita este fix para no salirse */
-                @media screen and (max-width: 768px) {
-                    .p-sidebar {
-                        width: 100% !important;
-                    }
                 }
             }
         `
@@ -290,6 +280,7 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
 })
 export class GastoFormModalComponent {
     private messageService = inject(MessageService);
+    #confirmationService = inject(ConfirmationService);
     private conceptoStore = inject(ConceptoStore);
     private categoriaStore = inject(CategoriaStore);
     private proveedorStore = inject(ProveedorStore);
@@ -323,13 +314,21 @@ export class GastoFormModalComponent {
     filteredCuentas = signal<CatalogItem[]>([]);
     filteredFormasPago = signal<CatalogItem[]>([]);
 
-    // Control de modales inline
-    showConceptoCreateModal = false;
-    showCategoriaCreateModal = false;
-    showProveedorCreateModal = false;
-    showPersonaCreateModal = false;
-    showFormaPagoCreateModal = false;
-    showCuentaCreateModal = false;
+    // Mensajes para valores nuevos
+    newConceptoMessage = signal<string>('');
+    newCategoriaMessage = signal<string>('');
+    newFormaPagoMessage = signal<string>('');
+    newProveedorMessage = signal<string>('');
+    newPersonaMessage = signal<string>('');
+    newCuentaMessage = signal<string>('');
+
+    // Flags para evitar validación en blur después de selección
+    private skipNextConceptoBlur = false;
+    private skipNextCategoriaBlur = false;
+    private skipNextFormaPagoBlur = false;
+    private skipNextProveedorBlur = false;
+    private skipNextPersonaBlur = false;
+    private skipNextCuentaBlur = false;
 
     constructor() {
         effect(() => {
@@ -353,9 +352,12 @@ export class GastoFormModalComponent {
         if (gastoData?.id) {
             // Modo edición
             this.isEditMode.set(true);
+            const fechaDate = gastoData.fecha ? new Date(gastoData.fecha) : new Date();
+            fechaDate.setHours(0, 0, 0, 0);
+
             this.formData = {
                 ...gastoData,
-                fecha: gastoData.fecha ? new Date(gastoData.fecha) : new Date()
+                fecha: fechaDate
             };
 
             this.selectedConcepto = gastoData.conceptoId && gastoData.conceptoNombre ? { id: gastoData.conceptoId, nombre: gastoData.conceptoNombre } : null;
@@ -367,8 +369,11 @@ export class GastoFormModalComponent {
         } else {
             // Modo creación
             this.isEditMode.set(false);
+            const fechaActual = new Date();
+            fechaActual.setHours(0, 0, 0, 0);
+
             this.formData = {
-                fecha: new Date(),
+                fecha: fechaActual,
                 descripcion: ''
             };
             this.selectedConcepto = null;
@@ -379,6 +384,12 @@ export class GastoFormModalComponent {
             this.selectedFormaPago = null;
         }
         this.submitted.set(false);
+        this.newConceptoMessage.set('');
+        this.newCategoriaMessage.set('');
+        this.newFormaPagoMessage.set('');
+        this.newProveedorMessage.set('');
+        this.newPersonaMessage.set('');
+        this.newCuentaMessage.set('');
     }
 
     // --- Métodos de búsqueda (Search) ---
@@ -475,9 +486,12 @@ export class GastoFormModalComponent {
 
     // --- Eventos de selección y limpieza ---
     onConceptoSelect(event: any) {
+        this.skipNextConceptoBlur = true;
+
         let value = event.value;
         this.formData.conceptoId = value.id;
         this.formData.conceptoNombre = value.nombre;
+        this.newConceptoMessage.set('');
 
         // Auto-asignación de categoría si el concepto la tiene
         if (value.categoriaId && value.categoriaNombre) {
@@ -485,34 +499,226 @@ export class GastoFormModalComponent {
             this.selectedCategoria = categoriaAsociada;
             this.formData.categoriaId = categoriaAsociada.id;
             this.formData.categoriaNombre = categoriaAsociada.nombre;
+            this.newCategoriaMessage.set(''); // Limpiar mensaje si se asigna una categoría existente
             this.messageService.add({ severity: 'info', summary: 'Info', detail: `Categoría ${value.categoriaNombre} asignada` });
         }
     }
 
+    onConceptoBlur() {
+        setTimeout(() => {
+            // Si acabamos de seleccionar, no validar
+            if (this.skipNextConceptoBlur) {
+                this.skipNextConceptoBlur = false;
+                return;
+            }
+
+            // Verificar si el usuario ha escrito un concepto nuevo
+            if (typeof this.selectedConcepto === 'string' && (this.selectedConcepto as string).trim()) {
+                const conceptoNombre = (this.selectedConcepto as string).trim();
+                const existe = this.filteredConceptos().some((c) => c.nombre.toLowerCase() === conceptoNombre.toLowerCase());
+
+                if (!existe) {
+                    // El concepto no existe, crear uno temporal
+                    this.selectedConcepto = { id: '', nombre: conceptoNombre };
+                    this.formData.conceptoId = undefined;
+                    this.formData.conceptoNombre = conceptoNombre;
+                    this.newConceptoMessage.set(`Ha seleccionado un concepto "${conceptoNombre}" que no existe, se creará automáticamente.`);
+                    this.messageService.add({
+                        severity: 'info',
+                        summary: 'Concepto no encontrado',
+                        detail: `El concepto "${conceptoNombre}" no existe, se creará automáticamente con la categoría asociada al guardar.`
+                    });
+                }
+            }
+        }, 200);
+    }
+
     onCategoriaSelect(event: any) {
+        this.skipNextCategoriaBlur = true;
+
         this.formData.categoriaId = event.id;
         this.formData.categoriaNombre = event.nombre;
+        this.newCategoriaMessage.set('');
         // Limpiar concepto para forzar selección válida en la nueva categoría
         this.selectedConcepto = null;
         this.formData.conceptoId = undefined;
         this.formData.conceptoNombre = undefined;
+        this.newConceptoMessage.set(''); // Limpiar mensaje de concepto al cambiar de categoría
+    }
+
+    onCategoriaBlur() {
+        setTimeout(() => {
+            // Si acabamos de seleccionar, no validar
+            if (this.skipNextCategoriaBlur) {
+                this.skipNextCategoriaBlur = false;
+                return;
+            }
+
+            // Verificar si el usuario ha escrito una categoría nueva
+            if (typeof this.selectedCategoria === 'string' && (this.selectedCategoria as string).trim()) {
+                const categoriaNombre = (this.selectedCategoria as string).trim();
+                const existe = this.filteredCategorias().some((c) => c.nombre.toLowerCase() === categoriaNombre.toLowerCase());
+
+                if (!existe) {
+                    // La categoría no existe, crear una temporal
+                    this.selectedCategoria = { id: '', nombre: categoriaNombre };
+                    this.formData.categoriaId = undefined;
+                    this.formData.categoriaNombre = categoriaNombre;
+                    this.newCategoriaMessage.set(`Ha seleccionado una categoría "${categoriaNombre}" que no existe, se creará automáticamente.`);
+                    this.messageService.add({
+                        severity: 'info',
+                        summary: 'Categoría no encontrada',
+                        detail: `La categoría "${categoriaNombre}" no existe, se creará automáticamente al guardar.`
+                    });
+                }
+            }
+        }, 200);
+    }
+
+    onFormaPagoBlur() {
+        setTimeout(() => {
+            // Si acabamos de seleccionar, no validar
+            if (this.skipNextFormaPagoBlur) {
+                this.skipNextFormaPagoBlur = false;
+                return;
+            }
+
+            // Verificar si el usuario ha escrito una forma de pago nueva
+            if (typeof this.selectedFormaPago === 'string' && (this.selectedFormaPago as string).trim()) {
+                const formaPagoNombre = (this.selectedFormaPago as string).trim();
+                const existe = this.filteredFormasPago().some((f) => f.nombre.toLowerCase() === formaPagoNombre.toLowerCase());
+
+                if (!existe) {
+                    // La forma de pago no existe, crear una temporal
+                    this.selectedFormaPago = { id: '', nombre: formaPagoNombre };
+                    this.formData.formaPagoId = undefined;
+                    this.formData.formaPagoNombre = formaPagoNombre;
+                    this.newFormaPagoMessage.set(`Ha seleccionado una forma de pago "${formaPagoNombre}" que no existe, se creará automáticamente.`);
+                    this.messageService.add({
+                        severity: 'info',
+                        summary: 'Forma de pago no encontrada',
+                        detail: `La forma de pago "${formaPagoNombre}" no existe, se creará automáticamente al guardar.`
+                    });
+                }
+            }
+        }, 200);
     }
 
     onProveedorSelect(event: any) {
+        this.skipNextProveedorBlur = true;
+
         this.formData.proveedorId = event.id;
         this.formData.proveedorNombre = event.nombre;
+        this.newProveedorMessage.set('');
+    }
+
+    onProveedorBlur() {
+        setTimeout(() => {
+            // Si acabamos de seleccionar, no validar
+            if (this.skipNextProveedorBlur) {
+                this.skipNextProveedorBlur = false;
+                return;
+            }
+
+            // Verificar si el usuario ha escrito un proveedor nuevo
+            if (typeof this.selectedProveedor === 'string' && (this.selectedProveedor as string).trim()) {
+                const proveedorNombre = (this.selectedProveedor as string).trim();
+                const existe = this.filteredProveedores().some((c) => c.nombre.toLowerCase() === proveedorNombre.toLowerCase());
+
+                if (!existe) {
+                    // El proveedor no existe, crear uno temporal
+                    this.selectedProveedor = { id: '', nombre: proveedorNombre };
+                    this.formData.proveedorId = undefined;
+                    this.formData.proveedorNombre = proveedorNombre;
+                    this.newProveedorMessage.set(`Ha seleccionado un proveedor "${proveedorNombre}" que no existe, se creará automáticamente.`);
+                    this.messageService.add({
+                        severity: 'info',
+                        summary: 'Proveedor no encontrado',
+                        detail: `El proveedor "${proveedorNombre}" no existe, se creará automáticamente al guardar.`
+                    });
+                }
+            }
+        }, 200);
     }
     onPersonaSelect(event: any) {
+        this.skipNextPersonaBlur = true;
+
         this.formData.personaId = event.id;
         this.formData.personaNombre = event.nombre;
+        this.newPersonaMessage.set('');
+    }
+
+    onPersonaBlur() {
+        setTimeout(() => {
+            // Si acabamos de seleccionar, no validar
+            if (this.skipNextPersonaBlur) {
+                this.skipNextPersonaBlur = false;
+                return;
+            }
+
+            // Verificar si el usuario ha escrito una persona nueva
+            if (typeof this.selectedPersona === 'string' && (this.selectedPersona as string).trim()) {
+                const personaNombre = (this.selectedPersona as string).trim();
+                const existe = this.filteredPersonas().some((p) => p.nombre.toLowerCase() === personaNombre.toLowerCase());
+
+                if (!existe) {
+                    // La persona no existe, crear una temporal
+                    this.selectedPersona = { id: '', nombre: personaNombre };
+                    this.formData.personaId = undefined;
+                    this.formData.personaNombre = personaNombre;
+                    this.newPersonaMessage.set(`Ha seleccionado una persona "${personaNombre}" que no existe, se creará automáticamente.`);
+                    this.messageService.add({
+                        severity: 'info',
+                        summary: 'Persona no encontrada',
+                        detail: `La persona "${personaNombre}" no existe, se creará automáticamente al guardar.`
+                    });
+                }
+            }
+        }, 200);
     }
     onCuentaSelect(event: any) {
+        this.skipNextCuentaBlur = true;
+
         this.formData.cuentaId = event.id;
         this.formData.cuentaNombre = event.nombre;
+        this.newCuentaMessage.set('');
     }
+
+    onCuentaBlur() {
+        setTimeout(() => {
+            // Si acabamos de seleccionar, no validar
+            if (this.skipNextCuentaBlur) {
+                this.skipNextCuentaBlur = false;
+                return;
+            }
+
+            // Verificar si el usuario ha escrito una cuenta nueva
+            if (typeof this.selectedCuenta === 'string' && (this.selectedCuenta as string).trim()) {
+                const cuentaNombre = (this.selectedCuenta as string).trim();
+                const existe = this.filteredCuentas().some((c) => c.nombre.toLowerCase() === cuentaNombre.toLowerCase());
+
+                if (!existe) {
+                    // La cuenta no existe, crear una temporal
+                    this.selectedCuenta = { id: '', nombre: cuentaNombre };
+                    this.formData.cuentaId = undefined;
+                    this.formData.cuentaNombre = cuentaNombre;
+                    this.newCuentaMessage.set(`Ha seleccionado una cuenta "${cuentaNombre}" que no existe, se creará automáticamente.`);
+                    this.messageService.add({
+                        severity: 'info',
+                        summary: 'Cuenta no encontrada',
+                        detail: `La cuenta "${cuentaNombre}" no existe, se creará automáticamente al guardar.`
+                    });
+                }
+            }
+        }, 200);
+    }
+
     onFormaPagoSelect(event: any) {
+        this.skipNextFormaPagoBlur = true;
+
         this.formData.formaPagoId = event.id;
         this.formData.formaPagoNombre = event.nombre;
+        this.newFormaPagoMessage.set('');
     }
 
     onConceptoClear() {
@@ -520,117 +726,42 @@ export class GastoFormModalComponent {
         this.formData.conceptoId = undefined;
         this.formData.conceptoNombre = undefined;
         this.filteredConceptos.set([]);
+        this.newConceptoMessage.set('');
     }
     onCategoriaClear() {
         this.selectedCategoria = null;
         this.formData.categoriaId = undefined;
         this.formData.categoriaNombre = undefined;
         this.filteredConceptos.set([]);
+        this.newCategoriaMessage.set('');
     }
     onProveedorClear() {
         this.selectedProveedor = null;
         this.formData.proveedorId = undefined;
         this.formData.proveedorNombre = undefined;
         this.filteredProveedores.set([]);
+        this.newProveedorMessage.set('');
     }
     onPersonaClear() {
         this.selectedPersona = null;
         this.formData.personaId = undefined;
         this.formData.personaNombre = undefined;
         this.filteredPersonas.set([]);
+        this.newPersonaMessage.set('');
     }
     onCuentaClear() {
         this.selectedCuenta = null;
         this.formData.cuentaId = undefined;
         this.formData.cuentaNombre = undefined;
         this.filteredCuentas.set([]);
+        this.newCuentaMessage.set('');
     }
     onFormaPagoClear() {
         this.selectedFormaPago = null;
         this.formData.formaPagoId = undefined;
         this.formData.formaPagoNombre = undefined;
         this.filteredFormasPago.set([]);
-    }
-
-    // --- Apertura de Modales Inline ---
-    openCreateConcepto() {
-        this.showConceptoCreateModal = true;
-    }
-    openCreateCategoria() {
-        this.showCategoriaCreateModal = true;
-    }
-    openCreateProveedor() {
-        this.showProveedorCreateModal = true;
-    }
-    openCreatePersona() {
-        this.showPersonaCreateModal = true;
-    }
-    openCreateFormaPago() {
-        this.showFormaPagoCreateModal = true;
-    }
-    openCreateCuenta() {
-        this.showCuentaCreateModal = true;
-    }
-
-    // --- Callbacks de Creación (actualizan autocomplete) ---
-    onConceptoCreated(nuevo: Concepto) {
-        this.showConceptoCreateModal = false;
-        const item: CatalogItem = { id: nuevo.id, nombre: nuevo.nombre };
-        this.selectedConcepto = item;
-        this.formData.conceptoId = item.id;
-        this.formData.conceptoNombre = item.nombre;
-        this.filteredConceptos.set([item, ...this.filteredConceptos()]);
-        this.messageService.add({ severity: 'success', summary: 'Creado', detail: 'Concepto creado y seleccionado' });
-    }
-
-    onCategoriaCreated(nuevo: Categoria) {
-        this.showCategoriaCreateModal = false;
-        const item = { id: nuevo.id, nombre: nuevo.nombre };
-        this.selectedCategoria = item;
-        this.formData.categoriaId = nuevo.id;
-        this.formData.categoriaNombre = nuevo.nombre;
-        this.filteredCategorias.set([item, ...this.filteredCategorias()]);
-        this.messageService.add({ severity: 'success', summary: 'Creado', detail: 'Categoría creada y seleccionada' });
-    }
-
-    onProveedorCreated(nuevo: Proveedor) {
-        this.showProveedorCreateModal = false;
-        const item = { id: nuevo.id, nombre: nuevo.nombre };
-        this.selectedProveedor = item;
-        this.formData.proveedorId = item.id;
-        this.formData.proveedorNombre = item.nombre;
-        this.filteredProveedores.set([item, ...this.filteredProveedores()]);
-        this.messageService.add({ severity: 'success', summary: 'Creado', detail: 'Proveedor creado y seleccionado' });
-    }
-
-    onPersonaCreated(nuevo: Persona) {
-        this.showPersonaCreateModal = false;
-        const item = { id: nuevo.id, nombre: nuevo.nombre };
-        this.selectedPersona = item;
-        this.formData.personaId = item.id;
-        this.formData.personaNombre = item.nombre;
-        this.filteredPersonas.set([item, ...this.filteredPersonas()]);
-        this.messageService.add({ severity: 'success', summary: 'Creado', detail: 'Persona creada y seleccionada' });
-    }
-
-    onCuentaCreated(nuevo: Cuenta) {
-        this.showCuentaCreateModal = false;
-        const item = { id: nuevo.id, nombre: nuevo.nombre };
-        this.selectedCuenta = item;
-        this.formData.cuentaId = item.id;
-        this.formData.cuentaNombre = item.nombre;
-        this.filteredCuentas.set([item, ...this.filteredCuentas()]);
-        this.messageService.add({ severity: 'success', summary: 'Creado', detail: 'Cuenta creada y seleccionada' });
-    }
-
-    onFormaPagoCreated(nuevo: FormaPago) {
-        this.showFormaPagoCreateModal = false;
-        const item = { id: nuevo.id, nombre: nuevo.nombre };
-        this.selectedFormaPago = item;
-        this.formData.formaPagoId = item.id;
-        this.formData.formaPagoNombre = item.nombre;
-        this.filteredFormasPago.set([item, ...this.filteredFormasPago()]);
-        this.messageService.add({ severity: 'success', summary: 'Creado', detail: 'Forma de Pago creada y seleccionada' });
+        this.newFormaPagoMessage.set('');
     }
 
     getConceptoPlaceholder(): string {
@@ -638,36 +769,147 @@ export class GastoFormModalComponent {
         return 'Buscar o seleccionar concepto (Todas las categorías)';
     }
 
+    private formatearFecha(fecha: Date | string | undefined): string {
+        if (!fecha) {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        if (typeof fecha === 'string') {
+            return fecha;
+        }
+
+        // Convertir Date a formato YYYY-MM-DD usando fecha local (sin afectar por zona horaria)
+        const year = fecha.getFullYear();
+        const month = String(fecha.getMonth() + 1).padStart(2, '0');
+        const day = String(fecha.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
     onSave() {
         this.submitted.set(true);
-        if (!this.selectedConcepto || !this.formData.importe || this.formData.importe <= 0 || !this.selectedCuenta || !this.selectedFormaPago || !this.selectedPersona || !this.selectedProveedor) {
-            this.messageService.add({ severity: 'warn', summary: 'Incompleto', detail: 'Por favor complete todos los campos requeridos.' });
+
+        // 1. Validación previa: Si faltan datos, detenemos el proceso de inmediato.
+        if (!this.selectedConcepto || !this.formData.importe || this.formData.importe <= 0 || !this.selectedCuenta || !this.selectedFormaPago) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Formulario Incompleto',
+                detail: 'Por favor complete todos los campos requeridos.'
+            });
             return;
         }
 
+        // 2. Si los datos están bien, pedimos confirmación
+        this.#confirmationService.confirm({
+            message: '¿Está seguro de que desea registrar este gasto?',
+            header: 'Confirmar Guardado',
+            icon: 'pi pi-save',
+
+            acceptLabel: 'Sí, guardar',
+            rejectLabel: 'Cancelar',
+            acceptButtonStyleClass: 'p-button-success',
+
+            rejectButtonStyleClass: 'p-button-text p-button-danger',
+
+            accept: () => {
+                this.ejecutarGuardado();
+            }
+        });
+    }
+
+    private ejecutarGuardado() {
         const gastoToSave: Partial<Gasto> = {
             ...this.formData,
-            conceptoId: this.selectedConcepto.id,
-            conceptoNombre: this.selectedConcepto.nombre,
-            categoriaId: this.selectedCategoria?.id || '',
-            categoriaNombre: this.selectedCategoria?.nombre || '',
-            proveedorId: this.selectedProveedor?.id || '',
-            proveedorNombre: this.selectedProveedor?.nombre || '',
-            personaId: this.selectedPersona?.id || '',
-            personaNombre: this.selectedPersona?.nombre || '',
-            cuentaId: this.selectedCuenta.id,
-            cuentaNombre: this.selectedCuenta.nombre,
-            formaPagoId: this.selectedFormaPago.id,
-            formaPagoNombre: this.selectedFormaPago.nombre,
-            fecha: typeof this.formData.fecha === 'string' ? this.formData.fecha : new Date(this.formData.fecha!).toISOString().split('T')[0]
+            conceptoId: this.selectedConcepto?.id || "00000000-0000-0000-0000-000000000000",
+            categoriaId: this.selectedCategoria?.id || "00000000-0000-0000-0000-000000000000",
+            cuentaId: this.selectedCuenta?.id || "00000000-0000-0000-0000-000000000000",
+            formaPagoId: this.selectedFormaPago?.id || "00000000-0000-0000-0000-000000000000",
+
+            // Opcionales (pueden ser null)
+            proveedorId: this.selectedProveedor?.id || null,
+            personaId: this.selectedPersona?.id || null,
+
+            // Nombres para auto-creación
+            categoriaNombre: this.selectedCategoria?.nombre,
+            conceptoNombre: this.selectedConcepto?.nombre,
+            proveedorNombre: this.selectedProveedor?.nombre,
+            personaNombre: this.selectedPersona?.nombre,
+            cuentaNombre: this.selectedCuenta?.nombre,
+            formaPagoNombre: this.selectedFormaPago?.nombre,
+            fecha: this.formatearFecha(this.formData.fecha)
         };
+
         this.save.emit(gastoToSave);
         this.closeModal();
     }
 
     onCancel() {
-        this.cancel.emit();
-        this.closeModal();
+        if (this.hasUnsavedChanges()) {
+            this.#confirmationService.confirm({
+                message: '¿Está seguro de que desea salir? Se perderán los cambios no guardados.',
+                header: 'Confirmar Cancelación',
+                icon: 'pi pi-exclamation-triangle',
+                acceptLabel: 'Sí',
+                rejectLabel: 'Cancelar',
+                acceptButtonStyleClass: 'p-button-success',
+
+                rejectButtonStyleClass: 'p-button-text p-button-danger',
+                accept: () => {
+                    // Esto SOLO se ejecuta si el usuario hace clic en "Sí"
+                    this.cancel.emit();
+                    this.closeModal();
+                },
+                reject: () => {
+                    // Si rechaza, reabrimos el drawer
+                    this.isVisible = true;
+                }
+            });
+        } else {
+            // No hay cambios, cerrar directamente
+            this.cancel.emit();
+            this.closeModal();
+        }
+    }
+
+    handleDrawerHide() {
+        // Este método se llama cuando el drawer se cierra (ESC, clic fuera, etc.)
+        if (this.hasUnsavedChanges()) {
+            // Si hay cambios sin guardar, mostrar confirmación
+            this.#confirmationService.confirm({
+                message: '¿Está seguro de que desea salir? Se perderán los cambios no guardados.',
+                header: 'Confirmar Cancelación',
+                icon: 'pi pi-exclamation-triangle',
+                acceptLabel: 'Sí',
+                rejectLabel: 'Cancelar',
+                acceptButtonStyleClass: 'p-button-success',
+                rejectButtonStyleClass: 'p-button-text p-button-danger',
+                accept: () => {
+                    this.cancel.emit();
+                    this.closeModal();
+                },
+                reject: () => {
+                    // Si rechaza, reabrimos el drawer
+                    this.isVisible = true;
+                }
+            });
+        } else {
+            // No hay cambios, permitir el cierre
+            this.cancel.emit();
+            this.closeModal();
+        }
+    }
+
+    private hasUnsavedChanges(): boolean {
+        return (
+            this.selectedCategoria != null ||
+            this.selectedConcepto != null ||
+            this.formData.importe != null ||
+            this.formData.descripcion != null ||
+            this.formData.fecha != null ||
+            this.formData.cuentaId != null ||
+            this.formData.formaPagoId != null ||
+            this.selectedProveedor != null ||
+            this.selectedPersona != null
+        );
     }
 
     private closeModal() {

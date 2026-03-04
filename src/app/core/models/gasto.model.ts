@@ -7,10 +7,10 @@ export interface Gasto {
     conceptoNombre: string;
     categoriaId: string;
     categoriaNombre: string;
-    proveedorId: string;
-    proveedorNombre: string;
-    personaId: string;
-    personaNombre: string;
+    proveedorId?: string | null;
+    proveedorNombre?: string | null;
+    personaId?: string | null;
+    personaNombre?: string | null;
     cuentaId: string;
     cuentaNombre: string;
     formaPagoId: string;
@@ -26,13 +26,20 @@ export interface ResumenGastos {
 }
 
 export interface GastoCreate {
+    tempid?: string;
     importe: number;
     fecha: string;
     descripcion?: string;
     conceptoId: string;
+    conceptoNombre: string;
     categoriaId: string;
-    proveedorId: string;
-    personaId: string;
+    categoriaNombre: string;
+    proveedorId?: string | null;
+    proveedorNombre?: string | null;
+    personaId?: string | null;
+    personaNombre?: string | null;
     cuentaId: string;
+    cuentaNombre: string;
     formaPagoId: string;
+    formaPagoNombre: string;
 }

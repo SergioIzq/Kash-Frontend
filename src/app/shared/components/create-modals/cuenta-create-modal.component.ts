@@ -30,8 +30,8 @@ import { CuentaStore } from '@/features/cuentas/store/cuenta.store';
 
                     <div>
                         <label for="saldo" class="block font-bold mb-3">Saldo Inicial *</label>
-                        <p-inputnumber id="saldo" [(ngModel)]="saldo" mode="currency" currency="EUR" locale="es-ES" fluid />
-                        @if (submitted() && saldo === null) {
+                        <p-inputnumber id="saldo" [(ngModel)]="saldo" mode="currency" currency="EUR" locale="es-ES" fluid placeholder="0,00 €"/>
+                        @if (submitted() && (saldo === undefined || saldo === null)) {
                             <small class="text-red-500"> El saldo inicial es requerido. </small>
                         }
                     </div>
@@ -62,7 +62,7 @@ export class CuentaCreateModalComponent {
 
     // Estado del formulario
     nombre: string = '';
-    saldo: number = 0;
+    saldo: number | undefined= undefined;
     submitted = signal(false);
     loading = signal(false);
     errorMessage = signal<string>('');
@@ -77,7 +77,7 @@ export class CuentaCreateModalComponent {
             // Limpiar formulario cuando se abre
             if (this.visible()) {
                 this.nombre = '';
-                this.saldo = 0;
+                this.saldo = undefined;
                 this.submitted.set(false);
                 this.loading.set(false);
                 this.errorMessage.set('');
@@ -89,7 +89,7 @@ export class CuentaCreateModalComponent {
         this.submitted.set(true);
         this.errorMessage.set('');
 
-        if (!this.nombre.trim() || this.saldo === null) {
+        if (!this.nombre.trim() || this.saldo === undefined || this.saldo === null) {
             return;
         }
 
@@ -109,14 +109,14 @@ export class CuentaCreateModalComponent {
         this.loading.set(true);
 
         this.cuentaStore
-            .create(this.nombre.trim(), this.saldo)
+            .create(this.nombre.trim(), this.saldo!)
             .then((nuevaCuentaId) => {
                 // El store devuelve el UUID
                 const nuevaCuenta: Cuenta = {
                     id: nuevaCuentaId,
                     nombre: this.nombre.trim(),
                     fechaCreacion: new Date(),
-                    saldo: this.saldo,
+                    saldo: this.saldo!,
                     usuarioId: ''
                 };
 
@@ -138,7 +138,7 @@ export class CuentaCreateModalComponent {
         this.isVisible = false;
         this.visibleChange.emit(false);
         this.nombre = '';
-        this.saldo = 0;
+        this.saldo = undefined;
         this.submitted.set(false);
         this.loading.set(false);
         this.errorMessage.set('');

@@ -48,7 +48,7 @@ export class AppMenu {
                 ]
             },
             {
-                label: 'Catálogos',
+                label: 'Listas',
                 icon: 'pi pi-fw pi-database',
                 items: [
                     {
@@ -106,6 +106,16 @@ export class AppMenu {
                         label: 'Traspasos Programados',
                         icon: 'pi pi-fw pi-replay',
                         routerLink: ['/traspasos-programados']
+                    }
+                ]
+            },
+            {
+                label: 'Ayuda',
+                items: [
+                    { 
+                        label: 'Centro de Ayuda', 
+                        icon: 'pi pi-fw pi-question-circle', 
+                        routerLink: ['/ayuda'] 
                     }
                 ]
             }
