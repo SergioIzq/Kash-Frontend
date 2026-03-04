@@ -108,6 +108,16 @@ export class AppMenu {
                         routerLink: ['/traspasos-programados']
                     }
                 ]
+            },
+            {
+                label: 'Ayuda',
+                items: [
+                    { 
+                        label: 'Centro de Ayuda', 
+                        icon: 'pi pi-fw pi-question-circle', 
+                        routerLink: ['/ayuda'] 
+                    }
+                ]
             }
         ];
     }

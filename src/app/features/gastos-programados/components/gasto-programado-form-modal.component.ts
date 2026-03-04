@@ -23,7 +23,6 @@ import { CuentaStore } from '@/features/cuentas/store/cuenta.store';
 import { ConceptoStore } from '@/features/conceptos/store/concepto.store';
 import { CategoriaStore } from '@/features/categorias/store/categoria.store';
 import { PersonaStore } from '@/features/personas/store/persona.store';
-import { ToastModule } from 'primeng/toast';
 
 interface CatalogItem {
     id: string;
@@ -50,12 +49,10 @@ interface GastoProgramadoFormData extends Omit<Partial<GastoProgramado>, 'fechaE
         DatePickerModule,
         AutoCompleteModule,
         ToggleSwitchModule,
-        TooltipModule,
-        ToastModule
+        TooltipModule
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <p-toast position="top-right" />
         <p-drawer 
             [(visible)]="isVisible" 
             position="right" 
@@ -621,19 +618,20 @@ export class GastoProgramadoFormModalComponent {
         const toSave: Partial<GastoProgramado> = {
             ...this.formData,
             // IDs y Nombres
-            conceptoId: this.selectedConcepto.id,
+            conceptoId: this.selectedConcepto.id || '00000000-0000-0000-0000-000000000000',
             conceptoNombre: this.selectedConcepto.nombre,
-            categoriaId: this.selectedCategoria?.id,
+            categoriaId: this.selectedCategoria?.id || '00000000-0000-0000-0000-000000000000',
             categoriaNombre: this.selectedCategoria?.nombre,
-            proveedorId: this.selectedProveedor?.id,
+            proveedorId: this.selectedProveedor?.id || '00000000-0000-0000-0000-000000000000',
             proveedorNombre: this.selectedProveedor?.nombre,
-            personaId: this.selectedPersona?.id,
+            personaId: this.selectedPersona?.id || '00000000-0000-0000-0000-000000000000',
             personaNombre: this.selectedPersona?.nombre,
-            cuentaId: this.selectedCuenta.id,
+            cuentaId: this.selectedCuenta.id || '00000000-0000-0000-0000-000000000000',
             cuentaNombre: this.selectedCuenta.nombre,
             formaPagoId: this.selectedFormaPago.id,
             formaPagoNombre: this.selectedFormaPago.nombre,
-            
+            descripcion: this.formData.descripcion?.trim() || undefined,
+
             // Conversión inversa: Date object -> String (ISO) para el backend
             fechaEjecucion: this.formData.fechaEjecucion instanceof Date 
                 ? this.formData.fechaEjecucion.toISOString().split('T')[0] // 'YYYY-MM-DD' o ISO completo según tu back

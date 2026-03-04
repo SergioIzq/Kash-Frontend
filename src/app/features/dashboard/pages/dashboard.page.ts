@@ -302,14 +302,6 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         </div>
                     </div>
                 }
-
-                <div class="card shadow-2 border-round p-4 h-full">
-                    <h5 class="text-900 font-semibold text-xl mb-4">Acciones Rápidas</h5>
-                    <div class="flex flex-wrap gap-3">
-                        <p-button label="Ver Gastos" icon="pi pi-list" [outlined]="true" [routerLink]="['/gastos']"> </p-button>
-                        <p-button label="Ver Ingresos" icon="pi pi-list" [outlined]="true" [routerLink]="['/ingresos']"> </p-button>
-                    </div>
-                </div>
             }
         </app-base-page-template>
     `

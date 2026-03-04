@@ -23,7 +23,6 @@ import { CuentaStore } from '@/features/cuentas/store/cuenta.store';
 import { ConceptoStore } from '@/features/conceptos/store/concepto.store';
 import { CategoriaStore } from '@/features/categorias/store/categoria.store';
 import { PersonaStore } from '@/features/personas/store/persona.store';
-import { ToastModule } from 'primeng/toast';
 
 interface CatalogItem {
     id: string;
@@ -50,12 +49,10 @@ interface IngresoProgramadoFormData extends Omit<Partial<IngresoProgramado>, 'fe
         DatePickerModule,
         AutoCompleteModule,
         ToggleSwitchModule,
-        TooltipModule,
-        ToastModule
+        TooltipModule
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <p-toast position="top-right" />
         <p-drawer 
             [(visible)]="isVisible" 
             position="right" 
