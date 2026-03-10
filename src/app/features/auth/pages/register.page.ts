@@ -6,7 +6,8 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { DividerModule } from 'primeng/divider';
-import { MessageService } from 'primeng/api';
+import { DialogModule } from 'primeng/dialog';
+import { ScrollPanelModule } from 'primeng/scrollpanel';
 import { CommonModule } from '@angular/common';
 import { AuthStore } from '../../../core/stores/auth.store';
 import { AuthWrapperComponent } from '../components/auth-wrapper.component';
@@ -15,7 +16,12 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
 @Component({
     selector: 'app-register-page',
     standalone: true,
-    imports: [CommonModule, AuthWrapperComponent, ButtonModule, CheckboxModule, InputTextModule, PasswordModule, ReactiveFormsModule, RouterModule, DividerModule, BasePageTemplateComponent],
+    styles: `
+        a.hover-underline-force:hover {
+            text-decoration: underline !important;
+    }`
+    ,
+    imports: [CommonModule, AuthWrapperComponent, ButtonModule, CheckboxModule, InputTextModule, PasswordModule, ReactiveFormsModule, RouterModule, DividerModule, DialogModule, ScrollPanelModule, BasePageTemplateComponent],
     template: `
         <app-base-page-template [loading]="authStore.loading() && !showSuccessView()" [skeletonType]="'form'">
             <app-auth-wrapper title="Crear cuenta" subtitle="Únete a Kash hoy mismo">
@@ -103,13 +109,13 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
 
                             <div class="flex items-center mb-2">
                                 <p-checkbox formControlName="termsAccepted" id="terms" binary="true" styleClass="mr-2"></p-checkbox>
-                                <label for="terms" class="text-surface-900 dark:text-surface-0"> Acepto los <a class="text-primary font-bold hover:underline cursor-pointer">términos y condiciones</a> </label>
+                                <label for="terms" class="text-surface-900 dark:text-surface-0"> Acepto los <a class="text-primary font-bold hover-underline-force cursor-pointer" (click)="showTerms()">términos y condiciones</a> </label>
                             </div>
                             @if (registerForm.get('termsAccepted')?.touched && registerForm.get('termsAccepted')?.hasError('requiredTrue')) {
                                 <small class="text-red-500 mt-1 block">Debes aceptar los términos y condiciones.</small>
                             }
 
-                            <p-button label="Registrarse" type="submit" styleClass="w-full" [loading]="authStore.loading()" [disabled]="registerForm.invalid"></p-button>
+                            <p-button label="Registrarse" type="submit" styleClass="w-full hover-underline-force" class="hover-underline-force" [loading]="authStore.loading()" [disabled]="registerForm.invalid"></p-button>
                         </div>
                     </form>
 
@@ -117,14 +123,88 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         <p-divider align="center" class="my-4">
                             <span class="text-muted-color text-sm">¿Ya tienes cuenta?</span>
                         </p-divider>
-                        <a routerLink="/auth/login" class="font-medium text-primary hover:text-primary-600 cursor-pointer transition-colors no-underline"> Iniciar sesión aquí </a>
+                        <a routerLink="/auth/login" class="font-medium text-primary hover:text-primary-600 cursor-pointer transition-colors hover-underline-force"> Iniciar sesión aquí </a>
                     </div>
                 }
         </app-auth-wrapper>
         </app-base-page-template>
+
+        <!-- Términos y Condiciones Dialog -->
+        <p-dialog
+            header="Términos y Condiciones"
+            [(visible)]="termsVisible"
+            [modal]="true"
+            [style]="{ width: '90vw', maxWidth: '680px' }"
+            [draggable]="false"
+            [resizable]="false"
+        >
+            <p-scrollpanel [style]="{ width: '100%', height: '420px' }">
+                <div class="flex flex-col gap-4 text-surface-700 dark:text-surface-200 pr-3 text-sm leading-relaxed">
+
+                    <p class="text-muted-color text-xs">Última actualización: marzo 2026</p>
+
+                    <section>
+                        <h3 class="font-bold text-surface-900 dark:text-surface-0 mb-1">1. Aceptación de los términos</h3>
+                        <p>Al registrarte y utilizar Kash, aceptas quedar vinculado por estos Términos y Condiciones. Si no estás de acuerdo con alguno de ellos, no utilices la aplicación.</p>
+                    </section>
+
+                    <section>
+                        <h3 class="font-bold text-surface-900 dark:text-surface-0 mb-1">2. Descripción del servicio</h3>
+                        <p>Kash es una aplicación de gestión financiera personal que te permite registrar ingresos, gastos, traspasos e inversiones. La información que introduces es de uso exclusivamente personal y no constituye asesoramiento financiero, legal ni fiscal.</p>
+                    </section>
+
+                    <section>
+                        <h3 class="font-bold text-surface-900 dark:text-surface-0 mb-1">3. Cuenta de usuario</h3>
+                        <p>Eres responsable de mantener la confidencialidad de tus credenciales de acceso. Debes notificarnos inmediatamente cualquier uso no autorizado de tu cuenta. Nos reservamos el derecho de suspender cuentas que incumplan estos términos.</p>
+                    </section>
+
+                    <section>
+                        <h3 class="font-bold text-surface-900 dark:text-surface-0 mb-1">4. Privacidad y protección de datos</h3>
+                        <p>Tus datos se almacenan de forma segura y no son compartidos con terceros sin tu consentimiento. Tratamos tus datos personales de acuerdo con el Reglamento General de Protección de Datos (RGPD) y la normativa española vigente. Puedes solicitar la eliminación de tu cuenta y todos tus datos en cualquier momento.</p>
+                    </section>
+
+                    <section>
+                        <h3 class="font-bold text-surface-900 dark:text-surface-0 mb-1">5. Uso aceptable</h3>
+                        <p>Te comprometes a utilizar Kash únicamente para fines lícitos y personales. Queda prohibido intentar acceder a datos de otros usuarios, realizar ingeniería inversa de la aplicación o utilizarla para actividades fraudulentas.</p>
+                    </section>
+
+                    <section>
+                        <h3 class="font-bold text-surface-900 dark:text-surface-0 mb-1">6. Exención de responsabilidad</h3>
+                        <p>Kash se proporciona «tal cual», sin garantías de ningún tipo. No nos hacemos responsables de decisiones financieras tomadas basándose en la información mostrada por la aplicación. Los datos de mercado (cotizaciones) provienen de fuentes públicas y pueden no ser exactos en tiempo real.</p>
+                    </section>
+
+                    <section>
+                        <h3 class="font-bold text-surface-900 dark:text-surface-0 mb-1">7. Modificaciones</h3>
+                        <p>Podemos actualizar estos términos en cualquier momento. Te notificaremos los cambios significativos. El uso continuado de la aplicación tras la notificación implica la aceptación de los nuevos términos.</p>
+                    </section>
+
+                    <section>
+                        <h3 class="font-bold text-surface-900 dark:text-surface-0 mb-1">8. Ley aplicable</h3>
+                        <p>Estos términos se rigen por la legislación española. Cualquier disputa se someterá a los juzgados y tribunales competentes de España.</p>
+                    </section>
+
+                </div>
+            </p-scrollpanel>
+
+            <ng-template #footer>
+                <p-button label="Cerrar" icon="pi pi-times" [outlined]="true" (onClick)="termsVisible = false" />
+                <p-button label="Aceptar y cerrar" icon="pi pi-check" (onClick)="acceptTerms()" />
+            </ng-template>
+        </p-dialog>
     `
 })
 export class RegisterPage extends BasePageComponent {
+    termsVisible = false;
+
+    showTerms(): void {
+        this.termsVisible = true;
+    }
+
+    acceptTerms(): void {
+        this.registerForm.patchValue({ termsAccepted: true });
+        this.termsVisible = false;
+    }
+
     authStore = inject(AuthStore);
     private router = inject(Router);
     private fb = inject(FormBuilder);
