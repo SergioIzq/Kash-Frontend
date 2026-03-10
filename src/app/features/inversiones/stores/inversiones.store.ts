@@ -1,18 +1,26 @@
 import { computed, inject } from '@angular/core';
 import { patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { pipe, switchMap, tap, firstValueFrom } from 'rxjs';
+import { pipe, switchMap, tap, firstValueFrom, Subscription } from 'rxjs';
 import { tapResponse } from '@ngrx/operators';
 import { InversionService } from '@/core/services/api/inversion.service';
 import { MarketDataService, CotizacionActivo } from '../services/market-data.service';
+import { RealtimeMarketDataService } from '../services/realtime-market-data.service';
+import { PortfolioPerformanceService, RendimientoPeriodo, PortfolioChartData, PeriodoKey } from '../services/portfolio-performance.service';
 import { Inversion, InversionCreate, InversionConPrecio, ResumenPortfolio, TIPOS_INVERSION_CONFIG, BrokerFormat, ImportarExtractoResult } from '@/core/models/inversion.model';
 
 interface InversionesState {
     inversiones: Inversion[];
     cotizaciones: Record<string, CotizacionActivo>;
+    rendimientos: RendimientoPeriodo[];
+    chartData: PortfolioChartData | null;
+    selectedPeriodo: PeriodoKey;
     loading: boolean;
     pricesLoading: boolean;
+    rendimientosLoading: boolean;
+    chartLoading: boolean;
     importing: boolean;
+    wsConnected: boolean;
     error: string | null;
     lastUpdated: number | null;
     lastPricesUpdated: number | null;
@@ -21,9 +29,15 @@ interface InversionesState {
 const initialState: InversionesState = {
     inversiones: [],
     cotizaciones: {},
+    rendimientos: [],
+    chartData: null,
+    selectedPeriodo: '1M',
     loading: false,
     pricesLoading: false,
+    rendimientosLoading: false,
+    chartLoading: false,
     importing: false,
+    wsConnected: false,
     error: null,
     lastUpdated: null,
     lastPricesUpdated: null
@@ -139,7 +153,11 @@ export const InversionesStore = signalStore(
         })
     })),
 
-    withMethods((store, inversionService = inject(InversionService), marketDataService = inject(MarketDataService)) => ({
+    withMethods((store, inversionService = inject(InversionService), marketDataService = inject(MarketDataService), realtimeService = inject(RealtimeMarketDataService), performanceService = inject(PortfolioPerformanceService)) => {
+        let rtSub: Subscription | null = null;
+        let connSub: Subscription | null = null;
+
+        return ({
         loadInversiones: rxMethod<void>(
             pipe(
                 tap(() => patchState(store, { loading: true, error: null })),
@@ -191,6 +209,58 @@ export const InversionesStore = signalStore(
                                 });
                             },
                             error: () => patchState(store, { pricesLoading: false })
+                        })
+                    );
+                })
+            )
+        ),
+
+        loadRendimientos: rxMethod<void>(
+            pipe(
+                tap(() => patchState(store, { rendimientosLoading: true })),
+                switchMap(() => {
+                    const inversiones = store.inversiones().filter((inv) => inv.tipo !== 'mercado_privado');
+                    const cotizaciones = store.cotizaciones();
+                    const preciosActuales: Record<string, number> = {};
+                    for (const [ticker, cot] of Object.entries(cotizaciones)) {
+                        preciosActuales[ticker] = cot.precioActual;
+                    }
+
+                    if (!inversiones.length || !Object.keys(preciosActuales).length) {
+                        patchState(store, { rendimientosLoading: false });
+                        return [[]];
+                    }
+
+                    return performanceService.getAllRendimientos(inversiones, preciosActuales).pipe(
+                        tapResponse({
+                            next: (rendimientos) => patchState(store, { rendimientos, rendimientosLoading: false }),
+                            error: () => patchState(store, { rendimientosLoading: false })
+                        })
+                    );
+                })
+            )
+        ),
+
+        selectPeriodoAndLoadChart: rxMethod<PeriodoKey>(
+            pipe(
+                tap((periodo) => patchState(store, { selectedPeriodo: periodo, chartLoading: true })),
+                switchMap((periodo) => {
+                    const inversiones = store.inversiones().filter((inv) => inv.tipo !== 'mercado_privado');
+                    const cotizaciones = store.cotizaciones();
+                    const preciosActuales: Record<string, number> = {};
+                    for (const [ticker, cot] of Object.entries(cotizaciones)) {
+                        preciosActuales[ticker] = cot.precioActual;
+                    }
+
+                    if (!inversiones.length || !Object.keys(preciosActuales).length) {
+                        patchState(store, { chartLoading: false });
+                        return [null];
+                    }
+
+                    return performanceService.getChartData(periodo, inversiones, preciosActuales).pipe(
+                        tapResponse({
+                            next: (chartData) => patchState(store, { chartData, chartLoading: false }),
+                            error: () => patchState(store, { chartLoading: false })
                         })
                     );
                 })
@@ -271,8 +341,53 @@ export const InversionesStore = signalStore(
             }
         },
 
+        /** Inicia la conexión WebSocket de tiempo real para los tickers del portfolio. */
+        startRealtime(): void {
+            const tickers = store
+                .inversiones()
+                .filter((inv) => inv.tipo !== 'mercado_privado' && inv.ticker)
+                .map((inv) => inv.ticker.toUpperCase());
+
+            if (!tickers.length) return;
+
+            // Desuscribirse si ya había una conexión previa
+            rtSub?.unsubscribe();
+            connSub?.unsubscribe();
+
+            // Estado de conexión
+            connSub = realtimeService.connected$.subscribe((connected) => {
+                patchState(store, { wsConnected: connected });
+            });
+
+            // Actualizaciones de precio en tiempo real
+            rtSub = realtimeService.suscribir(tickers).subscribe((cotizacion) => {
+                const current = { ...store.cotizaciones() };
+                const prev = current[cotizacion.ticker];
+                current[cotizacion.ticker] = {
+                    ticker:              cotizacion.ticker,
+                    nombre:              cotizacion.nombre  ?? prev?.nombre  ?? cotizacion.ticker,
+                    precioActual:        cotizacion.precioActual,
+                    moneda:              cotizacion.moneda  ?? prev?.moneda  ?? '',
+                    variacion24h:        cotizacion.variacion24h,
+                    variacion24hAbsoluta: cotizacion.variacion24hAbsoluta,
+                    ultimaActualizacion: cotizacion.ultimaActualizacion
+                };
+                patchState(store, { cotizaciones: current, lastPricesUpdated: Date.now() });
+            });
+        },
+
+        /** Detiene la conexión WebSocket. */
+        stopRealtime(): void {
+            rtSub?.unsubscribe();
+            connSub?.unsubscribe();
+            rtSub = null;
+            connSub = null;
+            patchState(store, { wsConnected: false });
+        },
+
         clearError(): void {
             patchState(store, { error: null });
         }
-    }))
+    });
+    })
 );

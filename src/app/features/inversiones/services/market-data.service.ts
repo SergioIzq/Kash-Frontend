@@ -15,12 +15,13 @@ export interface CotizacionActivo {
 }
 
 // ── Yahoo Finance v8 chart endpoint ────────────────────────────────────────
-// Funciona desde el navegador sin API key.
-// Para producción con nginx, puedes proxear el dominio:
-//   location /yahoo-finance/ {
-//       proxy_pass https://query2.finance.yahoo.com/;
-//       proxy_set_header Host query2.finance.yahoo.com;
-//   }
+// Se usa un proxy para evitar errores CORS:
+//   - Desarrollo: proxy.conf.json (/v8/finance/chart → query2.finance.yahoo.com)
+//   - Producción con nginx:
+//       location /v8/finance/chart/ {
+//           proxy_pass https://query2.finance.yahoo.com/v8/finance/chart/;
+//           proxy_set_header Host query2.finance.yahoo.com;
+//       }
 //
 // Tickers soportados:
 //   Acciones / ETFs:   AAPL · MSFT · NVDA · SPY · QQQ · IWDA.AS
@@ -59,7 +60,8 @@ interface YahooChartResponse {
 export class MarketDataService {
     private readonly http = inject(HttpClient);
 
-    private readonly yahooChartUrl = 'https://query2.finance.yahoo.com/v8/finance/chart';
+    // Ruta del proxy configurado en proxy.conf.json (desarrollo) o nginx (producción)
+    private readonly yahooChartUrl = '/v8/finance/chart';
 
     /**
      * Obtiene la cotización actual de varios tickers en paralelo.

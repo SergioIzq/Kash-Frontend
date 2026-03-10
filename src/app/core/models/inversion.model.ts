@@ -77,7 +77,7 @@ export interface ResumenPortfolio {
 
 // ── Import de extractos ──────────────────────────────────────────────────────
 
-export type BrokerFormat = 'generic' | 'trade_republic' | 'degiro' | 'interactive_brokers' | 'binance';
+export type BrokerFormat = 'generic' | 'trade_republic' | 'trade_republic_pdf' | 'degiro' | 'interactive_brokers' | 'binance';
 
 export interface ImportErrorLinea {
     /** 1-based line number in the CSV file */

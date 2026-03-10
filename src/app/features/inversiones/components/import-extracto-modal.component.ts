@@ -21,6 +21,7 @@ interface BrokerFormatConfig {
     columns: string;
     example: string;
     guide: string;
+    fileType: 'csv' | 'pdf';
 }
 
 const BROKER_FORMATS: BrokerFormatConfig[] = [
@@ -32,17 +33,30 @@ const BROKER_FORMATS: BrokerFormatConfig[] = [
         description: 'Formato universal para cualquier bróker.',
         columns: 'nombre, ticker, tipo, cantidad, precio_compra, moneda, fecha_compra [, descripcion] [, plataforma]',
         example: 'Apple Inc.,AAPL,accion,10,182.50,USD,2024-03-15',
-        guide: 'Crea un CSV con una fila de cabecera y una fila por posición. Separadores válidos: coma (,) o punto y coma (;). Fechas en formato YYYY-MM-DD. El campo "tipo" debe ser uno de: etf, accion, cripto, bono, fondo, mercado_privado, otro.'
+        guide: 'Crea un CSV con una fila de cabecera y una fila por posición. Separadores válidos: coma (,) o punto y coma (;). Fechas en formato YYYY-MM-DD. El campo "tipo" debe ser uno de: etf, accion, cripto, bono, fondo, mercado_privado, otro.',
+        fileType: 'csv'
     },
     {
         value: 'trade_republic',
-        label: 'Trade Republic',
+        label: 'Trade Republic CSV',
         icon: 'pi pi-briefcase',
         color: '#3B82F6',
         description: 'Historial de operaciones de Trade Republic.',
         columns: 'Datum, Typ, ISIN, Name, Stücke, Kurs, Währung',
         example: '2024-03-15,Kauf,US0378331005,Apple Inc.,10,182.50,USD',
-        guide: 'En la app TR: Perfil → Documentos de cuenta → Historial de operaciones → Exportar CSV. Solo se importan operaciones de tipo "Kauf" (compra).'
+        guide: 'En la app TR: Perfil → Documentos de cuenta → Historial de operaciones → Exportar CSV. Solo se importan operaciones de tipo "Kauf" (compra).',
+        fileType: 'csv'
+    },
+    {
+        value: 'trade_republic_pdf',
+        label: 'Trade Republic PDF',
+        icon: 'pi pi-file-pdf',
+        color: '#EF4444',
+        description: 'Factura/Abrechnung de compra de Trade Republic en PDF.',
+        columns: '(extraído automáticamente del PDF)',
+        example: 'Archivo .pdf descargado desde "Documentos" en la app de TR',
+        guide: 'En la app TR: toca cualquier posición → Documentos → Abrechnung (factura de compra) → Descarga el PDF. Puedes subir varios PDF a la vez arrastrándolos. Solo se importan facturas de tipo "Kauf" (compra).',
+        fileType: 'pdf'
     },
     {
         value: 'degiro',
@@ -52,7 +66,8 @@ const BROKER_FORMATS: BrokerFormatConfig[] = [
         description: 'Historial de transacciones de DEGIRO.',
         columns: 'Fecha, Hora, Producto, ISIN, Lugar, Número, Precio, Divisa local, Valor local...',
         example: '15-03-2024,10:00,Apple Inc.,US0378331005,XETRA,10,182.50,USD,1825.00,...',
-        guide: 'En DEGIRO: Actividad → Transacciones → selecciona rango de fechas → Exportar → CSV. Solo se importan compras (cantidad positiva).'
+        guide: 'En DEGIRO: Actividad → Transacciones → selecciona rango de fechas → Exportar → CSV. Solo se importan compras (cantidad positiva).',
+        fileType: 'csv'
     },
     {
         value: 'interactive_brokers',
@@ -62,7 +77,8 @@ const BROKER_FORMATS: BrokerFormatConfig[] = [
         description: 'Flex Query de actividad de trades (IBKR).',
         columns: 'TradeDate, Symbol, Description, Quantity, TradePrice, CurrencyPrimary, AssetCategory',
         example: '20240315,AAPL,APPLE INC,10,182.500,USD,STK',
-        guide: 'Portal IBKR: Informes → Extractos → Flex Queries. Crea un query con sección "Trades" incluyendo los campos indicados. Descarga en CSV. Solo se importan compras (Quantity > 0).'
+        guide: 'Portal IBKR: Informes → Extractos → Flex Queries. Crea un query con sección "Trades" incluyendo los campos indicados. Descarga en CSV. Solo se importan compras (Quantity > 0).',
+        fileType: 'csv'
     },
     {
         value: 'binance',
@@ -72,7 +88,8 @@ const BROKER_FORMATS: BrokerFormatConfig[] = [
         description: 'Historial de operaciones spot de Binance.',
         columns: 'Date(UTC), Pair, Side, Price, Executed, Amount, Fee',
         example: '2024-03-15 10:00:00,BTCUSDT,BUY,65000.00,0.001 BTC,65.00 USDT,0.001 BNB',
-        guide: 'En Binance: Cartera → Spot → Historial de operaciones → Exportar → CSV. Solo se importan operaciones "BUY".'
+        guide: 'En Binance: Cartera → Spot → Historial de operaciones → Exportar → CSV. Solo se importan operaciones "BUY".',
+        fileType: 'csv'
     }
 ];
 
@@ -152,7 +169,7 @@ type ImportStep = 'select' | 'importing' | 'result';
                                 <div
                                     class="broker-card"
                                     [class.selected]="selectedFormat() === fmt.value"
-                                    (click)="selectedFormat.set(fmt.value)"
+                                    (click)="selectFormat(fmt.value)"
                                 >
                                     <div class="flex align-items-center gap-2 mb-1">
                                         <i [class]="fmt.icon" [style.color]="fmt.color" class="text-base"></i>
@@ -202,14 +219,14 @@ type ImportStep = 'select' | 'importing' | 'result';
                             (drop)="onDrop($event)"
                         >
                             @if (selectedFile()) {
-                                <i class="pi pi-file-excel text-4xl text-green-500 block mb-2"></i>
-                                <p class="font-semibold m-0 text-green-600">{{ selectedFile()!.name }}</p>
+                                <i [class]="isPdf() ? 'pi pi-file-pdf text-red-500' : 'pi pi-file-excel text-green-500'" class="text-4xl block mb-2"></i>
+                                <p class="font-semibold m-0" [class.text-green-600]="!isPdf()" [class.text-red-600]="isPdf()">{{ selectedFile()!.name }}</p>
                                 <p class="text-500 text-sm m-0 mt-1">{{ fileSize() }} · {{ estimatedRows() }}</p>
                             } @else {
-                                <i class="pi pi-cloud-upload text-4xl text-400 block mb-3"></i>
-                                <p class="font-semibold text-900 m-0">Arrastra tu CSV aquí</p>
+                                <i [class]="isPdf() ? 'pi pi-file-pdf' : 'pi pi-cloud-upload'" class="text-4xl text-400 block mb-3"></i>
+                                <p class="font-semibold text-900 m-0">Arrastra tu {{ isPdf() ? 'PDF' : 'CSV' }} aquí</p>
                                 <p class="text-500 text-sm mt-1 mb-0">o haz clic para seleccionar</p>
-                                <p class="text-400 text-xs mt-2 mb-0">Solo archivos .csv · Máximo 5 MB</p>
+                                <p class="text-400 text-xs mt-2 mb-0">Solo archivos {{ isPdf() ? '.pdf' : '.csv' }} · Máximo 10 MB</p>
                             }
                         </div>
 
@@ -226,7 +243,7 @@ type ImportStep = 'select' | 'importing' | 'result';
                             </div>
                         }
 
-                        <input #fileInput type="file" accept=".csv,text/csv" class="hidden" (change)="onFileChange($event)" />
+                        <input #fileInput type="file" [attr.accept]="fileAccept()" class="hidden" (change)="onFileChange($event)" />
                     </div>
 
                     @if (fileError()) {
@@ -394,9 +411,14 @@ export class ImportExtractoModalComponent {
     estimatedRows = computed(() => {
         const f = this.selectedFile();
         if (!f) return '';
+        if (this.isPdf()) return 'Factura PDF';
         const est = Math.max(0, Math.round(f.size / 80) - 1);
         return est > 0 ? `~${est} filas estimadas` : 'Archivo pequeño';
     });
+
+    isPdf = computed(() => this.selectedFormatConfig()?.fileType === 'pdf');
+
+    fileAccept = computed(() => this.isPdf() ? '.pdf,application/pdf' : '.csv,text/csv');
 
     // ── File handling ─────────────────────────────────────────────────────────
     onFileChange(event: Event): void {
@@ -421,14 +443,23 @@ export class ImportExtractoModalComponent {
     }
 
     private setFile(file: File): void {
-        const validTypes = ['text/csv', 'application/csv', 'application/vnd.ms-excel'];
-        const validExt = file.name.toLowerCase().endsWith('.csv');
-        if (!validExt && !validTypes.includes(file.type)) {
-            this.fileError.set('Solo se aceptan archivos .csv');
-            return;
+        const isPdfFormat = this.isPdf();
+        const maxSize = isPdfFormat ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+
+        if (isPdfFormat) {
+            const validPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
+            if (!validPdf) { this.fileError.set('Solo se aceptan archivos .pdf para este formato'); return; }
+        } else {
+            const validTypes = ['text/csv', 'application/csv', 'application/vnd.ms-excel'];
+            const validExt = file.name.toLowerCase().endsWith('.csv');
+            if (!validExt && !validTypes.includes(file.type)) {
+                this.fileError.set('Solo se aceptan archivos .csv');
+                return;
+            }
         }
-        if (file.size > 5 * 1024 * 1024) {
-            this.fileError.set('El archivo no puede superar los 5 MB');
+
+        if (file.size > maxSize) {
+            this.fileError.set(`El archivo no puede superar los ${isPdfFormat ? '10' : '5'} MB`);
             return;
         }
         this.fileError.set(null);
@@ -438,6 +469,16 @@ export class ImportExtractoModalComponent {
     clearFile(): void {
         this.selectedFile.set(null);
         this.fileError.set(null);
+    }
+
+    selectFormat(value: BrokerFormat): void {
+        const newType = BROKER_FORMATS.find((f) => f.value === value)?.fileType;
+        const curType = this.selectedFormatConfig()?.fileType;
+        if (newType !== curType) {
+            this.selectedFile.set(null);
+            this.fileError.set(null);
+        }
+        this.selectedFormat.set(value);
     }
 
     // ── Import ────────────────────────────────────────────────────────────────
