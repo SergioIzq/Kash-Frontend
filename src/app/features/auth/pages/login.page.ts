@@ -8,13 +8,17 @@ import { PasswordModule } from 'primeng/password';
 import { MessageModule } from 'primeng/message';
 import { AuthStore } from '../../../core/stores/auth.store';
 import { AuthWrapperComponent } from '../components/auth-wrapper.component';
-import { MessageService } from 'primeng/api';
 import { CommonModule } from '@angular/common';
 import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
 
 @Component({
     selector: 'app-login-page',
     standalone: true,
+    styles: `
+        a.hover-underline-force:hover {
+            text-decoration: underline !important;
+        }`
+    ,
     imports: [CommonModule, AuthWrapperComponent, ButtonModule, CheckboxModule, InputTextModule, PasswordModule, ReactiveFormsModule, FormsModule, RouterModule, MessageModule, BasePageTemplateComponent],
     template: `
         <app-base-page-template [loading]="showSkeleton()" [skeletonType]="'form'">
@@ -56,7 +60,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                             <p-checkbox [(ngModel)]="rememberMe" [ngModelOptions]="{ standalone: true }" id="rememberme" binary="true" class="mr-2"></p-checkbox>
                             <label for="rememberme">Recordarme</label>
                         </div>
-                        <a [routerLink]="['..', 'forgot-password']" class="font-medium ml-2 text-right cursor-pointer text-primary hover:underline"> ¿Olvidaste tu contraseña? </a>
+                        <a [routerLink]="['..', 'forgot-password']" class="font-medium ml-2 text-right cursor-pointer text-primary hover-underline-force"> ¿Olvidaste tu contraseña? </a>
                     </div>
 
                     <p-button label="Iniciar Sesión" type="submit" styleClass="w-full" [loading]="authStore.loading()" [disabled]="loginForm.invalid"></p-button>
@@ -65,7 +69,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                 <div class="mt-6 text-center">
                     <div class="mb-4 text-surface-600 dark:text-surface-400 font-medium">
                         ¿No tienes cuenta?
-                        <a [routerLink]="['..', 'register']" class="text-primary font-medium cursor-pointer hover:underline">Regístrate aquí</a>
+                        <a [routerLink]="['..', 'register']" class="text-primary font-medium cursor-pointer hover-underline-force">Regístrate aquí</a>
                     </div>
 
                     <div class="font-medium text-surface-600">

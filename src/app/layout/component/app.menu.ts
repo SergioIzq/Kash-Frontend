@@ -110,6 +110,17 @@ export class AppMenu {
                 ]
             },
             {
+                label: 'Inversiones',
+                icon: 'pi pi-fw pi-chart-line',
+                items: [
+                    {
+                        label: 'Mi Portfolio',
+                        icon: 'pi pi-fw pi-chart-pie',
+                        routerLink: ['/inversiones']
+                    }
+                ]
+            },
+            {
                 label: 'Ayuda',
                 items: [
                     { 
