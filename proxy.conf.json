@@ -1,0 +1,8 @@
+{
+  "/v8/finance/chart": {
+    "target": "https://query2.finance.yahoo.com",
+    "secure": true,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  }
+}
