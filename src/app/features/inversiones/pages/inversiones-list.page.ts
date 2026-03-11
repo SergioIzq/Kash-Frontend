@@ -197,10 +197,8 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
             [loading]="store.loading() && !store.hasData()"
             [skeletonType]="'card'"
         >
-            <div class="px-3 py-4 md:px-5">
-
                 <!-- ── Header ─────────────────────────────────────────── -->
-                <div class="page-header">
+                <div class="card flex items-center justify-between flex-wrap gap-3 mb-4">
                     <div>
                         <h2 class="text-2xl md:text-3xl font-bold m-0">Mi Portfolio</h2>
                         <div class="flex align-items-center gap-2 mt-1">
@@ -255,9 +253,9 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                 </div>
 
                 <!-- ── KPI Cards ──────────────────────────────────────── -->
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
 
-                    <div class="surface-card kpi-card border-round shadow-1">
+                    <div class="card kpi-card flex flex-col h-full">
                         <div class="flex align-items-center justify-between mb-3">
                             <span class="text-500 font-medium text-sm">Valor del portfolio</span>
                             <div class="surface-100 border-round p-2">
@@ -267,13 +265,13 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         <div class="kpi-value">
                             {{ resumen().valorTotal | number: '1.2-2' }} {{ monedaDisplay() }}
                         </div>
-                        <div class="text-500 text-sm mt-1">
+                        <div class="text-500 text-sm mt-auto pt-1">
                             {{ resumen().cantidadPosiciones }} posicion{{ resumen().cantidadPosiciones === 1 ? '' : 'es' }}
                         </div>
                     </div>
 
                     <!-- Capital invertido -->
-                    <div class="surface-card kpi-card border-round shadow-1">
+                    <div class="card kpi-card flex flex-col h-full">
                         <div class="flex align-items-center justify-between mb-3">
                             <span class="text-500 font-medium text-sm">Capital invertido</span>
                             <div class="surface-100 border-round p-2">
@@ -283,11 +281,11 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         <div class="kpi-value">
                             {{ resumen().valorInvertido | number: '1.2-2' }} {{ monedaDisplay() }}
                         </div>
-                        <div class="text-500 text-sm mt-1">Precio medio de compra</div>
+                        <div class="text-500 text-sm mt-auto pt-1">Precio medio de compra</div>
                     </div>
 
                     <!-- P&L total -->
-                    <div class="surface-card kpi-card border-round shadow-1">
+                    <div class="card kpi-card flex flex-col h-full">
                         <div class="flex align-items-center justify-between mb-3">
                             <span class="text-500 font-medium text-sm">Ganancia / Pérdida</span>
                             <div class="surface-100 border-round p-2">
@@ -301,7 +299,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                              [class.loss]="resumen().gananciaAbsoluta < 0">
                             {{ resumen().gananciaAbsoluta >= 0 ? '+' : '' }}{{ resumen().gananciaAbsoluta | number: '1.2-2' }} {{ monedaDisplay() }}
                         </div>
-                        <div class="text-sm mt-1"
+                        <div class="text-sm mt-auto pt-1"
                              [class.gain]="resumen().gananciaPorcentaje >= 0"
                              [class.loss]="resumen().gananciaPorcentaje < 0">
                             {{ resumen().gananciaPorcentaje >= 0 ? '+' : '' }}{{ resumen().gananciaPorcentaje | number: '1.2-2' }}%
@@ -310,7 +308,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                     </div>
 
                     <!-- Variación 24h -->
-                    <div class="surface-card kpi-card border-round shadow-1">
+                    <div class="card kpi-card flex flex-col h-full">
                         <div class="flex align-items-center justify-between mb-3">
                             <span class="text-500 font-medium text-sm">Hoy</span>
                             <div class="surface-100 border-round p-2">
@@ -322,7 +320,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                              [class.loss]="resumen().variacion24hAbsoluta < 0">
                             {{ resumen().variacion24hAbsoluta >= 0 ? '+' : '' }}{{ resumen().variacion24hAbsoluta | number: '1.2-2' }} {{ monedaDisplay() }}
                         </div>
-                        <div class="text-sm mt-1"
+                        <div class="text-sm mt-auto pt-1"
                              [class.gain]="resumen().variacion24hPorcentaje >= 0"
                              [class.loss]="resumen().variacion24hPorcentaje < 0">
                             {{ resumen().variacion24hPorcentaje >= 0 ? '+' : '' }}{{ resumen().variacion24hPorcentaje | number: '1.2-2' }}%
@@ -333,7 +331,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
 
                 <!-- ── Portfolio chart (Trade Republic style) ─────────── -->
                 @if (store.hasData()) {
-                    <div class="surface-card shadow-1 border-round p-4 mb-4">
+                    <div class="card mb-4">
 
                         <!-- Top: P&L del período seleccionado -->
                         <div class="chart-period-header">
@@ -391,11 +389,11 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
 
                 <!-- ── Charts Row ──────────────────────────────────────── -->
                 @if (store.hasData()) {
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
 
                         <!-- Donut: Asset allocation -->
-                        <div class="surface-card shadow-1 border-round p-4 lg:col-span-1">
-                            <h4 class="mt-0 mb-4 font-semibold">Distribución por tipo</h4>
+                        <div class="card lg:col-span-1 h-full">
+                            <h4 class="mt-0 font-semibold">Distribución por tipo</h4>
                             @if (donutChartData().labels.length > 0) {
                                 <p-chart
                                     type="doughnut"
@@ -411,8 +409,8 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         </div>
 
                         <!-- Bar: P&L by position -->
-                        <div class="surface-card shadow-1 border-round p-4 lg:col-span-2">
-                            <h4 class="mt-0 mb-4 font-semibold">P&L por posición (%)</h4>
+                        <div class="card lg:col-span-2 h-full">
+                            <h4 class="mt-0 font-semibold">P&L por posición (%)</h4>
                             @if (barChartData().labels.length > 0) {
                                 <p-chart
                                     type="bar"
@@ -430,7 +428,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                 }
 
                 <!-- ── Positions Table ─────────────────────────────────── -->
-                <div class="surface-card shadow-1 border-round p-4">
+                <div class="card mb-4">
                     <p-toolbar styleClass="mb-4 gap-2 border-0 surface-card p-0">
                         <ng-template #start>
                             <h4 class="m-0 font-semibold">Posiciones</h4>
@@ -631,8 +629,6 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                     </p-table>
                     </div>
                 </div>
-
-            </div>
 
             <!-- ── Form Modal ─────────────────────────────────────────── -->
             <app-inversion-form-modal
