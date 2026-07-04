@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { InputNumberModule } from 'primeng/inputnumber';
+import { MoneyInputComponent } from '@/shared/components';
 import { MessageService } from 'primeng/api';
 import { Cuenta } from '@/core/models/cuenta.model';
 
@@ -17,7 +17,7 @@ import { Cuenta } from '@/core/models/cuenta.model';
         DialogModule,
         ButtonModule,
         InputTextModule,
-        InputNumberModule
+        MoneyInputComponent
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
@@ -50,16 +50,10 @@ import { Cuenta } from '@/core/models/cuenta.model';
                     @if (!isEditMode()) {
                         <div>
                             <label for="saldo" class="block font-bold mb-3">Saldo Inicial</label>
-                            <p-inputNumber 
-                                id="saldo"
-                                [(ngModel)]="formData.saldo" 
-                                mode="currency" 
-                                currency="EUR" 
-                                locale="es-ES"
-                                placeholder="0,00 €"
-                                [minFractionDigits]="2"
-                                [maxFractionDigits]="2" 
-                                fluid />
+                            <app-money-input
+                                inputId="saldo"
+                                [(ngModel)]="formData.saldo"
+                                placeholder="0,00 €" />
                         @if (submitted() && (this.formData.saldo === undefined || this.formData.saldo === null)) {
                             <small class="text-red-500">El saldo inicial de la cuenta es requerido. </small>
                         }

@@ -9,3 +9,42 @@
         display: none !important;
     }
 }
+
+/* ---------------------------------------------------------------------------
+   DataView de listados en móvil (tarjetas).
+   Se aplica añadiendo styleClass="kash-mobile-dataview" al <p-dataView>.
+   Quita el marco/fondo propios del DataView (las tarjetas ya son el elemento
+   visual) y deja el paginador centrado, compacto y en una sola fila.
+--------------------------------------------------------------------------- */
+.kash-mobile-dataview {
+    border: none;
+    background: transparent;
+
+    .p-dataview-content {
+        background: transparent;
+        border: none;
+        padding: 0;
+    }
+
+    .p-paginator {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0.1rem;
+        padding: 0.5rem;
+        background: transparent;
+        border: none;
+    }
+
+    /* En móvil basta anterior/siguiente: ocultamos ir a primera/última. */
+    .p-paginator-first,
+    .p-paginator-last {
+        display: none;
+    }
+
+    .p-paginator-current {
+        margin: 0 0.25rem;
+        font-size: 0.8rem;
+    }
+}

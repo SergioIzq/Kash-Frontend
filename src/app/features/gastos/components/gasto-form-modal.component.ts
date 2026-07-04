@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { DrawerModule } from 'primeng/drawer';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { InputNumberModule } from 'primeng/inputnumber';
+import { MoneyInputComponent } from '@/shared/components';
 import { TextareaModule } from 'primeng/textarea';
 import { DatePickerModule } from 'primeng/datepicker';
 import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
@@ -40,7 +40,7 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
         DrawerModule, // Usamos Drawer en lugar de Dialog
         ButtonModule,
         InputTextModule,
-        InputNumberModule,
+        MoneyInputComponent,
         TextareaModule,
         DatePickerModule,
         AutoCompleteModule,
@@ -87,17 +87,11 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
 
                 <div class="col-span-12 md:col-span-6 field">
                     <label for="importe" class="font-semibold text-gray-700 block mb-2">Importe</label>
-                    <p-inputNumber
-                        id="importe"
+                    <app-money-input
+                        inputId="importe"
                         [(ngModel)]="formData.importe"
-                        mode="currency"
-                        currency="EUR"
-                        locale="es-ES"
-                        [min]="0"
+                        inputClass="text-right font-bold text-xl text-green-600"
                         placeholder="0,00 €"
-                        inputStyleClass="text-right font-bold text-xl text-green-600"
-                        class="w-full"
-                        styleClass="w-full"
                     />
                     @if (submitted() && !formData.importe) {
                         <small class="text-red-500 block mt-1">El importe es requerido.</small>

@@ -15,12 +15,14 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { IngresosStore } from '../stores/ingresos.store';
 import { Ingreso, IngresoCreate } from '@/core/models';
 import { IngresoFormModalComponent } from '../components/ingreso-form-modal.component';
-import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig } from '@/shared/components';
+import { DataViewModule } from 'primeng/dataview';
+import { LayoutService } from '@/layout/service/layout.service';
 
 @Component({
     selector: 'app-ingresos-list-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, TagModule, InputIconModule, IconFieldModule, SkeletonModule, IngresoFormModalComponent, BasePageTemplateComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, TagModule, InputIconModule, IconFieldModule, SkeletonModule, DataViewModule, IngresoFormModalComponent, BasePageTemplateComponent, HelpGlossaryComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
         /* Toolbar responsive en móvil */
@@ -51,11 +53,13 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         </ng-template>
 
                         <ng-template #end>
+                            <app-help-glossary [config]="glossary" class="mr-2" />
                             <p-button icon="pi pi-refresh" severity="secondary" outlined (onClick)="refreshTable()" pTooltip="Actualizar" class="mr-2" />
                             <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
                         </ng-template>
                     </p-toolbar>
 
+                    @if (!layout.isMobileView()) {
                     <p-table
                         #dt
                         [value]="ingresosStore.ingresos()"
@@ -185,6 +189,84 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                             </tr>
                         </ng-template>
                     </p-table>
+                    } @else {
+                    <p-dataView
+                        styleClass="kash-mobile-dataview"
+                        [value]="ingresosStore.ingresos()"
+                        [lazy]="true"
+                        (onLazyLoad)="loadIngresosLazy($event)"
+                        [rows]="pageSize()"
+                        [totalRecords]="totalRecords()"
+                        [paginator]="true"
+                        [loading]="ingresosStore.loading()"
+                        [showCurrentPageReport]="true"
+                        currentPageReportTemplate="{first}-{last} de {totalRecords}"
+                    >
+                        <ng-template #header>
+                            <div class="flex flex-col gap-3 py-2">
+                                <h5 class="m-0 font-semibold text-lg">Gestión de Ingresos</h5>
+                                <p-iconfield>
+                                    <p-inputicon styleClass="pi pi-search" />
+                                    <input pInputText type="text" (input)="onSearchInput($event)" placeholder="Buscar..." class="w-full" />
+                                </p-iconfield>
+                            </div>
+                        </ng-template>
+
+                        <ng-template #list let-ingresos>
+                            <div class="flex flex-col gap-4 pt-4">
+                                @for (ingreso of ingresos; track ingreso.id) {
+                                    <div class="surface-card rounded-xl border border-surface-200 dark:border-surface-700 border-l-4 border-l-green-500 shadow-sm p-4">
+                                        <!-- Cabecera: concepto + importe -->
+                                        <div class="flex justify-between items-start gap-3 pb-3 border-b border-surface-200 dark:border-surface-700">
+                                            <div class="flex flex-col min-w-0">
+                                                <span class="font-semibold text-base text-900 truncate">{{ ingreso.conceptoNombre }}</span>
+                                                <span class="text-xs text-500 flex items-center gap-1 mt-1">
+                                                    <i class="pi pi-calendar" style="font-size: 0.75rem"></i>{{ ingreso.fecha | date: 'dd/MM/yyyy' }}
+                                                </span>
+                                            </div>
+                                            <span class="font-bold text-green-500 text-lg whitespace-nowrap">+ {{ ingreso.importe | number: '1.2-2' : 'es-ES' }} €</span>
+                                        </div>
+
+                                        <!-- Detalles -->
+                                        <div class="grid grid-cols-2 gap-x-4 gap-y-3 py-3">
+                                            <div class="flex flex-col gap-1 min-w-0">
+                                                <span class="text-xs text-400 uppercase tracking-wide"><i class="pi pi-user mr-1"></i>Cliente</span>
+                                                <span class="text-sm text-700 truncate">{{ ingreso.clienteNombre || '—' }}</span>
+                                            </div>
+                                            <div class="flex flex-col gap-1 min-w-0">
+                                                <span class="text-xs text-400 uppercase tracking-wide"><i class="pi pi-id-card mr-1"></i>Persona</span>
+                                                <span class="text-sm text-700 truncate">{{ ingreso.personaNombre || '—' }}</span>
+                                            </div>
+                                            <div class="flex flex-col gap-1 min-w-0">
+                                                <span class="text-xs text-400 uppercase tracking-wide"><i class="pi pi-credit-card mr-1"></i>Forma de Pago</span>
+                                                <span class="text-sm text-700 truncate">{{ ingreso.formaPagoNombre || '—' }}</span>
+                                            </div>
+                                            <div class="flex flex-col gap-1 min-w-0">
+                                                <span class="text-xs text-400 uppercase tracking-wide"><i class="pi pi-wallet mr-1"></i>Cuenta</span>
+                                                <span class="text-sm text-700 truncate">{{ ingreso.cuentaNombre || '—' }}</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Acciones -->
+                                        <div class="flex justify-end gap-2 pt-3 border-t border-surface-200 dark:border-surface-700">
+                                            <p-button icon="pi pi-pencil" label="Editar" severity="secondary" [outlined]="true" size="small" (click)="editIngreso(ingreso)" />
+                                            <p-button icon="pi pi-trash" label="Eliminar" severity="danger" [outlined]="true" size="small" (click)="deleteIngreso(ingreso)" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </ng-template>
+
+                        <ng-template #empty>
+                            <div class="text-center py-8">
+                                <i class="pi pi-inbox text-500 text-5xl mb-3"></i>
+                                <p class="text-900 font-semibold text-xl mb-2">No hay ingresos</p>
+                                <p class="text-600 mb-4">Comienza agregando tu primer ingreso</p>
+                                <p-button label="Crear Ingreso" icon="pi pi-plus" (onClick)="openNew()" />
+                            </div>
+                        </ng-template>
+                    </p-dataView>
+                    }
 
                     <!-- Nuevo componente de formulario modal con autocomplete -->
                     <app-ingreso-form-modal [visible]="ingresoDialog()" [ingreso]="currentIngreso()" (visibleChange)="ingresoDialog.set($event)" (save)="onSaveIngreso($event)" (cancel)="hideDialog()" />
@@ -195,9 +277,40 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
 })
 export class IngresosListPage extends BasePageComponent implements OnDestroy {
     ingresosStore = inject(IngresosStore);
+    protected readonly layout = inject(LayoutService);
 
     protected override loadingSignal = this.ingresosStore.loading;
     protected override skeletonType = 'table' as const;
+
+    readonly glossary: GlossaryConfig = {
+        title: 'Glosario · Ingresos',
+        intro: 'Esta pantalla registra y consulta tus <strong>ingresos</strong> (entradas de dinero). Cada ingreso suma su importe al saldo de la cuenta asociada. Puedes buscarlos, ordenarlos, paginarlos y exportarlos a CSV.',
+        sections: [
+            {
+                title: 'Botones y acciones',
+                rows: [
+                    { icon: 'pi pi-plus', color: '#22c55e', term: 'Nuevo Ingreso', def: 'Abre el formulario para registrar un ingreso: fecha, importe, concepto, categoría, cliente, persona, forma de pago y cuenta.' },
+                    { icon: 'pi pi-search', color: '#6366f1', term: 'Buscar', def: 'Filtra la tabla por concepto, categoría, cliente o descripción. Se aplica automáticamente al dejar de escribir.' },
+                    { icon: 'pi pi-refresh', color: '#64748b', term: 'Actualizar', def: 'Vuelve a cargar la lista de ingresos desde el servidor con los filtros actuales.' },
+                    { icon: 'pi pi-upload', color: '#3b82f6', term: 'Exportar', def: 'Descarga los ingresos cargados en un archivo CSV (compatible con Excel).' },
+                    { icon: 'pi pi-pencil', color: '#f59e0b', term: 'Editar', def: 'Modifica los datos del ingreso seleccionado.' },
+                    { icon: 'pi pi-trash', color: '#ef4444', term: 'Eliminar', def: 'Borra el ingreso (pide confirmación). El saldo de la cuenta se recalcula.' },
+                ]
+            },
+            {
+                title: 'Columnas de la tabla',
+                rows: [
+                    { icon: 'pi pi-calendar', color: '#6366f1', term: 'Fecha', def: 'Día en que se produjo el ingreso.' },
+                    { icon: 'pi pi-id-card', color: '#8b5cf6', term: 'Persona', def: 'Persona a la que se imputa el ingreso.' },
+                    { icon: 'pi pi-credit-card', color: '#06b6d4', term: 'Forma de Pago', def: 'Medio por el que se recibió el dinero: transferencia, efectivo, tarjeta, etc.' },
+                    { icon: 'pi pi-user', color: '#64748b', term: 'Cliente', def: 'Cliente o entidad de quien procede el ingreso.' },
+                    { icon: 'pi pi-bookmark', color: '#f59e0b', term: 'Concepto', def: 'Descripción del ingreso. Debajo aparece la nota ampliada si la hubiera.' },
+                    { icon: 'pi pi-wallet', color: '#3b82f6', term: 'Cuenta', def: 'Cuenta en la que entra el dinero.' },
+                    { icon: 'pi pi-euro', color: '#22c55e', term: 'Importe', def: 'Cantidad recibida. Se muestra en verde porque aumenta tu saldo.' },
+                ]
+            }
+        ]
+    };
 
     @ViewChild('dt') dt!: Table;
 
@@ -280,6 +393,11 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
 
         // Usar Subject para aplicar debounce (esperar 500ms después de dejar de escribir)
         this.searchSubject.next(searchValue);
+    }
+
+    /** Búsqueda desde el DataView móvil (no depende de la referencia de la tabla). */
+    onSearchInput(event: Event) {
+        this.searchSubject.next((event.target as HTMLInputElement).value);
     }
 
     openNew() {

@@ -12,16 +12,20 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
+import { DataViewModule } from 'primeng/dataview';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ConceptoStore } from '../store/concepto.store';
 import { Concepto } from '@/core/models/concepto.model';
 import { ConceptoCreateModalComponent } from '../components/concepto-create-modal.component';
 import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { HelpGlossaryComponent, GlossaryConfig } from '@/shared/components/help-glossary.component';
+import { LayoutService } from '@/layout/service/layout.service';
 
 @Component({
     selector: 'app-conceptos-list',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, TableModule, InputTextModule, ToastModule, ConfirmDialogModule, SkeletonModule, ToolbarModule, InputIconModule, IconFieldModule, TagModule, ConceptoCreateModalComponent, BasePageTemplateComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, TableModule, InputTextModule, ToastModule, ConfirmDialogModule, SkeletonModule, ToolbarModule, InputIconModule, IconFieldModule, TagModule, TooltipModule, DataViewModule, ConceptoCreateModalComponent, BasePageTemplateComponent, HelpGlossaryComponent],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
@@ -54,10 +58,12 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         </ng-template>
 
                         <ng-template #end>
+                            <app-help-glossary [config]="glossary" class="mr-2" />
                             <p-button icon="pi pi-refresh" severity="secondary" outlined (onClick)="refreshTable()" pTooltip="Actualizar" />
                         </ng-template>
                     </p-toolbar>
 
+                    @if (!layout.isMobileView()) {
                     <p-table
                         #dt
                         [value]="conceptoStore.conceptos()"
@@ -142,6 +148,60 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                             </tr>
                         </ng-template>
                     </p-table>
+                    } @else {
+                    <p-dataView
+                        styleClass="kash-mobile-dataview"
+                        [value]="conceptoStore.conceptos()"
+                        [lazy]="true"
+                        (onLazyLoad)="onLazyLoad($event)"
+                        [rows]="pageSize"
+                        [totalRecords]="conceptoStore.totalRecords()"
+                        [paginator]="true"
+                        [loading]="conceptoStore.loading()"
+                        [showCurrentPageReport]="true"
+                        currentPageReportTemplate="{first}-{last} de {totalRecords}"
+                    >
+                        <ng-template #header>
+                            <div class="flex flex-col gap-3 py-2">
+                                <h5 class="m-0 font-semibold text-lg">Gestión de Conceptos</h5>
+                                <p-iconfield>
+                                    <p-inputicon styleClass="pi pi-search" />
+                                    <input pInputText type="text" [(ngModel)]="searchTerm" (input)="onSearchChange($event)" placeholder="Buscar..." class="w-full" />
+                                </p-iconfield>
+                            </div>
+                        </ng-template>
+
+                        <ng-template #list let-conceptos>
+                            <div class="flex flex-col gap-4 pt-4">
+                                @for (concepto of conceptos; track concepto.id) {
+                                    <div class="surface-card rounded-xl border border-surface-200 dark:border-surface-700 border-l-4 border-l-primary shadow-sm p-4">
+                                        <div class="flex justify-between items-start gap-3 pb-3 border-b border-surface-200 dark:border-surface-700">
+                                            <div class="flex items-center gap-2 min-w-0">
+                                                <i class="pi pi-bookmark text-primary"></i>
+                                                <span class="font-semibold text-base text-900 truncate">{{ concepto.nombre }}</span>
+                                            </div>
+                                            <p-tag [value]="concepto.categoriaNombre || 'Sin categoría'" [severity]="getCategoriaSeverity(concepto.categoriaId)" [rounded]="true" />
+                                        </div>
+
+                                        <div class="flex justify-end gap-2 pt-3">
+                                            <p-button icon="pi pi-pencil" label="Editar" severity="secondary" [outlined]="true" size="small" (click)="editConcepto(concepto)" />
+                                            <p-button icon="pi pi-trash" label="Eliminar" severity="danger" [outlined]="true" size="small" (click)="deleteConcepto(concepto)" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </ng-template>
+
+                        <ng-template #empty>
+                            <div class="text-center py-8">
+                                <i class="pi pi-inbox text-500 text-5xl mb-3"></i>
+                                <p class="text-900 font-semibold text-xl mb-2">No hay conceptos</p>
+                                <p class="text-600 mb-4">Comienza agregando tu primer concepto</p>
+                                <p-button label="Crear Concepto" icon="pi pi-plus" (onClick)="openNew()" />
+                            </div>
+                        </ng-template>
+                    </p-dataView>
+                    }
 
                     <app-concepto-create-modal [visible]="conceptoDialog" [concepto]="currentConcepto" (visibleChange)="conceptoDialog = $event" (save)="onSaveConcepto($event)" (cancel)="hideDialog()" />
                 </div>
@@ -151,6 +211,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
 })
 export class ConceptosListPage extends BasePageComponent {
     conceptoStore = inject(ConceptoStore);
+    protected readonly layout = inject(LayoutService);
 
     protected override loadingSignal = this.conceptoStore.loading;
     protected override skeletonType = 'table' as const;
@@ -170,6 +231,28 @@ export class ConceptosListPage extends BasePageComponent {
     searchTerm: string = '';
     sortColumn: string = 'nombre';
     sortOrder: string = 'asc';
+
+    readonly glossary: GlossaryConfig = {
+        title: 'Glosario · Conceptos',
+        intro: 'Los conceptos agrupan ingresos y gastos y pueden asociarse a una categoría.',
+        sections: [
+            {
+                title: 'Acciones',
+                rows: [
+                    { term: 'Nuevo Concepto', def: 'Abre el formulario para crear un concepto.' },
+                    { term: 'Actualizar', def: 'Recarga el listado con los datos más recientes.' }
+                ]
+            },
+            {
+                title: 'Columnas',
+                rows: [
+                    { term: 'Nombre', def: 'Nombre del concepto.' },
+                    { term: 'Categoría', def: 'Categoría asignada al concepto o el texto Sin categoría.' },
+                    { term: 'Acciones', def: 'Permite editar o eliminar el registro.' }
+                ]
+            }
+        ]
+    };
 
     constructor() {
         super();

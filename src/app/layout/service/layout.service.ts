@@ -72,12 +72,20 @@ export class LayoutService {
 
     transitionComplete = signal<boolean>(false);
 
+    /**
+     * Señal reactiva de vista móvil (ancho <= 991px). A diferencia de isMobile(),
+     * se actualiza al redimensionar la ventana, por lo que puede usarse en las
+     * plantillas para alternar entre tabla (escritorio) y DataView (móvil).
+     */
+    readonly isMobileView = signal<boolean>(typeof window !== 'undefined' ? window.innerWidth <= 991 : false);
+
     private initialized = false;
 
     constructor() {
         // Aplicar el tema guardado inmediatamente al cargar
         if (typeof window !== 'undefined') {
             this.toggleDarkMode(this._config);
+            window.addEventListener('resize', () => this.isMobileView.set(window.innerWidth <= 991));
         }
 
         effect(() => {

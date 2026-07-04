@@ -6,6 +6,7 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { SkeletonModule } from 'primeng/skeleton';
+import { DataViewModule } from 'primeng/dataview';
 import { ChartModule } from 'primeng/chart';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { DialogModule } from 'primeng/dialog';
@@ -17,6 +18,7 @@ import { PERIODOS } from '../services/portfolio-performance.service';
 import { InversionFormModalComponent } from '../components/inversion-form-modal.component';
 import { ImportExtractoModalComponent } from '../components/import-extracto-modal.component';
 import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { LayoutService } from '@/layout/service/layout.service';
 
 @Component({
     selector: 'app-inversiones-list-page',
@@ -28,6 +30,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
         ToolbarModule,
         TagModule,
         TooltipModule,
+        DataViewModule,
         SkeletonModule,
         ChartModule,
         ProgressSpinnerModule,
@@ -438,6 +441,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         </ng-template>
                     </p-toolbar>
 
+                    @if (!layout.isMobileView()) {
                     <div class="table-scroll-wrapper">
                     <p-table
                         [value]="posiciones()"
@@ -628,6 +632,117 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         </ng-template>
                     </p-table>
                     </div>
+                    } @else {
+                    <p-dataView
+                        styleClass="kash-mobile-dataview"
+                        [value]="posiciones()"
+                        [loading]="store.loading()"
+                    >
+
+                        <ng-template #list let-posiciones>
+                            <div class="flex flex-col gap-4 pt-4">
+                                @for (pos of posiciones; track pos.id) {
+                                    <div class="surface-card rounded-xl border border-surface-200 dark:border-surface-700 border-l-4 border-l-primary shadow-sm p-4">
+                                        <div class="flex justify-between items-start gap-3 pb-3 border-b border-surface-200 dark:border-surface-700">
+                                            <div class="min-w-0">
+                                                <div class="font-semibold text-base text-900 flex items-center gap-2 min-w-0">
+                                                    <i [class]="tipoIcon(pos.tipo)" [style.color]="tipoColor(pos.tipo)" style="font-size:1rem;flex-shrink:0"></i>
+                                                    <span class="truncate">{{ pos.nombre }}</span>
+                                                </div>
+                                                <div class="flex gap-2 mt-1 flex-wrap">
+                                                    @if (pos.ticker) {
+                                                        <span class="ticker-badge">{{ pos.ticker }}</span>
+                                                    }
+                                                    @if (pos.plataforma) {
+                                                        <span class="text-400 text-xs">{{ pos.plataforma }}</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <p-tag
+                                                [value]="tipoLabel(pos.tipo)"
+                                                [style]="{ background: tipoColor(pos.tipo) + '20', color: tipoColor(pos.tipo), border: '1px solid ' + tipoColor(pos.tipo) + '40' }"
+                                            />
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-3 pt-3 text-sm">
+                                            <div>
+                                                <div class="text-500 mb-1">Cantidad</div>
+                                                <div class="font-medium">{{ pos.cantidad | number: '1.0-8' }}</div>
+                                            </div>
+                                            <div>
+                                                <div class="text-500 mb-1">P. Compra</div>
+                                                <div class="font-medium">{{ pos.precioCompra | number: '1.2-4' }} <span class="text-400 text-xs">{{ pos.moneda }}</span></div>
+                                            </div>
+                                            <div>
+                                                <div class="text-500 mb-1">P. Actual</div>
+                                                <div class="font-medium">
+                                                    @if (pos.cargandoPrecio) {
+                                                        <p-skeleton width="4rem" height="1rem" />
+                                                    } @else if (pos.precioActual !== null) {
+                                                        <span [class.gain]="pos.precioActual >= pos.precioCompra" [class.loss]="pos.precioActual < pos.precioCompra">
+                                                            {{ pos.precioActual | number: '1.2-4' }}
+                                                        </span>
+                                                        <span class="text-400 text-xs ml-1">{{ pos.moneda }}</span>
+                                                    } @else {
+                                                        <span class="text-400">N/D</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="text-500 mb-1">Valor</div>
+                                                <div class="font-medium">
+                                                    @if (pos.valorActual !== null) {
+                                                        {{ pos.valorActual | number: '1.2-2' }} <span class="text-400 text-xs">{{ pos.moneda }}</span>
+                                                    } @else {
+                                                        <span class="text-400">—</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="text-500 mb-1">P&L</div>
+                                                <div class="font-medium">
+                                                    @if (pos.gananciaAbsoluta !== null) {
+                                                        <span [class.gain]="pos.gananciaAbsoluta >= 0" [class.loss]="pos.gananciaAbsoluta < 0">
+                                                            {{ pos.gananciaAbsoluta >= 0 ? '+' : '' }}{{ pos.gananciaAbsoluta | number: '1.2-2' }} {{ pos.moneda }}
+                                                        </span>
+                                                    } @else {
+                                                        <span class="text-400">—</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="text-500 mb-1">24h</div>
+                                                <div class="font-medium">
+                                                    @if (pos.variacion24h !== null) {
+                                                        <span [class.gain]="pos.variacion24h >= 0" [class.loss]="pos.variacion24h < 0">
+                                                            {{ pos.variacion24h >= 0 ? '+' : '' }}{{ pos.variacion24h | number: '1.2-2' }}%
+                                                        </span>
+                                                    } @else {
+                                                        <span class="text-400">—</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex justify-end gap-2 pt-3">
+                                            <p-button icon="pi pi-pencil" label="Editar" severity="secondary" [outlined]="true" size="small" (onClick)="editInversion(pos)" />
+                                            <p-button icon="pi pi-trash" label="Eliminar" severity="danger" [outlined]="true" size="small" (onClick)="deleteInversion(pos)" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </ng-template>
+
+                        <ng-template #empty>
+                            <div class="text-center py-8">
+                                <i class="pi pi-chart-line text-500 text-5xl mb-3 block"></i>
+                                <p class="text-900 font-semibold text-xl mb-2">Sin posiciones</p>
+                                <p class="text-600 mb-4">Añade tu primera inversión para empezar a trackear tu portfolio</p>
+                                <p-button label="Añadir inversión" icon="pi pi-plus" (onClick)="openNew()" />
+                            </div>
+                        </ng-template>
+                    </p-dataView>
+                    }
                 </div>
 
             <!-- ── Form Modal ─────────────────────────────────────────── -->
@@ -913,6 +1028,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
 })
 export class InversionesListPage extends BasePageComponent implements OnInit, OnDestroy {
     readonly store = inject(InversionesStore);
+    protected readonly layout = inject(LayoutService);
 
     protected override loadingSignal = this.store.loading;
     protected override skeletonType = 'card' as const;

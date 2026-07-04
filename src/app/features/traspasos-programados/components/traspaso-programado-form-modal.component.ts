@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { InputNumberModule } from 'primeng/inputnumber';
 import { TextareaModule } from 'primeng/textarea';
 import { DatePickerModule } from 'primeng/datepicker';
 import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
@@ -18,7 +17,7 @@ import { TraspasoProgramado } from '@/core/models/traspaso-programado.model';
 import { Cuenta } from '@/core/models/cuenta.model';
 
 // Componentes compartidos
-import { CuentaCreateModalComponent } from '@/shared/components';
+import { CuentaCreateModalComponent, MoneyInputComponent } from '@/shared/components';
 
 // Stores
 import { CuentaStore } from '@/features/cuentas/store/cuenta.store';
@@ -37,7 +36,7 @@ interface TraspasoProgramadoFormData extends Omit<Partial<TraspasoProgramado>, '
         SelectModule,
         ButtonModule,
         InputTextModule,
-        InputNumberModule,
+        MoneyInputComponent,
         TextareaModule,
         DatePickerModule,
         AutoCompleteModule,
@@ -121,16 +120,11 @@ interface TraspasoProgramadoFormData extends Omit<Partial<TraspasoProgramado>, '
                 <!-- Importe -->
                 <div class="col-span-12 md:col-span-6 field">
                     <label for="importe" class="font-semibold text-gray-700 block mb-2">Importe a Traspasar *</label>
-                    <p-inputNumber 
-                        id="importe" 
-                        [(ngModel)]="formData.importe" 
-                        mode="currency" 
-                        currency="EUR" 
-                        locale="es-ES" 
-                        [min]="0" 
+                    <app-money-input
+                        inputId="importe"
+                        [(ngModel)]="formData.importe"
+                        inputClass="text-right font-bold text-xl text-blue-600"
                         placeholder="0,00 €"
-                        inputStyleClass="text-right font-bold text-xl text-blue-600 w-full" 
-                        class="w-full"
                     />
                     @if (submitted() && !formData.importe) {
                         <small class="text-red-500 block mt-1">El importe es requerido.</small>

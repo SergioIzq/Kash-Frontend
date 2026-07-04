@@ -13,13 +13,15 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { CuentaStore } from '../store/cuenta.store';
 import { Cuenta } from '@/core/models/cuenta.model';
 import { CuentaFormModalComponent } from '../components/cuenta-form-modal.component';
-import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig } from '@/shared/components';
+import { DataViewModule } from 'primeng/dataview';
+import { LayoutService } from '@/layout/service/layout.service';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 
 @Component({
     selector: 'app-cuentas-list-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, CuentaFormModalComponent, BasePageTemplateComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, DataViewModule, CuentaFormModalComponent, BasePageTemplateComponent, HelpGlossaryComponent],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
@@ -52,10 +54,12 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
                         </ng-template>
 
                         <ng-template #end>
+                            <app-help-glossary [config]="glossary" class="mr-2" />
                             <p-button icon="pi pi-refresh" severity="secondary" outlined (onClick)="refreshTable()" pTooltip="Actualizar" />
                         </ng-template>
                     </p-toolbar>
 
+                    @if (!layout.isMobileView()) {
                     <p-table
                         #dt
                         [value]="cuentaStore.cuentas()"
@@ -142,6 +146,59 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
                             </tr>
                         </ng-template>
                     </p-table>
+                    } @else {
+                    <p-dataView
+                        styleClass="kash-mobile-dataview"
+                        [value]="cuentaStore.cuentas()"
+                        [lazy]="true"
+                        (onLazyLoad)="onLazyLoad($event)"
+                        [rows]="pageSize"
+                        [totalRecords]="cuentaStore.totalRecords()"
+                        [paginator]="true"
+                        [loading]="cuentaStore.loading()"
+                        [showCurrentPageReport]="true"
+                        currentPageReportTemplate="{first}-{last} de {totalRecords}"
+                    >
+                        <ng-template #header>
+                            <div class="flex flex-col gap-3 py-2">
+                                <h5 class="m-0 font-semibold text-lg">Gestión de Cuentas</h5>
+                                <p-iconfield>
+                                    <p-inputicon styleClass="pi pi-search" />
+                                    <input pInputText type="text" [(ngModel)]="searchTerm" (input)="onSearchChange($event)" placeholder="Buscar..." class="w-full" />
+                                </p-iconfield>
+                            </div>
+                        </ng-template>
+
+                        <ng-template #list let-cuentas>
+                            <div class="flex flex-col gap-4 pt-4">
+                                @for (cuenta of cuentas; track cuenta.id) {
+                                    <div class="surface-card rounded-xl border border-surface-200 dark:border-surface-700 border-l-4 border-l-primary shadow-sm p-4">
+                                        <div class="flex justify-between items-center gap-3 pb-3 border-b border-surface-200 dark:border-surface-700">
+                                            <span class="font-semibold text-base text-900 flex items-center gap-2 min-w-0">
+                                                <i class="pi pi-credit-card text-primary"></i><span class="truncate">{{ cuenta.nombre }}</span>
+                                            </span>
+                                            <span [class]="'font-bold text-lg whitespace-nowrap ' + (cuenta.saldo >= 0 ? 'text-green-500' : 'text-red-500')">{{ cuenta.saldo | number: '1.2-2' : 'es-ES' }} €</span>
+                                        </div>
+
+                                        <div class="flex justify-end gap-2 pt-3">
+                                            <p-button icon="pi pi-pencil" label="Editar" severity="secondary" [outlined]="true" size="small" (click)="editCuenta(cuenta)" />
+                                            <p-button icon="pi pi-trash" label="Eliminar" severity="danger" [outlined]="true" size="small" (click)="deleteCuenta(cuenta)" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </ng-template>
+
+                        <ng-template #empty>
+                            <div class="text-center py-8">
+                                <i class="pi pi-inbox text-500 text-5xl mb-3"></i>
+                                <p class="text-900 font-semibold text-xl mb-2">No hay cuentas</p>
+                                <p class="text-600 mb-4">Comienza agregando tu primera cuenta</p>
+                                <p-button label="Crear Cuenta" icon="pi pi-plus" (onClick)="openNew()" />
+                            </div>
+                        </ng-template>
+                    </p-dataView>
+                    }
 
                     <app-cuenta-form-modal [visible]="cuentaDialog" [cuenta]="currentCuenta" (visibleChange)="cuentaDialog = $event" (save)="onSaveCuenta($event)" (cancel)="hideDialog()" />
                 </div>
@@ -151,9 +208,34 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 })
 export class CuentasListPage extends BasePageComponent {
     cuentaStore = inject(CuentaStore);
+    protected readonly layout = inject(LayoutService);
 
     protected override loadingSignal = this.cuentaStore.loading;
     protected override skeletonType = 'table' as const;
+
+    readonly glossary: GlossaryConfig = {
+        title: 'Glosario · Cuentas',
+        intro: 'Esta pantalla gestiona tus <strong>cuentas</strong> (bancos, efectivo, tarjetas, etc.). El saldo de cada cuenta se actualiza automáticamente con los ingresos, gastos y traspasos que registres.',
+        sections: [
+            {
+                title: 'Botones y acciones',
+                rows: [
+                    { icon: 'pi pi-plus', color: '#22c55e', term: 'Nueva Cuenta', def: 'Abre el formulario para crear una cuenta indicando su nombre y saldo inicial.' },
+                    { icon: 'pi pi-search', color: '#6366f1', term: 'Buscar', def: 'Filtra la tabla por nombre de cuenta.' },
+                    { icon: 'pi pi-refresh', color: '#64748b', term: 'Actualizar', def: 'Vuelve a cargar la lista de cuentas desde el servidor.' },
+                    { icon: 'pi pi-pencil', color: '#f59e0b', term: 'Editar', def: 'Modifica el nombre o el saldo de la cuenta.' },
+                    { icon: 'pi pi-trash', color: '#ef4444', term: 'Eliminar', def: 'Borra la cuenta (pide confirmación). No podrás eliminarla si tiene movimientos asociados.' },
+                ]
+            },
+            {
+                title: 'Columnas de la tabla',
+                rows: [
+                    { icon: 'pi pi-credit-card', color: '#6366f1', term: 'Nombre', def: 'Nombre identificativo de la cuenta (p. ej. «Cuenta corriente BBVA», «Efectivo»).' },
+                    { icon: 'pi pi-euro', color: '#22c55e', term: 'Saldo', def: 'Dinero disponible en la cuenta. Se muestra en verde si es positivo y en rojo si es negativo.' },
+                ]
+            }
+        ]
+    };
 
     @ViewChild('dt') dt!: Table;
 

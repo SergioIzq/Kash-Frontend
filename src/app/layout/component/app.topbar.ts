@@ -103,7 +103,7 @@ import { AuthStore } from '../../core/stores/auth.store';
                             <p-avatar icon="pi pi-user" shape="circle" size="normal" class="custom-avatar" />
                         }
 
-                        <span>{{ authStore.userName() || 'Usuario' }}</span>
+                        <span class="ml-4">{{ authStore.userName() || 'Usuario' }}</span>
                     </button>
 
                     <button type="button" class="layout-topbar-action" (click)="logout()">
