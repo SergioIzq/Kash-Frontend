@@ -10,16 +10,20 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { SkeletonModule } from 'primeng/skeleton';
+import { TooltipModule } from 'primeng/tooltip';
 import { ClienteStore } from '../store/cliente.store';
 import { Cliente } from '@/core/models/cliente.model';
 import { ClienteFormModalComponent } from '../components/cliente-form-modal.component';
 import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { HelpGlossaryComponent, GlossaryConfig } from '@/shared/components/help-glossary.component';
+import { DataViewModule } from 'primeng/dataview';
+import { LayoutService } from '@/layout/service/layout.service';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 
 @Component({
     selector: 'app-clientes-list-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, ClienteFormModalComponent, BasePageTemplateComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, TooltipModule, DataViewModule, ClienteFormModalComponent, BasePageTemplateComponent, HelpGlossaryComponent],
     providers: [ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
@@ -52,10 +56,12 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
                         </ng-template>
 
                         <ng-template #end>
+                            <app-help-glossary [config]="glossary" class="mr-2" />
                             <p-button icon="pi pi-refresh" severity="secondary" outlined (onClick)="refreshTable()" pTooltip="Actualizar" />
                         </ng-template>
                     </p-toolbar>
 
+                    @if (!layout.isMobileView()) {
                     <p-table
                         #dt
                         [value]="clienteStore.clientes()"
@@ -137,6 +143,58 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
                             </tr>
                         </ng-template>
                     </p-table>
+                    } @else {
+                    <p-dataView
+                        styleClass="kash-mobile-dataview"
+                        [value]="clienteStore.clientes()"
+                        [lazy]="true"
+                        (onLazyLoad)="onLazyLoad($event)"
+                        [rows]="pageSize"
+                        [totalRecords]="clienteStore.totalRecords()"
+                        [paginator]="true"
+                        [loading]="clienteStore.loading()"
+                        [showCurrentPageReport]="true"
+                        currentPageReportTemplate="{first}-{last} de {totalRecords}"
+                    >
+                        <ng-template #header>
+                            <div class="flex flex-col gap-3 py-2">
+                                <h5 class="m-0 font-semibold text-lg">Gestión de Clientes</h5>
+                                <p-iconfield>
+                                    <p-inputicon styleClass="pi pi-search" />
+                                    <input pInputText type="text" [(ngModel)]="searchTerm" (input)="onSearchChange($event)" placeholder="Buscar..." class="w-full" />
+                                </p-iconfield>
+                            </div>
+                        </ng-template>
+
+                        <ng-template #list let-clientes>
+                            <div class="flex flex-col gap-4 pt-4">
+                                @for (cliente of clientes; track cliente.id) {
+                                    <div class="surface-card rounded-xl border border-surface-200 dark:border-surface-700 border-l-4 border-l-primary shadow-sm p-4">
+                                        <div class="flex justify-between items-center gap-3 pb-3 border-b border-surface-200 dark:border-surface-700">
+                                            <span class="font-semibold text-base text-900 flex items-center gap-2 min-w-0">
+                                                <i class="pi pi-credit-card text-primary"></i><span class="truncate">{{ cliente.nombre }}</span>
+                                            </span>
+                                        </div>
+
+                                        <div class="flex justify-end gap-2 pt-3">
+                                            <p-button icon="pi pi-pencil" label="Editar" severity="secondary" [outlined]="true" size="small" (click)="editCliente(cliente)" />
+                                            <p-button icon="pi pi-trash" label="Eliminar" severity="danger" [outlined]="true" size="small" (click)="deleteCliente(cliente)" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </ng-template>
+
+                        <ng-template #empty>
+                            <div class="text-center py-8">
+                                <i class="pi pi-inbox text-500 text-5xl mb-3"></i>
+                                <p class="text-900 font-semibold text-xl mb-2">No hay clientes</p>
+                                <p class="text-600 mb-4">Comienza agregando tu primera cliente</p>
+                                <p-button label="Crear Cliente" icon="pi pi-plus" (onClick)="openNew()" />
+                            </div>
+                        </ng-template>
+                    </p-dataView>
+                    }
 
                     <app-cliente-form-modal [visible]="clienteDialog" [cliente]="currentCliente" (visibleChange)="clienteDialog = $event" (save)="onSaveCliente($event)" (cancel)="hideDialog()" />
                 </div>
@@ -146,6 +204,7 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 })
 export class ClientesListPage extends BasePageComponent {
     clienteStore = inject(ClienteStore);
+    protected readonly layout = inject(LayoutService);
 
     protected override loadingSignal = this.clienteStore.loading;
     protected override skeletonType = 'table' as const;
@@ -161,6 +220,27 @@ export class ClientesListPage extends BasePageComponent {
     searchTerm: string = '';
     sortColumn: string = 'nombre';
     sortOrder: string = 'asc';
+
+    readonly glossary: GlossaryConfig = {
+        title: 'Glosario · Clientes',
+        intro: 'Listado de clientes disponibles para seleccionar en ingresos y otros movimientos.',
+        sections: [
+            {
+                title: 'Acciones',
+                rows: [
+                    { term: 'Nuevo Cliente', def: 'Abre el formulario para crear un cliente.' },
+                    { term: 'Actualizar', def: 'Recarga el listado con los datos más recientes.' }
+                ]
+            },
+            {
+                title: 'Columnas',
+                rows: [
+                    { term: 'Nombre', def: 'Nombre visible del cliente en el listado.' },
+                    { term: 'Acciones', def: 'Permite editar o eliminar el cliente.' }
+                ]
+            }
+        ]
+    };
 
     constructor() {
         super();

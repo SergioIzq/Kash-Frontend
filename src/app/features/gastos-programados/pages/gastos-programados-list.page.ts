@@ -14,13 +14,16 @@ import { TagModule } from 'primeng/tag';
 import { GastosProgramadosStore } from '../stores/gastos-programados.store';
 import { GastoProgramado } from '@/core/models/gasto-programado.model';
 import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { HelpGlossaryComponent, GlossaryConfig } from '@/shared/components/help-glossary.component';
+import { DataViewModule } from 'primeng/dataview';
+import { LayoutService } from '@/layout/service/layout.service';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 import { GastoProgramadoFormModalComponent } from '../components/gasto-programado-form-modal.component';
 
 @Component({
     selector: 'app-gastos-programados-list-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, TagModule, BasePageTemplateComponent, GastoProgramadoFormModalComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, TagModule, DataViewModule, BasePageTemplateComponent, GastoProgramadoFormModalComponent, HelpGlossaryComponent],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
@@ -53,10 +56,12 @@ import { GastoProgramadoFormModalComponent } from '../components/gasto-programad
                         </ng-template>
 
                         <ng-template #end>
+                            <app-help-glossary [config]="glossary" class="mr-2" />
                             <p-button icon="pi pi-refresh" severity="secondary" outlined (onClick)="refreshTable()" pTooltip="Actualizar" />
                         </ng-template>
                     </p-toolbar>
 
+                    @if (!layout.isMobileView()) {
                     <p-table
                         #dt
                         [value]="gastosStore.gastosProgramados()"
@@ -158,6 +163,68 @@ import { GastoProgramadoFormModalComponent } from '../components/gasto-programad
                             </tr>
                         </ng-template>
                     </p-table>
+                    } @else {
+                    <p-dataView
+                        styleClass="kash-mobile-dataview"
+                        [value]="gastosStore.gastosProgramados()"
+                        [lazy]="true"
+                        (onLazyLoad)="onLazyLoad($event)"
+                        [rows]="pageSize"
+                        [totalRecords]="gastosStore.totalRecords()"
+                        [paginator]="true"
+                        [loading]="gastosStore.loading()"
+                        [showCurrentPageReport]="true"
+                        currentPageReportTemplate="{first}-{last} de {totalRecords}"
+                    >
+                        <ng-template #header>
+                            <div class="flex flex-col gap-3 py-2">
+                                <h5 class="m-0 font-semibold text-lg">Gastos Programados</h5>
+                                <p-iconfield>
+                                    <p-inputicon styleClass="pi pi-search" />
+                                    <input pInputText type="text" [(ngModel)]="searchTerm" (input)="onSearchChange($event)" placeholder="Buscar..." class="w-full" />
+                                </p-iconfield>
+                            </div>
+                        </ng-template>
+
+                        <ng-template #list let-gastos>
+                            <div class="flex flex-col gap-4 pt-4">
+                                @for (gasto of gastos; track gasto.id) {
+                                    <div class="surface-card rounded-xl border border-surface-200 dark:border-surface-700 border-l-4 border-l-red-500 shadow-sm p-4">
+                                        <div class="flex justify-between items-center gap-3 pb-3 border-b border-surface-200 dark:border-surface-700">
+                                            <span class="font-bold text-red-500 text-lg whitespace-nowrap">{{ gasto.importe | number: '1.2-2' : 'es-ES' }} €</span>
+                                            <p-tag [value]="gasto.activo ? 'Activo' : 'Inactivo'" [severity]="gasto.activo ? 'success' : 'danger'" />
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-x-4 gap-y-3 py-3">
+                                            <div class="flex flex-col gap-1 min-w-0">
+                                                <span class="text-xs text-400 uppercase tracking-wide"><i class="pi pi-sync mr-1"></i>Frecuencia</span>
+                                                <div><p-tag [value]="gasto.frecuencia" [severity]="getFrecuenciaSeverity(gasto.frecuencia)" /></div>
+                                            </div>
+                                            <div class="flex flex-col gap-1 min-w-0">
+                                                <span class="text-xs text-400 uppercase tracking-wide"><i class="pi pi-calendar-clock mr-1"></i>Próxima Ejecución</span>
+                                                <span class="text-sm text-700 truncate">{{ gasto.fechaEjecucion | date: 'dd/MM/yyyy HH:mm' }}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex justify-end gap-2 pt-3 border-t border-surface-200 dark:border-surface-700">
+                                            <p-button icon="pi pi-pencil" label="Editar" severity="secondary" [outlined]="true" size="small" (click)="editGasto(gasto)" />
+                                            <p-button icon="pi pi-trash" label="Eliminar" severity="danger" [outlined]="true" size="small" (click)="deleteGasto(gasto)" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </ng-template>
+
+                        <ng-template #empty>
+                            <div class="text-center py-8">
+                                <i class="pi pi-inbox text-500 text-5xl mb-3"></i>
+                                <p class="text-900 font-semibold text-xl mb-2">No hay gastos programados</p>
+                                <p class="text-600 mb-4">Comienza agregando tu primer gasto programado</p>
+                                <p-button label="Crear Gasto Programado" icon="pi pi-plus" (onClick)="openNew()" />
+                            </div>
+                        </ng-template>
+                    </p-dataView>
+                    }
                 </div>
             </div>
         </app-base-page-template>
@@ -168,9 +235,34 @@ import { GastoProgramadoFormModalComponent } from '../components/gasto-programad
 })
 export class GastosProgramadosListPage extends BasePageComponent {
     gastosStore = inject(GastosProgramadosStore);
+    protected readonly layout = inject(LayoutService);
 
     protected override loadingSignal = this.gastosStore.loading;
     protected override skeletonType = 'table' as const;
+
+    readonly glossary: GlossaryConfig = {
+        title: 'Glosario · Gastos Programados',
+        intro: 'Programaciones automáticas para registrar gastos recurrentes.',
+        sections: [
+            {
+                title: 'Acciones',
+                rows: [
+                    { term: 'Nuevo Gasto Programado', def: 'Abre el formulario para crear una programación.' },
+                    { term: 'Actualizar', def: 'Recarga el listado con los datos más recientes.' }
+                ]
+            },
+            {
+                title: 'Columnas',
+                rows: [
+                    { term: 'Importe', def: 'Valor del gasto programado.' },
+                    { term: 'Frecuencia', def: 'Periodicidad con la que se ejecuta.' },
+                    { term: 'Próxima Ejecución', def: 'Fecha y hora estimada de la siguiente ejecución.' },
+                    { term: 'Estado', def: 'Indica si la programación está activa o inactiva.' },
+                    { term: 'Acciones', def: 'Permite editar o eliminar la programación.' }
+                ]
+            }
+        ]
+    };
 
     @ViewChild('dt') dt!: Table;
 

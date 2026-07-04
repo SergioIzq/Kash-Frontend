@@ -13,14 +13,16 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
 import { TraspasosStore } from '../stores/traspasos.store';
 import { Traspaso } from '@/core/models/traspaso.model';
-import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig } from '@/shared/components';
+import { DataViewModule } from 'primeng/dataview';
+import { LayoutService } from '@/layout/service/layout.service';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 import { TraspasoFormModalComponent } from '../components/traspaso-form-modal.component';
 
 @Component({
     selector: 'app-traspasos-list-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, TagModule, BasePageTemplateComponent, TraspasoFormModalComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, TagModule, DataViewModule, BasePageTemplateComponent, TraspasoFormModalComponent, HelpGlossaryComponent],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
@@ -53,10 +55,12 @@ import { TraspasoFormModalComponent } from '../components/traspaso-form-modal.co
                         </ng-template>
 
                         <ng-template #end>
+                            <app-help-glossary [config]="glossary" class="mr-2" />
                             <p-button icon="pi pi-refresh" severity="secondary" outlined (onClick)="refreshTable()" pTooltip="Actualizar" />
                         </ng-template>
                     </p-toolbar>
 
+                    @if (!layout.isMobileView()) {
                     <p-table
                         #dt
                         [value]="traspasosStore.traspasos()"
@@ -164,6 +168,74 @@ import { TraspasoFormModalComponent } from '../components/traspaso-form-modal.co
                             </tr>
                         </ng-template>
                     </p-table>
+                    } @else {
+                    <p-dataView
+                        styleClass="kash-mobile-dataview"
+                        [value]="traspasosStore.traspasos()"
+                        [lazy]="true"
+                        (onLazyLoad)="onLazyLoad($event)"
+                        [rows]="pageSize"
+                        [totalRecords]="traspasosStore.totalRecords()"
+                        [paginator]="true"
+                        [loading]="traspasosStore.loading()"
+                        [showCurrentPageReport]="true"
+                        currentPageReportTemplate="{first}-{last} de {totalRecords}"
+                    >
+                        <ng-template #header>
+                            <div class="flex flex-col gap-3 py-2">
+                                <h5 class="m-0 font-semibold text-lg">Gestión de Traspasos</h5>
+                                <p-iconfield>
+                                    <p-inputicon styleClass="pi pi-search" />
+                                    <input pInputText type="text" [(ngModel)]="searchTerm" (input)="onSearchChange($event)" placeholder="Buscar..." class="w-full" />
+                                </p-iconfield>
+                            </div>
+                        </ng-template>
+
+                        <ng-template #list let-traspasos>
+                            <div class="flex flex-col gap-4 pt-4">
+                                @for (traspaso of traspasos; track traspaso.id) {
+                                    <div class="surface-card rounded-xl border border-surface-200 dark:border-surface-700 border-l-4 border-l-blue-500 shadow-sm p-4">
+                                        <div class="flex justify-between items-start gap-3 pb-3 border-b border-surface-200 dark:border-surface-700">
+                                            <span class="font-semibold text-base text-900 flex items-center gap-2">
+                                                <i class="pi pi-calendar text-500" style="font-size: 0.85rem"></i>{{ traspaso.fecha | date: 'dd/MM/yyyy' }}
+                                            </span>
+                                            <span class="font-bold text-blue-500 text-lg whitespace-nowrap">{{ traspaso.importe | number: '1.2-2' : 'es-ES' }} €</span>
+                                        </div>
+
+                                        <div class="grid grid-cols-1 gap-3 py-3">
+                                            <div class="flex flex-col gap-1 min-w-0">
+                                                <span class="text-xs text-400 uppercase tracking-wide"><i class="pi pi-arrow-circle-right text-red-500 mr-1"></i>Cuenta Origen</span>
+                                                <span class="text-sm text-700 truncate">{{ traspaso.cuentaOrigenNombre || '—' }}</span>
+                                            </div>
+                                            <div class="flex flex-col gap-1 min-w-0">
+                                                <span class="text-xs text-400 uppercase tracking-wide"><i class="pi pi-arrow-circle-left text-green-500 mr-1"></i>Cuenta Destino</span>
+                                                <span class="text-sm text-700 truncate">{{ traspaso.cuentaDestinoNombre || '—' }}</span>
+                                            </div>
+                                            <div class="flex flex-col gap-1 min-w-0">
+                                                <span class="text-xs text-400 uppercase tracking-wide"><i class="pi pi-align-left mr-1"></i>Descripción</span>
+                                                <span class="text-sm text-700">{{ traspaso.descripcion || '—' }}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex justify-end gap-2 pt-3 border-t border-surface-200 dark:border-surface-700">
+                                            <p-button icon="pi pi-pencil" label="Editar" severity="secondary" [outlined]="true" size="small" (click)="editTraspaso(traspaso)" />
+                                            <p-button icon="pi pi-trash" label="Eliminar" severity="danger" [outlined]="true" size="small" (click)="deleteTraspaso(traspaso)" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </ng-template>
+
+                        <ng-template #empty>
+                            <div class="text-center py-8">
+                                <i class="pi pi-inbox text-500 text-5xl mb-3"></i>
+                                <p class="text-900 font-semibold text-xl mb-2">No hay traspasos</p>
+                                <p class="text-600 mb-4">Comienza agregando tu primer traspaso entre cuentas</p>
+                                <p-button label="Crear Traspaso" icon="pi pi-plus" (onClick)="openNew()" />
+                            </div>
+                        </ng-template>
+                    </p-dataView>
+                    }
                 </div>
             </div>
         </app-base-page-template>
@@ -174,9 +246,37 @@ import { TraspasoFormModalComponent } from '../components/traspaso-form-modal.co
 })
 export class TraspasosListPage extends BasePageComponent {
     traspasosStore = inject(TraspasosStore);
+    protected readonly layout = inject(LayoutService);
 
     protected override loadingSignal = this.traspasosStore.loading;
     protected override skeletonType = 'table' as const;
+
+    readonly glossary: GlossaryConfig = {
+        title: 'Glosario · Traspasos',
+        intro: 'Esta pantalla gestiona <strong>traspasos</strong>: movimientos de dinero entre dos cuentas propias. Un traspaso <strong>resta</strong> el importe de la cuenta origen y lo <strong>suma</strong> a la cuenta destino, sin considerarse ingreso ni gasto.',
+        sections: [
+            {
+                title: 'Botones y acciones',
+                rows: [
+                    { icon: 'pi pi-plus', color: '#22c55e', term: 'Nuevo Traspaso', def: 'Abre el formulario para mover dinero entre dos cuentas: fecha, importe, cuenta origen, cuenta destino y descripción.' },
+                    { icon: 'pi pi-search', color: '#6366f1', term: 'Buscar', def: 'Filtra la tabla de traspasos.' },
+                    { icon: 'pi pi-refresh', color: '#64748b', term: 'Actualizar', def: 'Vuelve a cargar la lista de traspasos desde el servidor.' },
+                    { icon: 'pi pi-pencil', color: '#f59e0b', term: 'Editar', def: 'Modifica los datos del traspaso seleccionado.' },
+                    { icon: 'pi pi-trash', color: '#ef4444', term: 'Eliminar', def: 'Borra el traspaso (pide confirmación). Los saldos de ambas cuentas se recalculan.' },
+                ]
+            },
+            {
+                title: 'Columnas de la tabla',
+                rows: [
+                    { icon: 'pi pi-calendar', color: '#6366f1', term: 'Fecha', def: 'Día en que se realizó el traspaso.' },
+                    { icon: 'pi pi-euro', color: '#3b82f6', term: 'Importe', def: 'Cantidad transferida entre las cuentas.' },
+                    { icon: 'pi pi-arrow-circle-right', color: '#ef4444', term: 'Cuenta Origen', def: 'Cuenta de la que sale el dinero (se le resta el importe).' },
+                    { icon: 'pi pi-arrow-circle-left', color: '#22c55e', term: 'Cuenta Destino', def: 'Cuenta a la que entra el dinero (se le suma el importe).' },
+                    { icon: 'pi pi-align-left', color: '#64748b', term: 'Descripción', def: 'Nota opcional que explica el motivo del traspaso.' },
+                ]
+            }
+        ]
+    };
 
     @ViewChild('dt') dt!: Table;
 

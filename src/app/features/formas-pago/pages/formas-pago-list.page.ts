@@ -10,16 +10,20 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { SkeletonModule } from 'primeng/skeleton';
+import { TooltipModule } from 'primeng/tooltip';
+import { DataViewModule } from 'primeng/dataview';
 import { FormaPagoStore } from '@/features/formas-pago/store/forma-pago.store';
 import { FormaPago } from '@/core/models/forma-pago.model';
 import { FormaPagoFormModalComponent } from '../components/forma-pago-form-modal.component';
 import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { HelpGlossaryComponent, GlossaryConfig } from '@/shared/components/help-glossary.component';
+import { LayoutService } from '@/layout/service/layout.service';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 
 @Component({
     selector: 'app-formas-pago-list-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, FormaPagoFormModalComponent, BasePageTemplateComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, TooltipModule, DataViewModule, FormaPagoFormModalComponent, BasePageTemplateComponent, HelpGlossaryComponent],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
@@ -52,10 +56,12 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
                         </ng-template>
 
                         <ng-template #end>
+                            <app-help-glossary [config]="glossary" class="mr-2" />
                             <p-button icon="pi pi-refresh" severity="secondary" outlined (onClick)="refreshTable()" pTooltip="Actualizar" />
                         </ng-template>
                     </p-toolbar>
 
+                    @if (!layout.isMobileView()) {
                     <p-table
                         #dt
                         [value]="formaPagoStore.formasPago()"
@@ -133,6 +139,58 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
                             </tr>
                         </ng-template>
                     </p-table>
+                    } @else {
+                    <p-dataView
+                        styleClass="kash-mobile-dataview"
+                        [value]="formaPagoStore.formasPago()"
+                        [lazy]="true"
+                        (onLazyLoad)="onLazyLoad($event)"
+                        [rows]="pageSize"
+                        [totalRecords]="formaPagoStore.totalRecords()"
+                        [paginator]="true"
+                        [loading]="formaPagoStore.loading()"
+                        [showCurrentPageReport]="true"
+                        currentPageReportTemplate="{first}-{last} de {totalRecords}"
+                    >
+                        <ng-template #header>
+                            <div class="flex flex-col gap-3 py-2">
+                                <h5 class="m-0 font-semibold text-lg">Gestión de Formas de Pago</h5>
+                                <p-iconfield>
+                                    <p-inputicon styleClass="pi pi-search" />
+                                    <input pInputText type="text" [(ngModel)]="searchTerm" (input)="onSearchChange($event)" placeholder="Buscar..." class="w-full" />
+                                </p-iconfield>
+                            </div>
+                        </ng-template>
+
+                        <ng-template #list let-formasPago>
+                            <div class="flex flex-col gap-4 pt-4">
+                                @for (formaPago of formasPago; track formaPago.id) {
+                                    <div class="surface-card rounded-xl border border-surface-200 dark:border-surface-700 border-l-4 border-l-primary shadow-sm p-4">
+                                        <div class="flex justify-between items-center gap-3 pb-3 border-b border-surface-200 dark:border-surface-700">
+                                            <span class="font-semibold text-base text-900 flex items-center gap-2 min-w-0">
+                                                <i class="pi pi-wallet text-primary"></i><span class="truncate">{{ formaPago.nombre }}</span>
+                                            </span>
+                                        </div>
+
+                                        <div class="flex justify-end gap-2 pt-3">
+                                            <p-button icon="pi pi-pencil" label="Editar" severity="secondary" [outlined]="true" size="small" (click)="editFormaPago(formaPago)" />
+                                            <p-button icon="pi pi-trash" label="Eliminar" severity="danger" [outlined]="true" size="small" (click)="deleteFormaPago(formaPago)" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </ng-template>
+
+                        <ng-template #empty>
+                            <div class="text-center py-8">
+                                <i class="pi pi-inbox text-500 text-5xl mb-3"></i>
+                                <p class="text-900 font-semibold text-xl mb-2">No hay formas de pago</p>
+                                <p class="text-600 mb-4">Comienza agregando tu primera forma de pago</p>
+                                <p-button label="Crear Forma de Pago" icon="pi pi-plus" (onClick)="openNew()" />
+                            </div>
+                        </ng-template>
+                    </p-dataView>
+                    }
 
                     <app-forma-pago-form-modal [visible]="formaPagoDialog" [formaPago]="currentFormaPago" (visibleChange)="formaPagoDialog = $event" (save)="onSaveFormaPago($event)" (cancel)="hideDialog()" />
                 </div>
@@ -142,6 +200,7 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 })
 export class FormasPagoListPage extends BasePageComponent {
     formaPagoStore = inject(FormaPagoStore);
+    protected readonly layout = inject(LayoutService);
 
     protected override loadingSignal = this.formaPagoStore.loading;
     protected override skeletonType = 'table' as const;
@@ -157,6 +216,27 @@ export class FormasPagoListPage extends BasePageComponent {
     searchTerm: string = '';
     sortColumn: string = 'nombre';
     sortOrder: string = 'asc';
+
+    readonly glossary: GlossaryConfig = {
+        title: 'Glosario · Formas de Pago',
+        intro: 'Catálogo de métodos de cobro y pago disponibles en la aplicación.',
+        sections: [
+            {
+                title: 'Acciones',
+                rows: [
+                    { term: 'Nueva Forma de Pago', def: 'Abre el formulario para crear una forma de pago.' },
+                    { term: 'Actualizar', def: 'Recarga el listado con los datos más recientes.' }
+                ]
+            },
+            {
+                title: 'Columnas',
+                rows: [
+                    { term: 'Nombre', def: 'Nombre visible de la forma de pago.' },
+                    { term: 'Acciones', def: 'Permite editar o eliminar el registro.' }
+                ]
+            }
+        ]
+    };
 
     constructor() {
         super();

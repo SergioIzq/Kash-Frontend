@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DrawerModule } from 'primeng/drawer';
 import { ButtonModule } from 'primeng/button';
-import { InputNumberModule } from 'primeng/inputnumber';
 import { TextareaModule } from 'primeng/textarea';
 import { DatePickerModule } from 'primeng/datepicker';
 import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
@@ -11,7 +10,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import { Traspaso } from '@/core/models/traspaso.model';
 import { Cuenta } from '@/core/models/cuenta.model';
-import { CuentaCreateModalComponent } from '@/shared/components';
+import { CuentaCreateModalComponent, MoneyInputComponent } from '@/shared/components';
 import { CuentaStore } from '@/features/cuentas/store/cuenta.store';
 
 interface CatalogItem {
@@ -31,7 +30,7 @@ interface TraspasoFormData extends Omit<Partial<Traspaso>, 'fecha'> {
         FormsModule,
         DrawerModule,
         ButtonModule,
-        InputNumberModule,
+        MoneyInputComponent,
         TextareaModule,
         DatePickerModule,
         AutoCompleteModule,
@@ -101,17 +100,11 @@ interface TraspasoFormData extends Omit<Partial<Traspaso>, 'fecha'> {
 
                 <div class="col-span-12 md:col-span-6 field">
                     <label for="importe" class="font-semibold text-gray-700 block mb-2">Importe *</label>
-                    <p-inputNumber
-                        id="importe"
+                    <app-money-input
+                        inputId="importe"
                         [(ngModel)]="formData.importe"
-                        mode="currency"
-                        currency="EUR"
-                        locale="es-ES"
-                        [min]="0.01"
+                        inputClass="text-right font-bold text-xl text-blue-600"
                         placeholder="0,00 €"
-                        inputStyleClass="text-right font-bold text-xl text-blue-600"
-                        class="w-full"
-                        styleClass="w-full"
                     />
                     @if (submitted() && (!formData.importe || formData.importe <= 0)) {
                         <small class="text-red-500 block mt-1">El importe es requerido y debe ser mayor a 0.</small>

@@ -11,16 +11,35 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { ToolbarModule } from 'primeng/toolbar';
 import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
+import { TooltipModule } from 'primeng/tooltip';
+import { DataViewModule } from 'primeng/dataview';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { CategoriaStore } from '@/features/categorias/store/categoria.store';
 import { Categoria } from '@/core/models/categoria.model';
 import { CategoriaFormModalComponent } from '../components/categoria-form-modal.component';
-import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig } from '@/shared/components';
+import { LayoutService } from '@/layout/service/layout.service';
 
 @Component({
     selector: 'app-categorias-list',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, TableModule, InputTextModule, ToastModule, ConfirmDialogModule, SkeletonModule, ToolbarModule, InputIconModule, IconFieldModule, CategoriaFormModalComponent, BasePageTemplateComponent],
+    imports: [
+        CommonModule, 
+        FormsModule, 
+        ButtonModule, 
+        TableModule, 
+        InputTextModule, 
+        ToastModule, 
+        ConfirmDialogModule, 
+        SkeletonModule, 
+        ToolbarModule, 
+        InputIconModule, 
+        IconFieldModule, 
+        TooltipModule,
+        DataViewModule,
+        CategoriaFormModalComponent, 
+        BasePageTemplateComponent, 
+        HelpGlossaryComponent],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
@@ -53,10 +72,12 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         </ng-template>
 
                         <ng-template #end>
+                            <app-help-glossary [config]="glossary" class="mr-2" />
                             <p-button icon="pi pi-refresh" severity="secondary" outlined (onClick)="refreshTable()" pTooltip="Actualizar" />
                         </ng-template>
                     </p-toolbar>
 
+                    @if (!layout.isMobileView()) {
                     <p-table
                         #dt
                         [value]="categoriaStore.categorias()"
@@ -134,6 +155,58 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                             </tr>
                         </ng-template>
                     </p-table>
+                    } @else {
+                    <p-dataView
+                        styleClass="kash-mobile-dataview"
+                        [value]="categoriaStore.categorias()"
+                        [lazy]="true"
+                        (onLazyLoad)="onLazyLoad($event)"
+                        [rows]="pageSize()"
+                        [totalRecords]="categoriaStore.totalRecords()"
+                        [paginator]="true"
+                        [loading]="categoriaStore.loading()"
+                        [showCurrentPageReport]="true"
+                        currentPageReportTemplate="{first}-{last} de {totalRecords}"
+                    >
+                        <ng-template #header>
+                            <div class="flex flex-col gap-3 py-2">
+                                <h5 class="m-0 font-semibold text-lg">Gestión de Categorías</h5>
+                                <p-iconfield>
+                                    <p-inputicon styleClass="pi pi-search" />
+                                    <input pInputText type="text" [ngModel]="searchTerm()" (input)="onSearchChange($event)" placeholder="Buscar..." class="w-full" />
+                                </p-iconfield>
+                            </div>
+                        </ng-template>
+
+                        <ng-template #list let-categorias>
+                            <div class="flex flex-col gap-4 pt-4">
+                                @for (categoria of categorias; track categoria.id) {
+                                    <div class="surface-card rounded-xl border border-surface-200 dark:border-surface-700 border-l-4 border-l-primary shadow-sm p-4">
+                                        <div class="flex justify-between items-center gap-3 pb-3 border-b border-surface-200 dark:border-surface-700">
+                                            <span class="font-semibold text-base text-900 flex items-center gap-2 min-w-0">
+                                                <i class="pi pi-tag text-primary"></i><span class="truncate">{{ categoria.nombre }}</span>
+                                            </span>
+                                        </div>
+
+                                        <div class="flex justify-end gap-2 pt-3">
+                                            <p-button icon="pi pi-pencil" label="Editar" severity="secondary" [outlined]="true" size="small" (click)="editCategoria(categoria)" />
+                                            <p-button icon="pi pi-trash" label="Eliminar" severity="danger" [outlined]="true" size="small" (click)="deleteCategoria(categoria)" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </ng-template>
+
+                        <ng-template #empty>
+                            <div class="text-center py-8">
+                                <i class="pi pi-inbox text-500 text-5xl mb-3"></i>
+                                <p class="text-900 font-semibold text-xl mb-2">No hay categorías</p>
+                                <p class="text-600 mb-4">Comienza agregando tu primera categoría</p>
+                                <p-button label="Crear Categoría" icon="pi pi-plus" (onClick)="openNew()" />
+                            </div>
+                        </ng-template>
+                    </p-dataView>
+                    }
 
                     <app-categoria-form-modal [visible]="categoriaDialog()" [categoria]="currentCategoria()" (visibleChange)="categoriaDialog.set($event)" (save)="onSaveCategoria($event)" (cancel)="hideDialog()" />
                 </div>
@@ -143,6 +216,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
 })
 export class CategoriasListPage extends BasePageComponent {
     categoriaStore = inject(CategoriaStore);
+    protected readonly layout = inject(LayoutService);
 
     protected override loadingSignal = this.categoriaStore.loading;
     protected override skeletonType = 'table' as const;
@@ -159,6 +233,29 @@ export class CategoriasListPage extends BasePageComponent {
     searchTerm = signal('');
     sortColumn = signal('nombre');
     sortOrder = signal('asc');
+
+    readonly glossary: GlossaryConfig = {
+        title: 'Glosario · Categorías',
+        intro: 'Listado de categorías usadas para clasificar gastos e ingresos.',
+        sections: [
+            {
+                title: 'Acciones',
+                rows: [
+                    { term: 'Nueva Categoría', def: 'Abre el formulario para crear una categoría.' },
+                    { term: 'Actualizar', def: 'Recarga el listado con los datos más recientes.' },
+                    { term: 'Editar', def: 'Abre el formulario para modificar la categoría seleccionada.' },
+                    { term: 'Eliminar', def: 'Solicita confirmación para borrar la categoría seleccionada.' }
+                ]
+            },
+            {
+                title: 'Columnas',
+                rows: [
+                    { term: 'Nombre', def: 'Nombre visible de la categoría.' },
+                    { term: 'Acciones', def: 'Permite editar o eliminar el registro.' }
+                ]
+            }
+        ]
+    };
 
     // Computed signal para saber si hay cambios pendientes
     hasChanges = computed(() => {

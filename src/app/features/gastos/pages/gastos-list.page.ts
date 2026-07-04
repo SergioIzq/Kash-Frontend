@@ -15,12 +15,14 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { GastosStore } from '../stores/gastos.store';
 import { Gasto, GastoCreate } from '@/core/models';
 import { GastoFormModalComponent } from '../components/gasto-form-modal.component';
-import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig } from '@/shared/components';
+import { DataViewModule } from 'primeng/dataview';
+import { LayoutService } from '@/layout/service/layout.service';
 
 @Component({
     selector: 'app-gastos-list-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, TagModule, InputIconModule, IconFieldModule, SkeletonModule, GastoFormModalComponent, BasePageTemplateComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, TagModule, InputIconModule, IconFieldModule, SkeletonModule, DataViewModule, GastoFormModalComponent, BasePageTemplateComponent, HelpGlossaryComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
         /* Toolbar responsive en móvil */
@@ -51,11 +53,13 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         </ng-template>
 
                         <ng-template #end>
+                            <app-help-glossary [config]="glossary" class="mr-2" />
                             <p-button icon="pi pi-refresh" severity="secondary" outlined (onClick)="refreshTable()" pTooltip="Actualizar" class="mr-2" />
                             <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
                         </ng-template>
                     </p-toolbar>
 
+                    @if (!layout.isMobileView()) {
                     <p-table
                         #dt
                         [value]="gastosStore.gastos()"
@@ -185,6 +189,81 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                             </tr>
                         </ng-template>
                     </p-table>
+                    } @else {
+                    <p-dataView
+                        styleClass="kash-mobile-dataview"
+                        [value]="gastosStore.gastos()"
+                        [lazy]="true"
+                        (onLazyLoad)="loadGastosLazy($event)"
+                        [rows]="pageSize()"
+                        [totalRecords]="totalRecords()"
+                        [paginator]="true"
+                        [loading]="gastosStore.loading()"
+                        [showCurrentPageReport]="true"
+                        currentPageReportTemplate="{first}-{last} de {totalRecords}"
+                    >
+                        <ng-template #header>
+                            <div class="flex flex-col gap-3 py-2">
+                                <h5 class="m-0 font-semibold text-lg">Gestión de Gastos</h5>
+                                <p-iconfield>
+                                    <p-inputicon styleClass="pi pi-search" />
+                                    <input pInputText type="text" (input)="onSearchInput($event)" placeholder="Buscar..." class="w-full" />
+                                </p-iconfield>
+                            </div>
+                        </ng-template>
+
+                        <ng-template #list let-gastos>
+                            <div class="flex flex-col gap-4 pt-4">
+                                @for (gasto of gastos; track gasto.id) {
+                                    <div class="surface-card rounded-xl border border-surface-200 dark:border-surface-700 border-l-4 border-l-red-500 shadow-sm p-4">
+                                        <div class="flex justify-between items-start gap-3 pb-3 border-b border-surface-200 dark:border-surface-700">
+                                            <div class="flex flex-col min-w-0">
+                                                <span class="font-semibold text-base text-900 truncate">{{ gasto.conceptoNombre }}</span>
+                                                <span class="text-xs text-500 flex items-center gap-1 mt-1">
+                                                    <i class="pi pi-calendar" style="font-size: 0.75rem"></i>{{ gasto.fecha | date: 'dd/MM/yyyy' }}
+                                                </span>
+                                            </div>
+                                            <span class="font-bold text-red-500 text-lg whitespace-nowrap">- {{ gasto.importe | number: '1.2-2' : 'es-ES' }} €</span>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-x-4 gap-y-3 py-3">
+                                            <div class="flex flex-col gap-1 min-w-0">
+                                                <span class="text-xs text-400 uppercase tracking-wide"><i class="pi pi-truck mr-1"></i>Proveedor</span>
+                                                <span class="text-sm text-700 truncate">{{ gasto.proveedorNombre || '—' }}</span>
+                                            </div>
+                                            <div class="flex flex-col gap-1 min-w-0">
+                                                <span class="text-xs text-400 uppercase tracking-wide"><i class="pi pi-id-card mr-1"></i>Persona</span>
+                                                <span class="text-sm text-700 truncate">{{ gasto.personaNombre || '—' }}</span>
+                                            </div>
+                                            <div class="flex flex-col gap-1 min-w-0">
+                                                <span class="text-xs text-400 uppercase tracking-wide"><i class="pi pi-credit-card mr-1"></i>Forma de Pago</span>
+                                                <span class="text-sm text-700 truncate">{{ gasto.formaPagoNombre || '—' }}</span>
+                                            </div>
+                                            <div class="flex flex-col gap-1 min-w-0">
+                                                <span class="text-xs text-400 uppercase tracking-wide"><i class="pi pi-wallet mr-1"></i>Cuenta</span>
+                                                <span class="text-sm text-700 truncate">{{ gasto.cuentaNombre || '—' }}</span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex justify-end gap-2 pt-3 border-t border-surface-200 dark:border-surface-700">
+                                            <p-button icon="pi pi-pencil" label="Editar" severity="secondary" [outlined]="true" size="small" (click)="editGasto(gasto)" />
+                                            <p-button icon="pi pi-trash" label="Eliminar" severity="danger" [outlined]="true" size="small" (click)="deleteGasto(gasto)" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </ng-template>
+
+                        <ng-template #empty>
+                            <div class="text-center py-8">
+                                <i class="pi pi-inbox text-500 text-5xl mb-3"></i>
+                                <p class="text-900 font-semibold text-xl mb-2">No hay gastos</p>
+                                <p class="text-600 mb-4">Comienza agregando tu primer gasto</p>
+                                <p-button label="Crear Gasto" icon="pi pi-plus" (onClick)="openNew()" />
+                            </div>
+                        </ng-template>
+                    </p-dataView>
+                    }
 
                     <!-- Nuevo componente de formulario modal con autocomplete -->
                     <app-gasto-form-modal [visible]="gastoDialog()" [gasto]="currentGasto()" (visibleChange)="gastoDialog.set($event)" (save)="onSaveGasto($event)" (cancel)="hideDialog()" />
@@ -195,9 +274,40 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
 })
 export class GastosListPage extends BasePageComponent implements OnDestroy {
     gastosStore = inject(GastosStore);
+    protected readonly layout = inject(LayoutService);
 
     protected override loadingSignal = this.gastosStore.loading;
     protected override skeletonType = 'table' as const;
+
+    readonly glossary: GlossaryConfig = {
+        title: 'Glosario · Gastos',
+        intro: 'Esta pantalla registra y consulta tus <strong>gastos</strong> (salidas de dinero). Cada gasto descuenta su importe del saldo de la cuenta asociada. Puedes buscarlos, ordenarlos, paginarlos y exportarlos a CSV.',
+        sections: [
+            {
+                title: 'Botones y acciones',
+                rows: [
+                    { icon: 'pi pi-plus', color: '#22c55e', term: 'Nuevo Gasto', def: 'Abre el formulario para registrar un gasto: fecha, importe, concepto, categoría, proveedor, persona, forma de pago y cuenta.' },
+                    { icon: 'pi pi-search', color: '#6366f1', term: 'Buscar', def: 'Filtra la tabla por concepto, categoría, proveedor o descripción. La búsqueda se aplica automáticamente al dejar de escribir.' },
+                    { icon: 'pi pi-refresh', color: '#64748b', term: 'Actualizar', def: 'Vuelve a cargar la lista de gastos desde el servidor con los filtros actuales.' },
+                    { icon: 'pi pi-upload', color: '#3b82f6', term: 'Exportar', def: 'Descarga los gastos cargados en un archivo CSV (compatible con Excel).' },
+                    { icon: 'pi pi-pencil', color: '#f59e0b', term: 'Editar', def: 'Modifica los datos del gasto seleccionado.' },
+                    { icon: 'pi pi-trash', color: '#ef4444', term: 'Eliminar', def: 'Borra el gasto (pide confirmación). El saldo de la cuenta se recalcula.' },
+                ]
+            },
+            {
+                title: 'Columnas de la tabla',
+                rows: [
+                    { icon: 'pi pi-calendar', color: '#6366f1', term: 'Fecha', def: 'Día en que se produjo el gasto.' },
+                    { icon: 'pi pi-id-card', color: '#8b5cf6', term: 'Persona', def: 'Persona a la que se imputa el gasto (útil en gastos compartidos o familiares).' },
+                    { icon: 'pi pi-credit-card', color: '#06b6d4', term: 'Forma de Pago', def: 'Medio con el que se pagó: tarjeta, efectivo, transferencia, etc.' },
+                    { icon: 'pi pi-truck', color: '#64748b', term: 'Proveedor', def: 'Comercio o entidad a quien se realizó el pago.' },
+                    { icon: 'pi pi-bookmark', color: '#f59e0b', term: 'Concepto', def: 'Descripción del gasto. Debajo aparece la nota o descripción ampliada si la hubiera.' },
+                    { icon: 'pi pi-wallet', color: '#3b82f6', term: 'Cuenta', def: 'Cuenta de la que sale el dinero.' },
+                    { icon: 'pi pi-euro', color: '#ef4444', term: 'Importe', def: 'Cantidad gastada. Se muestra en rojo con signo negativo porque reduce tu saldo.' },
+                ]
+            }
+        ]
+    };
 
     @ViewChild('dt') dt!: Table;
 
@@ -280,6 +390,11 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
 
         // Usar Subject para aplicar debounce (esperar 500ms después de dejar de escribir)
         this.searchSubject.next(searchValue);
+    }
+
+    /** Búsqueda desde el DataView móvil (no depende de la referencia de la tabla). */
+    onSearchInput(event: Event) {
+        this.searchSubject.next((event.target as HTMLInputElement).value);
     }
 
     openNew() {
