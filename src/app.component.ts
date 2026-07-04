@@ -7,12 +7,13 @@ import { PrimeNG } from 'primeng/config';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { filter } from 'rxjs/operators';
 import { interval } from 'rxjs'; // Opcional: para buscar actualizaciones periódicamente
+import { CookieConsentBannerComponent } from './app/shared/components/cookie-consent-banner.component';
 
 @Component({
     selector: 'app-root',
     standalone: true,
-    imports: [RouterModule],
-    template: `<router-outlet></router-outlet>`
+    imports: [RouterModule, CookieConsentBannerComponent],
+    template: `<router-outlet></router-outlet><app-cookie-consent-banner />`
 })
 export class AppComponent implements OnInit {
     // Inyectamos la clase PrimeNG (Tu código original)

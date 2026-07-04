@@ -44,6 +44,16 @@ export class AppMenu {
                         label: 'Traspasos',
                         icon: 'pi pi-fw pi-sync',
                         routerLink: ['/traspasos']
+                    },
+                    {
+                        label: 'Importar extracto',
+                        icon: 'pi pi-fw pi-upload',
+                        routerLink: ['/movimientos']
+                    },
+                    {
+                        label: 'Reglas de Categorización',
+                        icon: 'pi pi-fw pi-filter',
+                        routerLink: ['/reglas-categorizacion']
                     }
                 ]
             },
@@ -127,6 +137,27 @@ export class AppMenu {
                         label: 'Centro de Ayuda', 
                         icon: 'pi pi-fw pi-question-circle', 
                         routerLink: ['/ayuda'] 
+                    }
+                ]
+            },
+            {
+                label: 'Legal',
+                icon: 'pi pi-fw pi-shield',
+                items: [
+                    {
+                        label: 'Aviso Legal',
+                        icon: 'pi pi-fw pi-file',
+                        routerLink: ['/legal/aviso-legal']
+                    },
+                    {
+                        label: 'Política de Privacidad',
+                        icon: 'pi pi-fw pi-lock',
+                        routerLink: ['/legal/privacidad']
+                    },
+                    {
+                        label: 'Política de Cookies',
+                        icon: 'pi pi-fw pi-cookie',
+                        routerLink: ['/legal/cookies']
                     }
                 ]
             }
