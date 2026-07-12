@@ -131,6 +131,17 @@ export class AppMenu {
                 ]
             },
             {
+                label: 'Informes',
+                icon: 'pi pi-fw pi-file-pdf',
+                items: [
+                    {
+                        label: 'Presupuesto',
+                        icon: 'pi pi-fw pi-file-pdf',
+                        routerLink: ['/reportes']
+                    }
+                ]
+            },
+            {
                 label: 'Ayuda',
                 items: [
                     { 
