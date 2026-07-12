@@ -90,6 +90,10 @@ interface ReviewRow {
         :host ::ng-deep tr.selected-row > td { background: color-mix(in srgb, var(--primary-color) 8%, transparent) !important; }
         .chip { display:inline-flex; align-items:center; gap:.4rem; padding:.3rem .7rem; border-radius:999px;
             font-size:.78rem; font-weight:600; background: var(--surface-100); }
+        /* Controles PrimeNG a ancho completo y responsive */
+        :host ::ng-deep .p-selectbutton { display:flex; flex-wrap:wrap; width:100%; }
+        :host ::ng-deep .p-selectbutton .p-togglebutton { flex:1 1 auto; justify-content:center; }
+        :host ::ng-deep .p-inputnumber { width:100%; }
     `],
     template: `
         <div class="card">
@@ -104,7 +108,7 @@ interface ReviewRow {
 
             <!-- ── Paso 1: formulario ─────────────────────────────── -->
             @if (step() === 'form') {
-                <div class="flex flex-col gap-5" style="max-width: 900px">
+                <div class="flex flex-col gap-5 w-full">
 
                     <!-- Drop zone (multi-archivo) -->
                     <div>
@@ -168,7 +172,7 @@ interface ReviewRow {
                     @if (hasCsv()) {
                         <div>
                             <span class="field-label">3. Mapeo de columnas del CSV (nombre de cabecera o índice 0,1,2…)</span>
-                            <div class="grid grid-cols-2 gap-3">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
                                     <label class="text-xs text-500">Columna de fecha</label>
                                     <input pInputText class="w-full" placeholder="Fecha"
@@ -188,13 +192,13 @@ interface ReviewRow {
                             </div>
 
                             @if (amountMode() === 'signed') {
-                                <div class="mt-3" style="max-width: 50%">
+                                <div class="mt-3 w-full sm:w-1/2">
                                     <label class="text-xs text-500">Columna de importe (negativo = gasto)</label>
                                     <input pInputText class="w-full" placeholder="Importe"
                                         [ngModel]="form().importeColumn" (ngModelChange)="patch('importeColumn', $event)" />
                                 </div>
                             } @else {
-                                <div class="grid grid-cols-2 gap-3 mt-3">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                                     <div>
                                         <label class="text-xs text-500">Columna de cargo (gastos)</label>
                                         <input pInputText class="w-full" placeholder="Débito / Cargo"
@@ -229,7 +233,7 @@ interface ReviewRow {
                         @if (showAdvanced()) {
                             <div class="surface-50 border-round-lg p-3 border surface-border flex flex-col gap-3 mt-2">
                                 @if (hasCsv()) {
-                                    <div class="grid grid-cols-3 gap-3">
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                         <div>
                                             <label class="text-xs text-500">Separador de columnas</label>
                                             <p-selectbutton [options]="delimiters" optionLabel="label" optionValue="value"
@@ -255,16 +259,16 @@ interface ReviewRow {
                                             [ngModel]="form().lineRegex" (ngModelChange)="patch('lineRegex', $event)" />
                                         <small class="text-500 font-mono">Ej: {{ regexEjemplo }}</small>
                                     </div>
-                                    <div style="max-width: 260px">
+                                    <div class="w-full sm:max-w-[260px]">
                                         <label class="text-xs text-500">Si hay varios importes por línea, usar</label>
                                         <p-selectbutton [options]="amountPositions" optionLabel="label" optionValue="value"
                                             [ngModel]="form().amountPosition" (ngModelChange)="patch('amountPosition', $event)" [allowEmpty]="false" />
                                     </div>
                                 }
-                                <div class="grid grid-cols-2 gap-3">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
                                         <label class="text-xs text-500">Filas iniciales a saltar</label>
-                                        <p-inputnumber [showButtons]="true" [min]="0" [max]="50" styleClass="w-full"
+                                        <p-inputnumber [showButtons]="true" [min]="0" [max]="50" styleClass="w-full" class="w-full"
                                             [ngModel]="form().skipRows" (ngModelChange)="patch('skipRows', $event ?? 0)" />
                                     </div>
                                     <div>
@@ -273,7 +277,7 @@ interface ReviewRow {
                                             [ngModel]="fechaFormato()" (ngModelChange)="setFechaFormato($event)" />
                                     </div>
                                 </div>
-                                <div class="grid grid-cols-2 gap-3">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     <div>
                                         <label class="text-xs text-500">Categoría por defecto (gastos)</label>
                                         <input pInputText class="w-full"
@@ -460,8 +464,8 @@ interface ReviewRow {
 
             <!-- ── Paso 5: resultado ──────────────────────────────── -->
             @if (step() === 'result' && result()) {
-                <div class="flex flex-col gap-5" style="max-width: 900px">
-                    <div class="grid grid-cols-3 gap-3">
+                <div class="flex flex-col gap-5 w-full">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div class="surface-card border-round-lg p-4 text-center shadow-1">
                             <i class="pi pi-arrow-down text-red-500 text-2xl mb-2 block"></i>
                             <div class="text-3xl font-bold text-red-500 mb-1">{{ result()!.gastosCreados }}</div>

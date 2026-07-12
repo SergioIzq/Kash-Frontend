@@ -102,6 +102,10 @@ export const appRoutes: Routes = [
                         loadChildren: () => import('./app/features/inversiones/inversiones.routes')
                     },
                     {
+                        path: 'reportes',
+                        loadChildren: () => import('./app/features/reportes/reportes.routes')
+                    },
+                    {
                         path: 'ayuda',
                         loadComponent: () => import('./app/shared/pages/ayuda.page').then((m) => m.AyudaPage)
                     },

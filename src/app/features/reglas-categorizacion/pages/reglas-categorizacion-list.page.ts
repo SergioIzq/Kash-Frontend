@@ -13,12 +13,14 @@ import { ToolbarModule } from 'primeng/toolbar';
 import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { TooltipModule } from 'primeng/tooltip';
+import { DataViewModule } from 'primeng/dataview';
 import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { ReglaCategorizacionStore } from '@/features/reglas-categorizacion/store/regla-categorizacion.store';
 import { ReglaCategorizacion, ReglaCategorizacionCreate } from '@/core/models/regla-categorizacion.model';
 import { ReglaCategorizacionFormModalComponent } from '../components/regla-categorizacion-form-modal.component';
 import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { LayoutService } from '@/layout/service/layout.service';
 
 @Component({
     selector: 'app-reglas-categorizacion-list',
@@ -37,11 +39,31 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
         InputIconModule,
         IconFieldModule,
         TooltipModule,
+        DataViewModule,
         ReglaCategorizacionFormModalComponent,
         BasePageTemplateComponent
     ],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
+    styles: [`
+        /* Toolbar responsive en móvil */
+        @media screen and (max-width: 768px) {
+            :host ::ng-deep .p-toolbar {
+                flex-direction: column !important;
+                align-items: stretch !important;
+            }
+
+            :host ::ng-deep .p-toolbar-group-start,
+            :host ::ng-deep .p-toolbar-group-end {
+                width: 100% !important;
+                justify-content: center !important;
+            }
+
+            :host ::ng-deep .p-toolbar-group-start {
+                margin-bottom: 0.5rem;
+            }
+        }
+    `],
     template: `
         <app-base-page-template [loading]="store.loading()" [skeletonType]="'table'">
             <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
@@ -62,6 +84,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                         Se evalúan por orden de prioridad (menor número primero) y gana la primera que coincide.
                     </p>
 
+                    @if (!layout.isMobileView()) {
                     <p-table
                         #dt
                         [value]="store.reglas()"
@@ -142,6 +165,87 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                             </tr>
                         </ng-template>
                     </p-table>
+                    } @else {
+                    <p-dataView
+                        styleClass="kash-mobile-dataview"
+                        [value]="store.reglas()"
+                        [lazy]="true"
+                        (onLazyLoad)="onLazyLoad($event)"
+                        [rows]="pageSize()"
+                        [totalRecords]="store.totalRecords()"
+                        [paginator]="true"
+                        [loading]="store.loading()"
+                        [showCurrentPageReport]="true"
+                        currentPageReportTemplate="{first}-{last} de {totalRecords}"
+                    >
+                        <ng-template #header>
+                            <div class="flex flex-col gap-3 py-2">
+                                <h5 class="m-0 font-semibold text-lg">Reglas de Categorización</h5>
+                                <p-iconfield>
+                                    <p-inputicon styleClass="pi pi-search" />
+                                    <input pInputText type="text" [ngModel]="searchTerm()" (input)="onSearchChange($event)" placeholder="Buscar reglas..." class="w-full" />
+                                </p-iconfield>
+                            </div>
+                        </ng-template>
+
+                        <ng-template #list let-reglas>
+                            <div class="flex flex-col gap-4 pt-4">
+                                @for (regla of reglas; track regla.id) {
+                                    <div class="surface-card rounded-xl border border-surface-200 dark:border-surface-700 border-l-4 border-l-primary shadow-sm p-4">
+                                        <div class="flex justify-between items-center gap-3 pb-3 border-b border-surface-200 dark:border-surface-700">
+                                            <span class="font-semibold text-base text-900 flex items-center gap-2 min-w-0">
+                                                <span class="font-mono text-sm truncate">{{ regla.patron }}</span>
+                                            </span>
+                                            @if (regla.tipo === 'gasto') {
+                                                <p-tag severity="danger" value="Gasto" />
+                                            } @else if (regla.tipo === 'ingreso') {
+                                                <p-tag severity="success" value="Ingreso" />
+                                            } @else {
+                                                <p-tag severity="info" value="Ambos" />
+                                            }
+                                        </div>
+
+                                        <div class="flex flex-col gap-2 py-3 text-sm">
+                                            <div class="flex justify-between gap-3">
+                                                <span class="text-500">Prioridad</span>
+                                                <span class="font-medium text-900">{{ regla.prioridad }}</span>
+                                            </div>
+                                            <div class="flex justify-between gap-3">
+                                                <span class="text-500">Categoría</span>
+                                                <span class="font-semibold text-900 text-right truncate">{{ regla.categoriaNombre }}</span>
+                                            </div>
+                                            <div class="flex justify-between gap-3">
+                                                <span class="text-500">Concepto / Proveedor</span>
+                                                <span class="text-900 text-right truncate">
+                                                    {{ regla.conceptoNombre || '—' }}
+                                                    @if (regla.proveedorNombre) { · {{ regla.proveedorNombre }} }
+                                                </span>
+                                            </div>
+                                            <div class="flex justify-between items-center gap-3">
+                                                <span class="text-500">Activa</span>
+                                                <p-toggleswitch [ngModel]="regla.activo" (ngModelChange)="onToggleActivo(regla, $event)" />
+                                            </div>
+                                        </div>
+
+                                        <div class="flex justify-end gap-2 pt-3 border-t border-surface-200 dark:border-surface-700">
+                                            <p-button icon="pi pi-pencil" label="Editar" severity="secondary" [outlined]="true" size="small" (click)="editRegla(regla)" />
+                                            <p-button icon="pi pi-trash" label="Eliminar" severity="danger" [outlined]="true" size="small" (click)="deleteRegla(regla)" />
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </ng-template>
+
+                        <ng-template #empty>
+                            <div class="text-center py-8">
+                                <i class="pi pi-filter-slash text-500 text-5xl mb-3"></i>
+                                <p class="text-900 font-semibold text-xl mb-2">No hay reglas de categorización</p>
+                                <p class="text-600 mb-4">Crea tu primera regla para que Kash clasifique tus movimientos importados automáticamente.</p>
+                                <p-button label="Crear Regla" icon="pi pi-plus" (onClick)="openNew()" />
+                            </div>
+                        </ng-template>
+                    </p-dataView>
+                    }
 
                     <app-regla-categorizacion-form-modal
                         [visible]="dialogVisible()"
@@ -158,6 +262,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
 })
 export class ReglasCategorizacionListPage extends BasePageComponent {
     store = inject(ReglaCategorizacionStore);
+    protected readonly layout = inject(LayoutService);
     protected override loadingSignal = this.store.loading;
     protected override skeletonType = 'table' as const;
 
