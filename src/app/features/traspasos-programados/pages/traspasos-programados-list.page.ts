@@ -12,7 +12,7 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { TraspasosProgramadosStore } from '../stores/traspasos-programados.store';
-import { TraspasoProgramado } from '@/core/models/traspaso-programado.model';
+import { TraspasoProgramado, TraspasoProgramadoCreate } from '@/core/models/traspaso-programado.model';
 import { BasePageTemplateComponent } from '@/shared/components';
 import { HelpGlossaryComponent, GlossaryConfig } from '@/shared/components/help-glossary.component';
 import { DataViewModule } from 'primeng/dataview';
@@ -460,7 +460,7 @@ export class TraspasosProgramadosListPage {
             });
         } else {
             // Crear
-            this.traspasosStore.createTraspaso(traspaso as any);
+            this.traspasosStore.createTraspaso(traspaso as unknown as TraspasoProgramadoCreate);
             this.messageService.add({
                 severity: 'success',
                 summary: 'Creado',

@@ -227,7 +227,7 @@ export class MyProfilePage extends BasePageComponent implements OnInit {
             this.imageLoadError.set(false);
 
             this.showSuccess('Tu foto de perfil se ha actualizado.', 'Avatar Actualizado');
-        } catch (error: any) {
+        } catch (error) {
             console.error(error);
             this.showError('No se pudo subir la imagen.');
         }

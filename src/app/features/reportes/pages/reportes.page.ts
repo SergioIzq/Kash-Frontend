@@ -1,7 +1,6 @@
-import { Component, inject, signal, computed, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, computed, effect, viewChild, ElementRef, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { firstValueFrom } from 'rxjs';
 
 import { ButtonModule } from 'primeng/button';
@@ -9,8 +8,13 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { MessageService } from 'primeng/api';
 
+import { getDocument, GlobalWorkerOptions, type PDFDocumentProxy, type PDFDocumentLoadingTask } from 'pdfjs-dist';
+
 import { ReporteService } from '@/core/services/api/reporte.service';
 import { BasePageTemplateComponent } from '@/shared/components';
+
+// El worker se sirve como asset propio del bundle (mismo origen), sin CDN.
+GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
 
 type Preset = 'mes' | 'mesAnterior' | 'anio' | 'personalizado';
 
@@ -34,6 +38,23 @@ type Preset = 'mes' | 'mesAnterior' | 'anio' | 'personalizado';
             border: 1px solid var(--surface-border);
             border-radius: 8px;
             background: var(--surface-ground);
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        /* Contenedor donde PDF.js apila las páginas renderizadas a canvas */
+        .pdf-scroll {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 8px;
+        }
+        .pdf-scroll canvas {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+            border-radius: 4px;
         }
         .empty-preview {
             height: 70vh;
@@ -119,8 +140,8 @@ type Preset = 'mes' | 'mesAnterior' | 'anio' | 'personalizado';
                 <!-- Previsualización -->
                 <div class="lg:col-span-2">
                     <div class="card shadow-2 h-full">
-                        @if (previewUrl()) {
-                            <iframe class="preview-frame" [src]="previewUrl()" title="Previsualización del informe"></iframe>
+                        @if (pdfBlob()) {
+                            <div #pdfContainer class="preview-frame pdf-scroll"></div>
                         } @else {
                             <div class="empty-preview flex flex-col items-center justify-center text-center gap-3 p-6">
                                 @if (generando()) {
@@ -141,7 +162,15 @@ type Preset = 'mes' | 'mesAnterior' | 'anio' | 'personalizado';
 export class ReportesPage implements OnDestroy {
     private readonly reporteService = inject(ReporteService);
     private readonly messageService = inject(MessageService);
-    private readonly sanitizer = inject(DomSanitizer);
+
+    private readonly pdfContainer = viewChild<ElementRef<HTMLDivElement>>('pdfContainer');
+    private readonly pdfDoc = signal<PDFDocumentProxy | null>(null);
+    private pdfLoadingTask: PDFDocumentLoadingTask | null = null;
+
+    private resizeObserver: ResizeObserver | null = null;
+    private observedEl: HTMLElement | null = null;
+    private lastRenderWidth = 0;
+    private renderSeq = 0;
 
     readonly presets = [
         { label: 'Este mes', value: 'mes' as Preset },
@@ -155,7 +184,6 @@ export class ReportesPage implements OnDestroy {
     readonly rango = signal<Date[] | null>(null);
     readonly generando = signal(false);
     readonly pdfBlob = signal<Blob | null>(null);
-    readonly previewUrl = signal<SafeResourceUrl | null>(null);
 
     readonly fechaInicio = computed(() => this.rango()?.[0] ?? null);
     readonly fechaFin = computed(() => this.rango()?.[1] ?? null);
@@ -166,14 +194,24 @@ export class ReportesPage implements OnDestroy {
         return !!desde && !!hasta && desde.getTime() <= hasta.getTime();
     });
 
-    private objectUrl: string | null = null;
-
     constructor() {
         this.aplicarPreset('anio');
+
+        // Renderiza (o re-renderiza) el PDF cuando el contenedor aparece en el DOM
+        // o cuando cambia el documento cargado.
+        effect(() => {
+            const ref = this.pdfContainer();
+            const doc = this.pdfDoc();
+            if (!ref || !doc) return;
+            const el = ref.nativeElement;
+            this.observeResize(el);
+            void this.renderPdf(el, doc);
+        });
     }
 
     ngOnDestroy(): void {
-        this.revocarUrl();
+        this.resizeObserver?.disconnect();
+        void this.pdfLoadingTask?.destroy();
     }
 
     onPresetChange(value: Preset): void {
@@ -198,10 +236,8 @@ export class ReportesPage implements OnDestroy {
 
             const blob = await firstValueFrom(this.reporteService.descargarPresupuestoPdf(desde, hasta));
 
-            this.revocarUrl();
-            this.objectUrl = URL.createObjectURL(blob);
             this.pdfBlob.set(blob);
-            this.previewUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(this.objectUrl));
+            await this.loadPdf(blob);
         } catch {
             this.messageService.add({
                 severity: 'error',
@@ -258,10 +294,75 @@ export class ReportesPage implements OnDestroy {
         return this.toApiDate(d).replace(/-/g, '');
     }
 
-    private revocarUrl(): void {
-        if (this.objectUrl) {
-            URL.revokeObjectURL(this.objectUrl);
-            this.objectUrl = null;
+    /** Carga el PDF con PDF.js; el effect se encarga de renderizarlo cuando toque. */
+    private async loadPdf(blob: Blob): Promise<void> {
+        const data = await blob.arrayBuffer();
+        void this.pdfLoadingTask?.destroy();
+        this.lastRenderWidth = 0;
+        const task = getDocument({ data });
+        this.pdfLoadingTask = task;
+        const doc = await task.promise;
+        this.pdfDoc.set(doc);
+    }
+
+    /**
+     * Renderiza todas las páginas del PDF a <canvas> ajustadas al ancho del
+     * contenedor (fit-to-width). Funciona en todos los navegadores, incluidos
+     * iOS (sin scroll horizontal) y Android antiguo (que no soporta iframe PDF).
+     */
+    private async renderPdf(container: HTMLDivElement, doc: PDFDocumentProxy): Promise<void> {
+        const cssWidth = container.clientWidth - 16; // descontar el padding lateral
+        if (cssWidth <= 0) return;
+
+        const seq = ++this.renderSeq;
+        this.lastRenderWidth = cssWidth;
+        // Limitar el ratio para no disparar el uso de memoria en móviles de gama alta.
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        const canvases: HTMLCanvasElement[] = [];
+        for (let n = 1; n <= doc.numPages; n++) {
+            const page = await doc.getPage(n);
+            if (seq !== this.renderSeq) return; // llegó un render más nuevo
+
+            const base = page.getViewport({ scale: 1 });
+            const viewport = page.getViewport({ scale: (cssWidth / base.width) * dpr });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.floor(viewport.width);
+            canvas.height = Math.floor(viewport.height);
+            canvas.style.width = `${cssWidth}px`;
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) continue;
+
+            await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+            if (seq !== this.renderSeq) return;
+            canvases.push(canvas);
         }
+
+        if (seq === this.renderSeq) {
+            container.replaceChildren(...canvases);
+        }
+    }
+
+    /** Re-renderiza (fit-to-width) cuando cambia el ancho del contenedor u orientación. */
+    private observeResize(el: HTMLElement): void {
+        if (this.observedEl === el) return;
+
+        this.resizeObserver?.disconnect();
+        this.observedEl = el;
+
+        let raf = 0;
+        this.resizeObserver = new ResizeObserver(() => {
+            cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(() => {
+                const width = el.clientWidth - 16;
+                const doc = this.pdfDoc();
+                if (doc && width > 0 && width !== this.lastRenderWidth) {
+                    void this.renderPdf(el as HTMLDivElement, doc);
+                }
+            });
+        });
+        this.resizeObserver.observe(el);
     }
 }

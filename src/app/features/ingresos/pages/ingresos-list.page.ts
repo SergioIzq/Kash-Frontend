@@ -14,8 +14,9 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { SkeletonModule } from 'primeng/skeleton';
 import { IngresosStore } from '../stores/ingresos.store';
 import { Ingreso, IngresoCreate } from '@/core/models';
+import { HttpErrorLike } from '@/core/models/error-response.model';
 import { IngresoFormModalComponent } from '../components/ingreso-form-modal.component';
-import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig, ListLazyLoadEvent } from '@/shared/components';
 import { DataViewModule } from 'primeng/dataview';
 import { LayoutService } from '@/layout/service/layout.service';
 
@@ -372,14 +373,16 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
         this.showInfo('Datos actualizados', 'Actualización');
     }
 
-    loadIngresosLazy(event: any) {
+    loadIngresosLazy(event: ListLazyLoadEvent) {
         // Calcular página actual (PrimeNG usa first que es el índice del primer registro)
-        this.pageNumber.set(Math.floor(event.first / event.rows) + 1);
-        this.pageSize.set(event.rows);
+        const first = event.first ?? 0;
+        const rows = event.rows ?? this.pageSize();
+        this.pageNumber.set(Math.floor(first / rows) + 1);
+        this.pageSize.set(rows);
 
         // Capturar ordenamiento si existe
         if (event.sortField) {
-            this.sortColumn.set(event.sortField);
+            this.sortColumn.set(Array.isArray(event.sortField) ? event.sortField[0] : event.sortField);
             // event.sortOrder: 1 = ASC, -1 = DESC
             this.sortOrder.set(event.sortOrder === 1 ? 'asc' : 'desc');
         }
@@ -419,8 +422,8 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
                 this.ingresoDialog.set(false);
                 this.currentIngreso.set({});
                 // No reloadIngresos() - optimistic update already syncs UI
-            } catch (error: any) {
-                this.showError(error.userMessage || 'Error al actualizar el ingreso');
+            } catch (error) {
+                this.showError((error as HttpErrorLike).userMessage || 'Error al actualizar el ingreso');
             }
         } else {
             var ingresoCreate: IngresoCreate = {
@@ -490,8 +493,8 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
                     this.showSuccess('Ingresos eliminados correctamente');
                     this.selectedIngresos.set([]);
                     // No reloadIngresos() - optimistic updates already sync UI
-                } catch (error: any) {
-                    this.showError(error.userMessage || 'Error al eliminar algunos ingresos');
+                } catch (error) {
+                    this.showError((error as HttpErrorLike).userMessage || 'Error al eliminar algunos ingresos');
                 }
             },
             {

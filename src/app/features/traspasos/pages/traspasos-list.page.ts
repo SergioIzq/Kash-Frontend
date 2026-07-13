@@ -12,8 +12,8 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
 import { TraspasosStore } from '../stores/traspasos.store';
-import { Traspaso } from '@/core/models/traspaso.model';
-import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig } from '@/shared/components';
+import { Traspaso, TraspasoCreate } from '@/core/models/traspaso.model';
+import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig, ListLazyLoadEvent } from '@/shared/components';
 import { DataViewModule } from 'primeng/dataview';
 import { LayoutService } from '@/layout/service/layout.service';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
@@ -301,12 +301,14 @@ export class TraspasosListPage extends BasePageComponent {
         });
     }
 
-    onLazyLoad(event: any) {
-        this.pageNumber = event.first / event.rows + 1;
-        this.pageSize = event.rows;
+    onLazyLoad(event: ListLazyLoadEvent) {
+        const first = event.first ?? 0;
+        const rows = event.rows ?? this.pageSize;
+        this.pageNumber = rows ? first / rows + 1 : 1;
+        this.pageSize = rows;
 
         if (event.sortField) {
-            this.sortColumn = event.sortField;
+            this.sortColumn = Array.isArray(event.sortField) ? event.sortField[0] : event.sortField;
             this.sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
         }
 
@@ -357,14 +359,14 @@ export class TraspasosListPage extends BasePageComponent {
             this.showSuccess('Traspaso actualizado correctamente');
         } else {
             // Crear - asegurar que todos los campos requeridos están presentes
-            const traspasoCreate = {
+            const traspasoCreate: TraspasoCreate = {
                 cuentaOrigenId: traspaso.cuentaOrigenId!,
                 cuentaDestinoId: traspaso.cuentaDestinoId!,
                 importe: traspaso.importe!,
                 fecha: traspaso.fecha!,
                 descripcion: traspaso.descripcion
             };
-            this.traspasosStore.createTraspaso(traspasoCreate as any);
+            this.traspasosStore.createTraspaso(traspasoCreate);
             this.showSuccess('Traspaso creado correctamente');
         }
         this.hideDialog();

@@ -774,7 +774,7 @@ export class ImportarMovimientosPage {
             this.selectedReviewRows = [];
             this.lastSelectionIndex = null;
             this.step.set('review');
-        } catch (err: any) {
+        } catch (err) {
             this.importError.set(this.mensajeError(err, 'No se pudo previsualizar el extracto.'));
             this.step.set('form');
         }
@@ -802,7 +802,7 @@ export class ImportarMovimientosPage {
             const res = await firstValueFrom(this.movimientoService.confirmar(payload));
             this.result.set(res);
             this.step.set('result');
-        } catch (err: any) {
+        } catch (err) {
             this.importError.set(this.mensajeError(err, 'No se pudieron crear los movimientos.'));
             this.step.set('review');
         }
@@ -825,7 +825,8 @@ export class ImportarMovimientosPage {
         this.lastSelectionIndex = null;
     }
 
-    private mensajeError(err: any, fallback: string): string {
-        return err?.error?.error?.message ?? err?.userMessage ?? fallback;
+    private mensajeError(err: unknown, fallback: string): string {
+        const e = err as { error?: { error?: { message?: string } }; userMessage?: string };
+        return e?.error?.error?.message ?? e?.userMessage ?? fallback;
     }
 }

@@ -5,7 +5,7 @@ import { pipe, switchMap, tap, debounceTime, firstValueFrom } from 'rxjs';
 import { tapResponse } from '@ngrx/operators';
 import { IngresoService } from '@/core/services/api/ingreso.service';
 import { Ingreso, IngresoCreate } from '@/core/models';
-import { ErrorResponse } from '@/core/models/error-response.model';
+import { ErrorResponse, HttpErrorLike } from '@/core/models/error-response.model';
 import { ConceptoStore } from '@/features/conceptos/store/concepto.store';
 import { CategoriaStore } from '@/features/categorias/store/categoria.store';
 import { ClienteStore } from '@/features/clientes/store/cliente.store';
@@ -150,7 +150,7 @@ export const IngresosStore = signalStore(
                                         error: null
                                     });
                                 },
-                                error: (error: any) => {
+                                error: (error: HttpErrorLike) => {
                                     patchState(store, {
                                         loading: false,
                                         error: error.userMessage || 'Error al cargar ingresos'
@@ -187,7 +187,7 @@ export const IngresosStore = signalStore(
                                         searchCache: new Map() // Invalidar caché
                                     });
                                 },
-                                error: (error: any) => {
+                                error: (error: HttpErrorLike) => {
                                     console.error('[STORE] Error al cargar ingresos:', error);
                                     patchState(store, {
                                         loading: false,
@@ -214,7 +214,7 @@ export const IngresosStore = signalStore(
                                         filters: { ...store.filters(), fechaInicio, fechaFin }
                                     });
                                 },
-                                error: (error: any) => {
+                                error: (error: HttpErrorLike) => {
                                     patchState(store, {
                                         loading: false,
                                         error: error.userMessage || 'Error al cargar ingresos'
@@ -280,12 +280,12 @@ export const IngresosStore = signalStore(
                         searchCache: new Map()
                     });
                     return newIngresoId;
-                } catch (error: any) {
+                } catch (error) {
                     // Rollback si falla
                     patchState(store, {
                         ingresos: store.ingresos().filter((i) => i.id !== tempId),
                         totalRecords: store.totalRecords() - 1,
-                        error: error.userMessage || 'Error al crear ingreso'
+                        error: (error as HttpErrorLike).userMessage || 'Error al crear ingreso'
                     });
                     throw error;
                 }
@@ -309,7 +309,7 @@ export const IngresosStore = signalStore(
                         lastUpdated: Date.now(),
                         searchCache: new Map()
                     });
-                } catch (error: any) {
+                } catch (error) {
                     // Revertir actualización optimista
                     if (ingresoAnterior) {
                         const revertedIngresos = store.ingresos().map((i) => (i.id === id ? ingresoAnterior : i));
@@ -318,7 +318,7 @@ export const IngresosStore = signalStore(
 
                     patchState(store, {
                         loading: false,
-                        error: error.userMessage || 'Error al actualizar ingreso'
+                        error: (error as HttpErrorLike).userMessage || 'Error al actualizar ingreso'
                     });
                     throw error;
                 }

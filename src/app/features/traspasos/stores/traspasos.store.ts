@@ -5,6 +5,7 @@ import { firstValueFrom, pipe, switchMap, tap } from 'rxjs';
 import { tapResponse } from '@ngrx/operators';
 import { TraspasoService } from '@/core/services/api/traspaso.service';
 import { Traspaso, TraspasoCreate } from '@/core/models/traspaso.model';
+import { HttpErrorLike } from '@/core/models/error-response.model';
 
 interface TraspasosState {
     traspasos: Traspaso[];
@@ -51,7 +52,7 @@ export const TraspasosStore = signalStore(
                                     error: null
                                 });
                             },
-                            error: (error: any) => {
+                            error: (error: HttpErrorLike) => {
                                 console.error('[STORE] Error al cargar traspasos:', error);
                                 patchState(store, {
                                     loading: false,
@@ -96,12 +97,12 @@ export const TraspasosStore = signalStore(
                     loading: false
                 });
                 return newTraspasoId;
-            } catch (error: any) {
+            } catch (error) {
                 patchState(store, {
                     traspasos: store.traspasos().filter(t => t.id !== tempId),
                     totalRecords: store.totalRecords() - 1,
                     loading: false,
-                    error: error.userMessage || 'Error al crear traspaso'
+                    error: (error as HttpErrorLike).userMessage || 'Error al crear traspaso'
                 });
                 throw error;
             }
@@ -118,7 +119,7 @@ export const TraspasosStore = signalStore(
             try {
                 await firstValueFrom(traspasoService.update(id, traspaso));
                 patchState(store, { loading: false });
-            } catch (error: any) {
+            } catch (error) {
                 if (traspasoAnterior) {
                     const revertedTraspasos = store.traspasos().map(t =>
                         t.id === id ? traspasoAnterior : t
@@ -127,7 +128,7 @@ export const TraspasosStore = signalStore(
                 }
                 patchState(store, {
                     loading: false,
-                    error: error.userMessage || 'Error al actualizar traspaso'
+                    error: (error as HttpErrorLike).userMessage || 'Error al actualizar traspaso'
                 });
                 throw error;
             }
@@ -149,7 +150,7 @@ export const TraspasosStore = signalStore(
                             next: () => {
                                 patchState(store, { error: null });
                             },
-                            error: (error: any) => {
+                            error: (error: HttpErrorLike) => {
                                 if (traspasoEliminado) {
                                     patchState(store, {
                                         traspasos: [...store.traspasos(), traspasoEliminado],

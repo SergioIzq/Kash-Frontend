@@ -1,11 +1,12 @@
 import { computed, inject } from '@angular/core';
 import { patchState, signalStore, withComputed, withHooks, withMethods, withState } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { firstValueFrom, pipe, switchMap, tap } from 'rxjs';
+import { EMPTY, firstValueFrom, pipe, switchMap, tap } from 'rxjs';
 import { tapResponse } from '@ngrx/operators';
 import { TraspasoProgramadoService } from '@/core/services/api/traspaso-programado.service';
 import { TraspasoProgramado, TraspasoProgramadoCreate } from '@/core/models/traspaso-programado.model';
 import { CuentaStore } from '@/features/cuentas/store/cuenta.store';
+import { HttpErrorLike } from '@/core/models/error-response.model';
 
 interface TraspasosProgramadosState {
     traspasos: TraspasoProgramado[];
@@ -92,7 +93,7 @@ export const TraspasosProgramadosStore = signalStore(
                                         searchCache: newCache
                                     });
                                 },
-                                error: (error: any) => {
+                                error: (error: HttpErrorLike) => {
                                     patchState(store, {
                                         loading: false,
                                         error: error.message || 'Error al cargar traspasos programados'
@@ -149,7 +150,7 @@ export const TraspasosProgramadosStore = signalStore(
                                         lastUpdated: Date.now()
                                     });
                                 },
-                                error: (error: any) => {
+                                error: (error: HttpErrorLike) => {
                                     // Rollback: eliminar objeto temporal
                                     const traspasos = store.traspasos().filter(t => !t.id.startsWith('temp-'));
                                     patchState(store, {
@@ -167,17 +168,17 @@ export const TraspasosProgramadosStore = signalStore(
 
             updateTraspaso: rxMethod<{ id: string; traspaso: Partial<TraspasoProgramado> }>(
                 pipe(
-                    tap(({ id, traspaso }) => {
-                        // Actualización optimista: guardar estado anterior
+                    switchMap(({ id, traspaso }) => {
+                        // Actualización optimista: guardar estado anterior (en closure para el rollback)
                         const traspasoAnterior = store.traspasos().find(t => t.id === id);
-                        if (!traspasoAnterior) return;
+                        if (!traspasoAnterior) return EMPTY;
 
                         const cuentas = cuentaStore.cuentas();
-                        
+
                         const traspasoActualizado: TraspasoProgramado = {
                             ...traspasoAnterior,
                             ...traspaso,
-                            cuentaOrigenNombre: traspaso.cuentaOrigenId 
+                            cuentaOrigenNombre: traspaso.cuentaOrigenId
                                 ? cuentas.find(c => c.id === traspaso.cuentaOrigenId)?.nombre || traspasoAnterior.cuentaOrigenNombre
                                 : traspasoAnterior.cuentaOrigenNombre,
                             cuentaDestinoNombre: traspaso.cuentaDestinoId
@@ -185,19 +186,13 @@ export const TraspasosProgramadosStore = signalStore(
                                 : traspasoAnterior.cuentaDestinoNombre
                         };
 
-                        const traspasos = store.traspasos().map(t => t.id === id ? traspasoActualizado : t);
-                        
                         patchState(store, {
-                            traspasos,
+                            traspasos: store.traspasos().map(t => t.id === id ? traspasoActualizado : t),
                             loading: true,
                             searchCache: new Map() // Limpiar cache
                         });
 
-                        // Guardar para rollback
-                        (store as any)._traspasoAnterior = traspasoAnterior;
-                    }),
-                    switchMap(({ id, traspaso }) =>
-                        service.update(id, traspaso).pipe(
+                        return service.update(id, traspaso).pipe(
                             tapResponse({
                                 next: () => {
                                     patchState(store, {
@@ -205,26 +200,18 @@ export const TraspasosProgramadosStore = signalStore(
                                         error: null,
                                         lastUpdated: Date.now()
                                     });
-                                    delete (store as any)._traspasoAnterior;
                                 },
-                                error: (error: any) => {
+                                error: (error: HttpErrorLike) => {
                                     // Rollback: restaurar estado anterior
-                                    const traspasoAnterior = (store as any)._traspasoAnterior;
-                                    if (traspasoAnterior) {
-                                        const traspasos = store.traspasos().map(t => 
-                                            t.id === id ? traspasoAnterior : t
-                                        );
-                                        patchState(store, { traspasos });
-                                        delete (store as any)._traspasoAnterior;
-                                    }
                                     patchState(store, {
+                                        traspasos: store.traspasos().map(t => t.id === id ? traspasoAnterior : t),
                                         loading: false,
                                         error: error.message || 'Error al actualizar traspaso programado'
                                     });
                                 }
                             })
-                        )
-                    )
+                        );
+                    })
                 )
             ),
 
@@ -257,7 +244,7 @@ export const TraspasosProgramadosStore = signalStore(
                                         lastUpdated: Date.now()
                                     });
                                 },
-                                error: (error: any) => {
+                                error: (error: HttpErrorLike) => {
                                     // Rollback: restaurar el elemento eliminado
                                     const traspasos = [...store.traspasos(), traspasoEliminado]
                                         .sort((a, b) => {

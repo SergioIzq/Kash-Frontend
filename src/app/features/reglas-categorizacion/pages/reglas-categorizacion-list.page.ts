@@ -18,8 +18,9 @@ import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { ReglaCategorizacionStore } from '@/features/reglas-categorizacion/store/regla-categorizacion.store';
 import { ReglaCategorizacion, ReglaCategorizacionCreate } from '@/core/models/regla-categorizacion.model';
+import { HttpErrorLike } from '@/core/models/error-response.model';
 import { ReglaCategorizacionFormModalComponent } from '../components/regla-categorizacion-form-modal.component';
-import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent, ListLazyLoadEvent } from '@/shared/components';
 import { LayoutService } from '@/layout/service/layout.service';
 
 @Component({
@@ -292,11 +293,13 @@ export class ReglasCategorizacionListPage extends BasePageComponent {
         });
     }
 
-    onLazyLoad(event: any): void {
-        this.pageNumber.set(event.first / event.rows + 1);
-        this.pageSize.set(event.rows);
+    onLazyLoad(event: ListLazyLoadEvent): void {
+        const first = event.first ?? 0;
+        const rows = event.rows ?? this.pageSize();
+        this.pageNumber.set(rows ? first / rows + 1 : 1);
+        this.pageSize.set(rows);
         if (event.sortField) {
-            this.sortColumn.set(event.sortField);
+            this.sortColumn.set(Array.isArray(event.sortField) ? event.sortField[0] : event.sortField);
             this.sortOrder.set(event.sortOrder === 1 ? 'asc' : 'desc');
         }
         this.reload();
@@ -348,8 +351,8 @@ export class ReglasCategorizacionListPage extends BasePageComponent {
             }
             this.hideDialog();
             this.reload();
-        } catch (error: any) {
-            this.showError(error.userMessage || 'Error al guardar la regla');
+        } catch (error) {
+            this.showError((error as HttpErrorLike).userMessage || 'Error al guardar la regla');
         }
     }
 
@@ -365,8 +368,8 @@ export class ReglasCategorizacionListPage extends BasePageComponent {
                 prioridad: regla.prioridad,
                 activo
             });
-        } catch (error: any) {
-            this.showError(error.userMessage || 'Error al actualizar la regla');
+        } catch (error) {
+            this.showError((error as HttpErrorLike).userMessage || 'Error al actualizar la regla');
             this.reload();
         }
     }

@@ -42,7 +42,7 @@ export abstract class BasePageComponent {
             errorMessage?: string;
             loadingMessage?: string;
             onSuccess?: (result: T) => void;
-            onError?: (error: any) => void;
+            onError?: (error: unknown) => void;
         } = {}
     ): Promise<T | undefined> {
         try {
@@ -157,21 +157,26 @@ export abstract class BasePageComponent {
     /**
      * Extrae el mensaje de error de diferentes formatos de respuesta
      */
-    private extractErrorMessage(error: any): string {
+    private extractErrorMessage(error: unknown): string {
         if (typeof error === 'string') {
             return error;
         }
 
-        if (error?.error?.message) {
-            return error.error.message;
+        const err = error as {
+            message?: string;
+            error?: { message?: string; errors?: Record<string, string[]> };
+        };
+
+        if (err?.error?.message) {
+            return err.error.message;
         }
 
-        if (error?.message) {
-            return error.message;
+        if (err?.message) {
+            return err.message;
         }
 
-        if (error?.error?.errors) {
-            const errors = error.error.errors;
+        if (err?.error?.errors) {
+            const errors = err.error.errors;
             const firstKey = Object.keys(errors)[0];
             return errors[firstKey]?.[0] || 'Error desconocido';
         }

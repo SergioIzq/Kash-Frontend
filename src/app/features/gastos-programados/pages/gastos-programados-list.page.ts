@@ -13,7 +13,7 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
 import { GastosProgramadosStore } from '../stores/gastos-programados.store';
 import { GastoProgramado } from '@/core/models/gasto-programado.model';
-import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent, ListLazyLoadEvent } from '@/shared/components';
 import { HelpGlossaryComponent, GlossaryConfig } from '@/shared/components/help-glossary.component';
 import { DataViewModule } from 'primeng/dataview';
 import { LayoutService } from '@/layout/service/layout.service';
@@ -287,12 +287,14 @@ export class GastosProgramadosListPage extends BasePageComponent {
         });
     }
 
-    onLazyLoad(event: any) {
-        this.pageNumber = event.first / event.rows + 1;
-        this.pageSize = event.rows;
+    onLazyLoad(event: ListLazyLoadEvent) {
+        const first = event.first ?? 0;
+        const rows = event.rows ?? this.pageSize;
+        this.pageNumber = rows ? first / rows + 1 : 1;
+        this.pageSize = rows;
 
         if (event.sortField) {
-            this.sortColumn = event.sortField;
+            this.sortColumn = Array.isArray(event.sortField) ? event.sortField[0] : event.sortField;
             this.sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
         }
 

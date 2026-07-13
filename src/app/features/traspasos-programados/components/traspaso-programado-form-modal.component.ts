@@ -278,7 +278,7 @@ export class TraspasoProgramadoFormModalComponent {
         // Cargar catálogos
         effect(() => {
             if (this.visible()) {
-                this.cuentaStore.loadCuentasPaginated({ page: 1, pageSize: 1000 });
+                this.cuentaStore.loadPaginated({ page: 1, pageSize: 1000 });
             }
         });
     }
@@ -359,7 +359,7 @@ export class TraspasoProgramadoFormModalComponent {
             summary: 'Cuenta Creada',
             detail: `La cuenta "${cuenta.nombre}" ha sido creada correctamente`
         });
-        this.cuentaStore.loadCuentasPaginated({ page: 1, pageSize: 1000 });
+        this.cuentaStore.loadPaginated({ page: 1, pageSize: 1000 });
         this.showCuentaCreateModal = false;
     }
 
