@@ -1,269 +1,97 @@
-import { Component, inject, ChangeDetectionStrategy, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { ButtonModule } from 'primeng/button';
-import { TableModule, Table } from 'primeng/table';
-import { InputTextModule } from 'primeng/inputtext';
+import { Component, inject, ChangeDetectionStrategy } from '@angular/core';
 import { MessageService, ConfirmationService } from 'primeng/api';
-import { ToastModule } from 'primeng/toast';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { SkeletonModule } from 'primeng/skeleton';
-import { ToolbarModule } from 'primeng/toolbar';
-import { InputIconModule } from 'primeng/inputicon';
-import { IconFieldModule } from 'primeng/iconfield';
-import { TagModule } from 'primeng/tag';
-import { TooltipModule } from 'primeng/tooltip';
-import { DataViewModule } from 'primeng/dataview';
-import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 import { ConceptoStore } from '../store/concepto.store';
 import { Concepto } from '@/core/models/concepto.model';
 import { ConceptoCreateModalComponent } from '../components/concepto-create-modal.component';
-import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
-import { HelpGlossaryComponent, GlossaryConfig } from '@/shared/components/help-glossary.component';
-import { LayoutService } from '@/layout/service/layout.service';
+import { BaseCrudListPage, CrudListViewComponent, CrudListConfig, TagSeverity } from '@sergioizq/ngx-crud-ui';
 
 @Component({
     selector: 'app-conceptos-list',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, TableModule, InputTextModule, ToastModule, ConfirmDialogModule, SkeletonModule, ToolbarModule, InputIconModule, IconFieldModule, TagModule, TooltipModule, DataViewModule, ConceptoCreateModalComponent, BasePageTemplateComponent, HelpGlossaryComponent],
+    imports: [CrudListViewComponent, ConceptoCreateModalComponent],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    styles: [`
-        /* Toolbar responsive en móvil */
-        @media screen and (max-width: 768px) {
-            :host ::ng-deep .p-toolbar {
-                flex-direction: column !important;
-                align-items: stretch !important;
-            }
-            
-            :host ::ng-deep .p-toolbar-group-start,
-            :host ::ng-deep .p-toolbar-group-end {
-                width: 100% !important;
-                justify-content: center !important;
-            }
-            
-            :host ::ng-deep .p-toolbar-group-start {
-                margin-bottom: 0.5rem;
-            }
-        }
-    `],
     template: `
-        <app-base-page-template [loading]="conceptoStore.loading()" [skeletonType]="'table'">
-            <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
-                <div class="surface-card shadow-2 border-round p-6">
-
-                    <p-toolbar styleClass="mb-6 gap-2 p-6">
-                        <ng-template #start>
-                            <p-button label="Nuevo Concepto" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
-                        </ng-template>
-
-                        <ng-template #end>
-                            <app-help-glossary [config]="glossary" class="mr-2" />
-                            <p-button icon="pi pi-refresh" severity="secondary" outlined (onClick)="refreshTable()" pTooltip="Actualizar" />
-                        </ng-template>
-                    </p-toolbar>
-
-                    @if (!layout.isMobileView()) {
-                    <p-table
-                        #dt
-                        [value]="conceptoStore.conceptos()"
-                        [loading]="conceptoStore.loading()"
-                        [lazy]="true"
-                        (onLazyLoad)="onLazyLoad($event)"
-                        [paginator]="true"
-                        [rows]="pageSize"
-                        [totalRecords]="conceptoStore.totalRecords()"
-                        [showCurrentPageReport]="true"
-                        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} conceptos"
-                        [rowsPerPageOptions]="[10, 25, 50]"
-                        [tableStyle]="{ 'min-width': '50rem' }"
-                        styleClass="p-datatable-gridlines"
-                        [rowHover]="true"
-                        dataKey="id"
-                    >
-                        <ng-template #caption>
-                            <div class="flex flex-col md:flex-row items-center justify-between gap-3 py-3 px-4">
-                                <h5 class="m-0 font-semibold text-xl">Gestión de Conceptos</h5>
-                                <p-iconfield class="w-full md:w-auto">
-                                    <p-inputicon styleClass="pi pi-search" />
-                                    <input pInputText type="text" [(ngModel)]="searchTerm" (input)="onSearchChange($event)" placeholder="Buscar conceptos..." class="w-full" />
-                                </p-iconfield>
-                            </div>
-                        </ng-template>
-
-                        <ng-template #header>
-                            <tr>
-                                <th pSortableColumn="nombre" style="min-width:15rem; padding: 1rem">
-                                    Nombre
-                                    <p-sortIcon field="nombre" />
-                                </th>
-                                <th pSortableColumn="categoriaId" style="min-width:12rem">
-                                    Categoría
-                                    <p-sortIcon field="categoriaId" />
-                                </th>
-                                <th style="min-width:10rem">Acciones</th>
-                            </tr>
-                        </ng-template>
-
-                        <ng-template #body let-concepto>
-                            <tr>
-                                <td style="padding: 1rem">
-                                    <div class="flex items-center gap-2">
-                                        <i class="pi pi-bookmark text-primary"></i>
-                                        <span class="font-semibold">{{ concepto.nombre }}</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    <p-tag [value]="concepto.categoriaNombre || 'Sin categoría'" [severity]="getCategoriaSeverity(concepto.categoriaId)" [rounded]="true" />
-                                </td>
-                                <td>
-                                    <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editConcepto(concepto)" />
-                                    <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteConcepto(concepto)" />
-                                </td>
-                            </tr>
-                        </ng-template>
-
-                        <ng-template #loadingbody>
-                            <tr>
-                                <td style="padding: 1rem"><p-skeleton width="80%" /></td>
-                                <td><p-skeleton width="70%" /></td>
-                                <td>
-                                    <div class="flex gap-2">
-                                        <p-skeleton shape="circle" size="2.5rem" />
-                                    </div>
-                                </td>
-                            </tr>
-                        </ng-template>
-
-                        <ng-template #emptymessage>
-                            <tr>
-                                <td colspan="8" style="padding: 2rem">
-                                    <div class="text-center py-8">
-                                        <i class="pi pi-inbox text-500 text-5xl mb-3"></i>
-                                        <p class="text-900 font-semibold text-xl mb-2">No hay conceptos</p>
-                                        <p class="text-600 mb-4">Comienza agregando tu primer concepto</p>
-                                        <p-button label="Crear Concepto" icon="pi pi-plus" (onClick)="openNew()" />
-                                    </div>
-                                </td>
-                            </tr>
-                        </ng-template>
-                    </p-table>
-                    } @else {
-                    <p-dataView
-                        styleClass="kash-mobile-dataview"
-                        [value]="conceptoStore.conceptos()"
-                        [lazy]="true"
-                        (onLazyLoad)="onLazyLoad($event)"
-                        [rows]="pageSize"
-                        [totalRecords]="conceptoStore.totalRecords()"
-                        [paginator]="true"
-                        [loading]="conceptoStore.loading()"
-                        [showCurrentPageReport]="true"
-                        currentPageReportTemplate="{first}-{last} de {totalRecords}"
-                    >
-                        <ng-template #header>
-                            <div class="flex flex-col gap-3 py-2">
-                                <h5 class="m-0 font-semibold text-lg">Gestión de Conceptos</h5>
-                                <p-iconfield>
-                                    <p-inputicon styleClass="pi pi-search" />
-                                    <input pInputText type="text" [(ngModel)]="searchTerm" (input)="onSearchChange($event)" placeholder="Buscar..." class="w-full" />
-                                </p-iconfield>
-                            </div>
-                        </ng-template>
-
-                        <ng-template #list let-conceptos>
-                            <div class="flex flex-col gap-4 pt-4">
-                                @for (concepto of conceptos; track concepto.id) {
-                                    <div class="surface-card rounded-xl border border-surface-200 dark:border-surface-700 border-l-4 border-l-primary shadow-sm p-4">
-                                        <div class="flex justify-between items-start gap-3 pb-3 border-b border-surface-200 dark:border-surface-700">
-                                            <div class="flex items-center gap-2 min-w-0">
-                                                <i class="pi pi-bookmark text-primary"></i>
-                                                <span class="font-semibold text-base text-900 truncate">{{ concepto.nombre }}</span>
-                                            </div>
-                                            <p-tag [value]="concepto.categoriaNombre || 'Sin categoría'" [severity]="getCategoriaSeverity(concepto.categoriaId)" [rounded]="true" />
-                                        </div>
-
-                                        <div class="flex justify-end gap-2 pt-3">
-                                            <p-button icon="pi pi-pencil" label="Editar" severity="secondary" [outlined]="true" size="small" (click)="editConcepto(concepto)" />
-                                            <p-button icon="pi pi-trash" label="Eliminar" severity="danger" [outlined]="true" size="small" (click)="deleteConcepto(concepto)" />
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        </ng-template>
-
-                        <ng-template #empty>
-                            <div class="text-center py-8">
-                                <i class="pi pi-inbox text-500 text-5xl mb-3"></i>
-                                <p class="text-900 font-semibold text-xl mb-2">No hay conceptos</p>
-                                <p class="text-600 mb-4">Comienza agregando tu primer concepto</p>
-                                <p-button label="Crear Concepto" icon="pi pi-plus" (onClick)="openNew()" />
-                            </div>
-                        </ng-template>
-                    </p-dataView>
-                    }
-
-                    <app-concepto-create-modal [visible]="conceptoDialog" [concepto]="currentConcepto" (visibleChange)="conceptoDialog = $event" (save)="onSaveConcepto($event)" (cancel)="hideDialog()" />
-                </div>
-            </div>
-        </app-base-page-template>
+        <ngxc-crud-list-view
+            [config]="config"
+            [items]="store.items()"
+            [totalRecords]="store.totalRecords()"
+            [loading]="store.loading()"
+            [pageSize]="pageSize()"
+            [searchValue]="searchTerm()"
+            (lazyLoad)="onLazyLoad($event)"
+            (search)="onSearch($event)"
+            (newItem)="openNew()"
+            (editItem)="edit($event)"
+            (deleteItem)="delete($event)"
+            (refreshList)="refresh()"
+        >
+            <app-concepto-create-modal
+                [visible]="dialogVisible()"
+                [concepto]="current()"
+                (visibleChange)="dialogVisible.set($event)"
+                (save)="save($event)"
+                (cancel)="hideDialog()"
+            />
+        </ngxc-crud-list-view>
     `
 })
-export class ConceptosListPage extends BasePageComponent {
-    conceptoStore = inject(ConceptoStore);
-    protected readonly layout = inject(LayoutService);
+export class ConceptosListPage extends BaseCrudListPage<Concepto> {
+    protected readonly store = inject(ConceptoStore);
 
-    protected override loadingSignal = this.conceptoStore.loading;
-    protected override skeletonType = 'table' as const;
+    private readonly tagSeverities: TagSeverity[] = ['info', 'success', 'warn', 'danger', 'secondary', 'contrast'];
+    private readonly categoriaSeverityMap = new Map<string, TagSeverity>();
 
-    @ViewChild('dt') dt!: Table;
-
-    conceptoDialog: boolean = false;
-    currentConcepto: Partial<Concepto> = {};
-    private searchSubject = new Subject<string>();
-    private readonly tagSeverities: Array<'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = [
-        'info', 'success', 'warn', 'danger', 'secondary', 'contrast'
-    ];
-    private categoriaSeverityMap = new Map<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'>();
-
-    pageSize: number = 10;
-    pageNumber: number = 1;
-    searchTerm: string = '';
-    sortColumn: string = 'nombre';
-    sortOrder: string = 'asc';
-
-    readonly glossary: GlossaryConfig = {
-        title: 'Glosario · Conceptos',
-        intro: 'Los conceptos agrupan ingresos y gastos y pueden asociarse a una categoría.',
-        sections: [
+    protected readonly config: CrudListConfig<Concepto> = {
+        title: 'Gestión de Conceptos',
+        newLabel: 'Nuevo Concepto',
+        createLabel: 'Crear Concepto',
+        icon: 'pi pi-bookmark',
+        searchPlaceholder: 'Buscar conceptos...',
+        emptyTitle: 'No hay conceptos',
+        emptySubtitle: 'Comienza agregando tu primer concepto',
+        countLabel: 'conceptos',
+        deleteConfirm: (name) => `el concepto "${name}"`,
+        messages: {
+            created: 'Concepto creado correctamente',
+            updated: 'Concepto actualizado correctamente',
+            deleted: 'Concepto eliminado correctamente'
+        },
+        columns: [
             {
-                title: 'Acciones',
-                rows: [
-                    { term: 'Nuevo Concepto', def: 'Abre el formulario para crear un concepto.' },
-                    { term: 'Actualizar', def: 'Recarga el listado con los datos más recientes.' }
-                ]
-            },
-            {
-                title: 'Columnas',
-                rows: [
-                    { term: 'Nombre', def: 'Nombre del concepto.' },
-                    { term: 'Categoría', def: 'Categoría asignada al concepto o el texto Sin categoría.' },
-                    { term: 'Acciones', def: 'Permite editar o eliminar el registro.' }
-                ]
+                field: 'categoriaId',
+                header: 'Categoría',
+                sortable: true,
+                type: 'tag',
+                value: (concepto) => concepto.categoriaNombre || 'Sin categoría',
+                severity: (concepto) => this.getCategoriaSeverity(concepto.categoriaId)
             }
-        ]
+        ],
+        glossary: {
+            title: 'Glosario · Conceptos',
+            intro: 'Los conceptos agrupan ingresos y gastos y pueden asociarse a una categoría.',
+            sections: [
+                {
+                    title: 'Acciones',
+                    rows: [
+                        { term: 'Nuevo Concepto', def: 'Abre el formulario para crear un concepto.' },
+                        { term: 'Actualizar', def: 'Recarga el listado con los datos más recientes.' }
+                    ]
+                },
+                {
+                    title: 'Columnas',
+                    rows: [
+                        { term: 'Nombre', def: 'Nombre del concepto.' },
+                        { term: 'Categoría', def: 'Categoría asignada al concepto o el texto Sin categoría.' },
+                        { term: 'Acciones', def: 'Permite editar o eliminar el registro.' }
+                    ]
+                }
+            ]
+        }
     };
 
-    constructor() {
-        super();
-        this.searchSubject.pipe(debounceTime(500), distinctUntilChanged()).subscribe((searchValue) => {
-            this.searchTerm = searchValue;
-            this.pageNumber = 1;
-            this.reloadConceptos();
-        });
-    }
-
-    getCategoriaSeverity(categoriaId: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
+    /** Asigna una severidad estable (por color) a cada categoría para el p-tag. */
+    getCategoriaSeverity(categoriaId: string): TagSeverity {
         if (!this.categoriaSeverityMap.has(categoriaId)) {
             const index = this.categoriaSeverityMap.size % this.tagSeverities.length;
             this.categoriaSeverityMap.set(categoriaId, this.tagSeverities[index]);
@@ -271,91 +99,7 @@ export class ConceptosListPage extends BasePageComponent {
         return this.categoriaSeverityMap.get(categoriaId)!;
     }
 
-    onLazyLoad(event: any) {
-        this.pageNumber = event.first / event.rows + 1;
-        this.pageSize = event.rows;
-
-        if (event.sortField) {
-            this.sortColumn = event.sortField;
-            this.sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
-        }
-
-        this.reloadConceptos();
-    }
-
-    onSearchChange(event: Event) {
-        const value = (event.target as HTMLInputElement).value;
-        this.searchSubject.next(value);
-    }
-
-    private reloadConceptos() {
-        this.conceptoStore.loadConceptosPaginated({
-            page: this.pageNumber,
-            pageSize: this.pageSize,
-            searchTerm: this.searchTerm || undefined,
-            sortColumn: this.sortColumn || undefined,
-            sortOrder: this.sortOrder || undefined
-        });
-    }
-
-    loadConceptos() {
-        this.reloadConceptos();
-    }
-
-    refreshTable() {
-        this.pageNumber = 1;
-        this.searchTerm = '';
-        this.reloadConceptos();
-        this.showInfo('Datos actualizados', 'Actualización');
-    }
-
-    openNew() {
-        this.currentConcepto = {};
-        this.conceptoDialog = true;
-    }
-
-    hideDialog() {
-        this.conceptoDialog = false;
-        this.currentConcepto = {};
-    }
-
-    async onSaveConcepto(concepto: Partial<Concepto>) {
-        if (concepto.id) {
-            try {
-                await this.conceptoStore.update(concepto.id, concepto);
-                this.showSuccess('Concepto actualizado correctamente');
-                this.hideDialog();
-            } catch (error: any) {
-                this.showError(error.message || 'Error al actualizar el concepto');
-            }
-        } else {
-            try {
-                await this.conceptoStore.create(concepto.nombre!, concepto.categoriaId!);
-                this.showSuccess('Concepto creado correctamente');
-                this.hideDialog();
-            } catch (error: any) {
-                this.showError(error.message || 'Error al crear el concepto');
-            }
-        }
-    }
-
-    editConcepto(concepto: Concepto) {
-        this.currentConcepto = { ...concepto };
-        this.conceptoDialog = true;
-    }
-
-    deleteConcepto(concepto: Concepto) {
-        this.confirmAction(
-            `¿Estás seguro de eliminar el concepto "${concepto.nombre}"?`,
-            () => {
-                this.conceptoStore.deleteConcepto(concepto.id);
-            },
-            {
-                header: 'Confirmar eliminación',
-                acceptLabel: 'Sí, eliminar',
-                rejectLabel: 'Cancelar',
-                successMessage: 'Concepto eliminado correctamente'
-            }
-        );
+    protected createEntity(entity: Partial<Concepto>): Promise<unknown> {
+        return this.store.create(entity.nombre!, entity.categoriaId!);
     }
 }

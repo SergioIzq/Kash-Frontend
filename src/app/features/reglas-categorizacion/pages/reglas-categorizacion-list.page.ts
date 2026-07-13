@@ -18,8 +18,9 @@ import { Subject, debounceTime, distinctUntilChanged } from 'rxjs';
 
 import { ReglaCategorizacionStore } from '@/features/reglas-categorizacion/store/regla-categorizacion.store';
 import { ReglaCategorizacion, ReglaCategorizacionCreate } from '@/core/models/regla-categorizacion.model';
+import { HttpErrorLike } from '@/core/models/error-response.model';
 import { ReglaCategorizacionFormModalComponent } from '../components/regla-categorizacion-form-modal.component';
-import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent, ListLazyLoadEvent } from '@sergioizq/ngx-crud-ui';
 import { LayoutService } from '@/layout/service/layout.service';
 
 @Component({
@@ -65,7 +66,7 @@ import { LayoutService } from '@/layout/service/layout.service';
         }
     `],
     template: `
-        <app-base-page-template [loading]="store.loading()" [skeletonType]="'table'">
+        <ngxc-base-page-template [loading]="store.loading()" [skeletonType]="'table'">
             <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
                 <div class="surface-card shadow-2 border-round p-6">
 
@@ -257,7 +258,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                     />
                 </div>
             </div>
-        </app-base-page-template>
+        </ngxc-base-page-template>
     `
 })
 export class ReglasCategorizacionListPage extends BasePageComponent {
@@ -292,11 +293,13 @@ export class ReglasCategorizacionListPage extends BasePageComponent {
         });
     }
 
-    onLazyLoad(event: any): void {
-        this.pageNumber.set(event.first / event.rows + 1);
-        this.pageSize.set(event.rows);
+    onLazyLoad(event: ListLazyLoadEvent): void {
+        const first = event.first ?? 0;
+        const rows = event.rows ?? this.pageSize();
+        this.pageNumber.set(rows ? first / rows + 1 : 1);
+        this.pageSize.set(rows);
         if (event.sortField) {
-            this.sortColumn.set(event.sortField);
+            this.sortColumn.set(Array.isArray(event.sortField) ? event.sortField[0] : event.sortField);
             this.sortOrder.set(event.sortOrder === 1 ? 'asc' : 'desc');
         }
         this.reload();
@@ -348,8 +351,8 @@ export class ReglasCategorizacionListPage extends BasePageComponent {
             }
             this.hideDialog();
             this.reload();
-        } catch (error: any) {
-            this.showError(error.userMessage || 'Error al guardar la regla');
+        } catch (error) {
+            this.showError((error as HttpErrorLike).userMessage || 'Error al guardar la regla');
         }
     }
 
@@ -365,8 +368,8 @@ export class ReglasCategorizacionListPage extends BasePageComponent {
                 prioridad: regla.prioridad,
                 activo
             });
-        } catch (error: any) {
-            this.showError(error.userMessage || 'Error al actualizar la regla');
+        } catch (error) {
+            this.showError((error as HttpErrorLike).userMessage || 'Error al actualizar la regla');
             this.reload();
         }
     }

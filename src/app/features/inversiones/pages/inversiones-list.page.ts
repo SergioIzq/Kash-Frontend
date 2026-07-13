@@ -17,7 +17,7 @@ import { InversionConPrecio, TIPOS_INVERSION_CONFIG, TipoInversion } from '@/cor
 import { PERIODOS } from '../services/portfolio-performance.service';
 import { InversionFormModalComponent } from '../components/inversion-form-modal.component';
 import { ImportExtractoModalComponent } from '../components/import-extracto-modal.component';
-import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-crud-ui';
 import { LayoutService } from '@/layout/service/layout.service';
 
 @Component({
@@ -196,7 +196,7 @@ import { LayoutService } from '@/layout/service/layout.service';
         }
     `],
     template: `
-        <app-base-page-template
+        <ngxc-base-page-template
             [loading]="store.loading() && !store.hasData()"
             [skeletonType]="'card'"
         >
@@ -1023,7 +1023,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                     <p-button label="Cerrar" icon="pi pi-times" severity="secondary" (onClick)="showHelp.set(false)" />
                 </ng-template>
             </p-dialog>
-        </app-base-page-template>
+        </ngxc-base-page-template>
     `
 })
 export class InversionesListPage extends BasePageComponent implements OnInit, OnDestroy {

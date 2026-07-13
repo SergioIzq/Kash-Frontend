@@ -2,6 +2,7 @@ import { computed, inject } from '@angular/core';
 import { patchState, signalStore, withComputed, withHooks, withMethods, withState } from '@ngrx/signals';
 import { firstValueFrom, interval, Observable, Subscription } from 'rxjs';
 import { Router } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 
 // Asegúrate de que las rutas a tus modelos/servicios sean correctas
 import { AuthService } from '@/core/services/api/auth.service';
@@ -63,8 +64,8 @@ export const AuthStore = signalStore(
                 const result = await firstValueFrom(request$);
                 patchState(store, { loading: false });
                 return result;
-            } catch (err: any) {
-                const errorMsg = (err.error as ErrorResponse)?.detail || errorMessage;
+            } catch (err) {
+                const errorMsg = ((err as HttpErrorResponse).error as ErrorResponse)?.detail ||errorMessage;
                 patchState(store, { loading: false, error: errorMsg });
                 throw err;
             }
@@ -81,9 +82,9 @@ export const AuthStore = signalStore(
                 if (store.isAuthenticated() && !store.isLoggingOut()) {
                     try {
                         await firstValueFrom(authService.fetchCurrentUser());
-                    } catch (err: any) {
+                    } catch (err) {
                         // Si es 401, la sesión expiró
-                        if (err.status === 401) {
+                        if ((err as HttpErrorResponse).status === 401) {
                             console.warn('Sesión expirada detectada por verificación periódica');
                             // Llamamos a la lógica de expiración localmente
                             // Nota: dentro de withMethods, usamos las funciones definidas aquí
@@ -141,8 +142,8 @@ export const AuthStore = signalStore(
                 });
                 // Iniciar verificación periódica
                 this._startSessionCheck();
-            } catch (err: any) {
-                const errorMsg = (err.error as ErrorResponse)?.detail || 'Error al iniciar sesión';
+            } catch (err) {
+                const errorMsg = ((err as HttpErrorResponse).error as ErrorResponse)?.detail ||'Error al iniciar sesión';
                 patchState(store, { loading: false, error: errorMsg });
                 throw err;
             }
@@ -211,8 +212,8 @@ export const AuthStore = signalStore(
                     authService.setUser(updatedUser);
                     patchState(store, { user: updatedUser, loading: false });
                 }
-            } catch (err: any) {
-                const errorMsg = (err.error as ErrorResponse)?.detail || 'Error al actualizar perfil';
+            } catch (err) {
+                const errorMsg = ((err as HttpErrorResponse).error as ErrorResponse)?.detail ||'Error al actualizar perfil';
                 patchState(store, { loading: false, error: errorMsg });
                 throw err;
             }
@@ -229,8 +230,8 @@ export const AuthStore = signalStore(
                     authService.setUser(updatedUser);
                     patchState(store, { user: updatedUser, loading: false });
                 }
-            } catch (err: any) {
-                const errorMsg = (err.error as ErrorResponse)?.detail || 'Error al actualizar avatar';
+            } catch (err) {
+                const errorMsg = ((err as HttpErrorResponse).error as ErrorResponse)?.detail ||'Error al actualizar avatar';
                 patchState(store, { loading: false, error: errorMsg });
                 throw err;
             }
@@ -246,8 +247,8 @@ export const AuthStore = signalStore(
             try {
                 await firstValueFrom(authService.fetchCurrentUser());
                 return true;
-            } catch (err: any) {
-                if (err.status === 401) {
+            } catch (err) {
+                if ((err as HttpErrorResponse).status === 401) {
                     await this._handleSessionExpired();
                 }
                 return false;

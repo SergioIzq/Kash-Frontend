@@ -15,7 +15,7 @@ export class AuthService {
     private readonly USER_KEY = 'user_data';
 
     login(credentials: LoginCredentials): Observable<Usuario> {
-        return this.http.post<Result<any>>(`${this.apiUrl}/login?useCookie=true`, credentials).pipe(switchMap(() => this.fetchCurrentUser()));
+        return this.http.post<Result<unknown>>(`${this.apiUrl}/login?useCookie=true`, credentials).pipe(switchMap(() => this.fetchCurrentUser()));
     }
 
     register(payload: { correo: string; contrasena: string; nombre: string; apellidos?: string }): Observable<string> {
@@ -79,7 +79,7 @@ export class AuthService {
     fetchCurrentUser(): Observable<Usuario> {
         const url = `${this.apiUrl}/me?_t=${Date.now()}`;
         return this.http
-            .get<Result<any>>(url, {
+            .get<Result<Record<string, string>>>(url, {
                 headers: {
                     'Cache-Control': 'no-cache, no-store, must-revalidate',
                     Pragma: 'no-cache',
@@ -94,12 +94,12 @@ export class AuthService {
 
                     const data = res.value;
                     const user: Usuario = {
-                        id: data.id || data.Id,
-                        correo: data.correo || data.correo || data.correo || data.Correo,
-                        nombre: data.nombre || data.Nombre,
-                        apellidos: data.apellidos || data.Apellidos,
-                        rol: data.rol || data.Rol,
-                        avatar: data.avatar || data.Avatar || null
+                        id: data['id'] || data['Id'],
+                        correo: data['correo'] || data['Correo'],
+                        nombre: data['nombre'] || data['Nombre'],
+                        apellidos: data['apellidos'] || data['Apellidos'],
+                        rol: data['rol'] || data['Rol'],
+                        avatar: data['avatar'] || data['Avatar'] || null
                     };
 
                     this.setUser(user);

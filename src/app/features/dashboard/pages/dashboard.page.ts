@@ -7,7 +7,7 @@ import { AuthStore } from '../../../core/stores/auth.store';
 import { GastosChartComponent } from '../components/gastos-chart/gastos-chart.component';
 import { IngresosChartComponent } from '../components/ingresos-chart/ingresos-chart.component';
 import { ResumenFinancieroComponent } from '../components/resumen-financiero/resumen-financiero.component';
-import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-crud-ui';
 
 @Component({
     selector: 'app-dashboard-page',
@@ -15,7 +15,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
     imports: [CommonModule, RouterModule, ButtonModule, GastosChartComponent, IngresosChartComponent, ResumenFinancieroComponent, BasePageTemplateComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <app-base-page-template [loading]="dashboardStore.loading()" [skeletonType]="'card'">
+        <ngxc-base-page-template [loading]="dashboardStore.loading()" [skeletonType]="'card'">
             @if (dashboardStore.resumen()) {
                 <div class="card flex items-center justify-between flex-wrap gap-3 mb-5 h-full">
                     <div>
@@ -303,7 +303,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                     </div>
                 }
             }
-        </app-base-page-template>
+        </ngxc-base-page-template>
     `
 })
 export class DashboardPage extends BasePageComponent {

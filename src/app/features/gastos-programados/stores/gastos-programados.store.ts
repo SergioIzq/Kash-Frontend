@@ -5,6 +5,7 @@ import { firstValueFrom, pipe, switchMap, tap } from 'rxjs';
 import { tapResponse } from '@ngrx/operators';
 import { GastoProgramadoService } from '@/core/services/api/gasto-programado.service';
 import { GastoProgramado } from '@/core/models/gasto-programado.model';
+import { HttpErrorLike } from '@/core/models/error-response.model';
 
 interface GastosProgramadosState {
     gastosProgramados: GastoProgramado[];
@@ -53,7 +54,7 @@ export const GastosProgramadosStore = signalStore(
                                     error: null
                                 });
                             },
-                            error: (error: any) => {
+                            error: (error: HttpErrorLike) => {
                                 patchState(store, {
                                     loading: false,
                                     error: error.message || 'Error al cargar gastos programados'
@@ -108,7 +109,7 @@ export const GastosProgramadosStore = signalStore(
                                     error: null
                                 });
                             },
-                            error: (error: any) => {
+                            error: (error: HttpErrorLike) => {
                                 patchState(store, {
                                     gastosProgramados: store.gastosProgramados().filter(g => g.id !== tempId),
                                     totalRecords: store.totalRecords() - 1,
@@ -169,7 +170,7 @@ export const GastosProgramadosStore = signalStore(
                             next: () => {
                                 patchState(store, { error: null });
                             },
-                            error: (error: any) => {
+                            error: (error: HttpErrorLike) => {
                                 if (gastoEliminado) {
                                     patchState(store, {
                                         gastosProgramados: [...store.gastosProgramados(), gastoEliminado],

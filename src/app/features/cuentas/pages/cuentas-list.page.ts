@@ -12,8 +12,9 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { SkeletonModule } from 'primeng/skeleton';
 import { CuentaStore } from '../store/cuenta.store';
 import { Cuenta } from '@/core/models/cuenta.model';
+import { HttpErrorLike } from '@/core/models/error-response.model';
 import { CuentaFormModalComponent } from '../components/cuenta-form-modal.component';
-import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig, ListLazyLoadEvent } from '@sergioizq/ngx-crud-ui';
 import { DataViewModule } from 'primeng/dataview';
 import { LayoutService } from '@/layout/service/layout.service';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
@@ -44,7 +45,7 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
         }
     `],
     template: `
-        <app-base-page-template [loading]="cuentaStore.loading()" [skeletonType]="'table'">
+        <ngxc-base-page-template [loading]="cuentaStore.loading()" [skeletonType]="'table'">
             <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
                 <div class="surface-card shadow-2 border-round p-6">
 
@@ -54,7 +55,7 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
                         </ng-template>
 
                         <ng-template #end>
-                            <app-help-glossary [config]="glossary" class="mr-2" />
+                            <ngxc-help-glossary [config]="glossary" class="mr-2" />
                             <p-button icon="pi pi-refresh" severity="secondary" outlined (onClick)="refreshTable()" pTooltip="Actualizar" />
                         </ng-template>
                     </p-toolbar>
@@ -203,7 +204,7 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
                     <app-cuenta-form-modal [visible]="cuentaDialog" [cuenta]="currentCuenta" (visibleChange)="cuentaDialog = $event" (save)="onSaveCuenta($event)" (cancel)="hideDialog()" />
                 </div>
             </div>
-        </app-base-page-template>
+        </ngxc-base-page-template>
     `
 })
 export class CuentasListPage extends BasePageComponent {
@@ -262,13 +263,15 @@ export class CuentasListPage extends BasePageComponent {
     /**
      * Manejar evento lazy load de la tabla (paginación + sort)
      */
-    onLazyLoad(event: any) {
-        this.pageNumber = event.first / event.rows + 1;
-        this.pageSize = event.rows;
+    onLazyLoad(event: ListLazyLoadEvent) {
+        const first = event.first ?? 0;
+        const rows = event.rows ?? this.pageSize;
+        this.pageNumber = rows ? first / rows + 1 : 1;
+        this.pageSize = rows;
 
         // Manejar ordenamiento
         if (event.sortField) {
-            this.sortColumn = event.sortField;
+            this.sortColumn = Array.isArray(event.sortField) ? event.sortField[0] : event.sortField;
             this.sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
         }
 
@@ -287,7 +290,7 @@ export class CuentasListPage extends BasePageComponent {
      * Recargar cuentas con los filtros actuales
      */
     private reloadCuentas() {
-        this.cuentaStore.loadCuentasPaginated({
+        this.cuentaStore.loadPaginated({
             page: this.pageNumber,
             pageSize: this.pageSize,
             searchTerm: this.searchTerm || undefined,
@@ -323,16 +326,16 @@ export class CuentasListPage extends BasePageComponent {
                 await this.cuentaStore.update(cuenta.id, cuenta);
                 this.showSuccess('Cuenta actualizada correctamente');
                 this.hideDialog();
-            } catch (error: any) {
-                this.showError(error.message || 'Error al actualizar la cuenta');
+            } catch (error) {
+                this.showError((error as HttpErrorLike).message || 'Error al actualizar la cuenta');
             }
         } else {
             try {
                 await this.cuentaStore.create(cuenta.nombre!, cuenta.saldo!);
                 this.showSuccess('Cuenta creada correctamente');
                 this.hideDialog();
-            } catch (error: any) {
-                this.showError(error.message || 'Error al crear la cuenta');
+            } catch (error) {
+                this.showError((error as HttpErrorLike).message || 'Error al crear la cuenta');
             }
         }
     }
@@ -346,7 +349,7 @@ export class CuentasListPage extends BasePageComponent {
         this.confirmAction(
             `¿Estás seguro de eliminar la cuenta "${cuenta.nombre}"?`,
             () => {
-                this.cuentaStore.deleteCuenta(cuenta.id);
+                this.cuentaStore.remove(cuenta.id);
             },
             {
                 header: 'Confirmar eliminación',

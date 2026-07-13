@@ -14,8 +14,9 @@ import { IconFieldModule } from 'primeng/iconfield';
 import { SkeletonModule } from 'primeng/skeleton';
 import { GastosStore } from '../stores/gastos.store';
 import { Gasto, GastoCreate } from '@/core/models';
+import { HttpErrorLike } from '@/core/models/error-response.model';
 import { GastoFormModalComponent } from '../components/gasto-form-modal.component';
-import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig, ListLazyLoadEvent } from '@sergioizq/ngx-crud-ui';
 import { DataViewModule } from 'primeng/dataview';
 import { LayoutService } from '@/layout/service/layout.service';
 
@@ -44,7 +45,7 @@ import { LayoutService } from '@/layout/service/layout.service';
         }
     `],
     template: `
-        <app-base-page-template [loading]="gastosStore.loading() && gastosStore.gastos().length === 0" [skeletonType]="'table'">
+        <ngxc-base-page-template [loading]="gastosStore.loading() && gastosStore.gastos().length === 0" [skeletonType]="'table'">
             <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
                 <div class="surface-card shadow-2 border-round p-6">
                     <p-toolbar styleClass="mb-6 gap-2 p-6">
@@ -53,7 +54,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                         </ng-template>
 
                         <ng-template #end>
-                            <app-help-glossary [config]="glossary" class="mr-2" />
+                            <ngxc-help-glossary [config]="glossary" class="mr-2" />
                             <p-button icon="pi pi-refresh" severity="secondary" outlined (onClick)="refreshTable()" pTooltip="Actualizar" class="mr-2" />
                             <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
                         </ng-template>
@@ -269,7 +270,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                     <app-gasto-form-modal [visible]="gastoDialog()" [gasto]="currentGasto()" (visibleChange)="gastoDialog.set($event)" (save)="onSaveGasto($event)" (cancel)="hideDialog()" />
                 </div>
             </div>
-        </app-base-page-template>
+        </ngxc-base-page-template>
     `
 })
 export class GastosListPage extends BasePageComponent implements OnDestroy {
@@ -369,14 +370,16 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
         this.showInfo('Datos actualizados', 'Actualización');
     }
 
-    loadGastosLazy(event: any) {
+    loadGastosLazy(event: ListLazyLoadEvent) {
         // Calcular página actual (PrimeNG usa first que es el índice del primer registro)
-        this.pageNumber.set(Math.floor(event.first / event.rows) + 1);
-        this.pageSize.set(event.rows);
+        const first = event.first ?? 0;
+        const rows = event.rows ?? this.pageSize();
+        this.pageNumber.set(Math.floor(first / rows) + 1);
+        this.pageSize.set(rows);
 
         // Capturar ordenamiento si existe
         if (event.sortField) {
-            this.sortColumn.set(event.sortField);
+            this.sortColumn.set(Array.isArray(event.sortField) ? event.sortField[0] : event.sortField);
             // event.sortOrder: 1 = ASC, -1 = DESC
             this.sortOrder.set(event.sortOrder === 1 ? 'asc' : 'desc');
         }
@@ -416,8 +419,8 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
                 this.gastoDialog.set(false);
                 this.currentGasto.set({});
                 // No reloadGastos() - optimistic update already syncs UI
-            } catch (error: any) {
-                this.showError(error.userMessage || 'Error al actualizar el gasto');
+            } catch (error) {
+                this.showError((error as HttpErrorLike).userMessage || 'Error al actualizar el gasto');
             }
         } else {
             var gastoCreate: GastoCreate = {
@@ -487,8 +490,8 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
                     this.showSuccess('Gastos eliminados correctamente');
                     this.selectedGastos.set([]);
                     // No reloadGastos() - optimistic updates already sync UI
-                } catch (error: any) {
-                    this.showError(error.userMessage || 'Error al eliminar algunos gastos');
+                } catch (error) {
+                    this.showError((error as HttpErrorLike).userMessage || 'Error al eliminar algunos gastos');
                 }
             },
             {

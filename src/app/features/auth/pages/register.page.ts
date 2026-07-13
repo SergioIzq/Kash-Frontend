@@ -11,7 +11,7 @@ import { ScrollPanelModule } from 'primeng/scrollpanel';
 import { CommonModule } from '@angular/common';
 import { AuthStore } from '../../../core/stores/auth.store';
 import { AuthWrapperComponent } from '../components/auth-wrapper.component';
-import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-crud-ui';
 
 @Component({
     selector: 'app-register-page',
@@ -23,7 +23,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
     ,
     imports: [CommonModule, AuthWrapperComponent, ButtonModule, CheckboxModule, InputTextModule, PasswordModule, ReactiveFormsModule, RouterModule, DividerModule, DialogModule, ScrollPanelModule, BasePageTemplateComponent],
     template: `
-        <app-base-page-template [loading]="authStore.loading() && !showSuccessView()" [skeletonType]="'form'">
+        <ngxc-base-page-template [loading]="authStore.loading() && !showSuccessView()" [skeletonType]="'form'">
             <app-auth-wrapper title="Crear cuenta" subtitle="Únete a Kash hoy mismo">
                 @if (showSuccessView()) {
                     <div class="w-full md:w-120 flex flex-col items-center text-center animate-fadein">
@@ -127,7 +127,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                     </div>
                 }
         </app-auth-wrapper>
-        </app-base-page-template>
+        </ngxc-base-page-template>
 
         <!-- Términos y Condiciones Dialog -->
         <p-dialog
