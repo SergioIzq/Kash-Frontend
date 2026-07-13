@@ -7,6 +7,7 @@ import { DashboardService } from '../../../core/services/api/dashboard.service';
 import { DashboardResumen, HistoricoMensual } from '../../../core/models/dashboard.model';
 import { GastosStore } from '../../gastos/stores/gastos.store';
 import { IngresosStore } from '../../ingresos/stores/ingresos.store';
+import { HttpErrorLike } from '../../../core/models/error-response.model';
 
 interface DashboardState {
     resumen: DashboardResumen | null;
@@ -79,7 +80,7 @@ export const DashboardStore = signalStore(
                                     lastUpdated: Date.now()
                                 });
                             },
-                            error: (error: any) => {
+                            error: (error: HttpErrorLike) => {
                                 patchState(store, { 
                                     loading: false, 
                                     error: error?.message || 'Error al cargar el resumen' 
@@ -102,7 +103,7 @@ export const DashboardStore = signalStore(
                         lastUpdated: Date.now()
                     });
                 },
-                error: (error: any) => {
+                error: (error: HttpErrorLike) => {
                     console.error("Error al cargar resumen:", error);
                     patchState(store, { 
                         loading: false, 
@@ -124,7 +125,7 @@ export const DashboardStore = signalStore(
                         lastUpdated: Date.now()
                     });
                 },
-                error: (error: any) => {
+                error: (error: HttpErrorLike) => {
                     patchState(store, { 
                         loading: false, 
                         error: error?.message || 'Error al cargar el resumen' 

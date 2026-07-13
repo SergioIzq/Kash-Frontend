@@ -13,8 +13,7 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
 import { IngresosProgramadosStore } from '../stores/ingresos-programados.store';
 import { IngresoProgramado } from '@/core/models/ingreso-programado.model';
-import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
-import { HelpGlossaryComponent, GlossaryConfig } from '@/shared/components/help-glossary.component';
+import { BasePageComponent, BasePageTemplateComponent, ListLazyLoadEvent, HelpGlossaryComponent, GlossaryConfig } from '@sergioizq/ngx-crud-ui';
 import { DataViewModule } from 'primeng/dataview';
 import { LayoutService } from '@/layout/service/layout.service';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
@@ -46,7 +45,7 @@ import { IngresoProgramadoFormModalComponent } from '../components/ingreso-progr
         }
     `],
     template: `
-        <app-base-page-template [loading]="ingresosStore.loading()" [skeletonType]="'table'">
+        <ngxc-base-page-template [loading]="ingresosStore.loading()" [skeletonType]="'table'">
             <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
                 <div class="surface-card shadow-2 border-round p-6">
 
@@ -56,7 +55,7 @@ import { IngresoProgramadoFormModalComponent } from '../components/ingreso-progr
                         </ng-template>
 
                         <ng-template #end>
-                            <app-help-glossary [config]="glossary" class="mr-2" />
+                            <ngxc-help-glossary [config]="glossary" class="mr-2" />
                             <p-button icon="pi pi-refresh" severity="secondary" outlined (onClick)="refreshTable()" pTooltip="Actualizar" />
                         </ng-template>
                     </p-toolbar>
@@ -227,7 +226,7 @@ import { IngresoProgramadoFormModalComponent } from '../components/ingreso-progr
                     }
                 </div>
             </div>
-        </app-base-page-template>
+        </ngxc-base-page-template>
 
         <!-- Modal de Formulario -->
         <app-ingreso-programado-form-modal [visible]="ingresoDialog" [ingresoProgramado]="currentIngreso" (save)="saveIngreso($event)" (cancel)="hideDialog()" />
@@ -287,12 +286,14 @@ export class IngresosProgramadosListPage extends BasePageComponent {
         });
     }
 
-    onLazyLoad(event: any) {
-        this.pageNumber = event.first / event.rows + 1;
-        this.pageSize = event.rows;
+    onLazyLoad(event: ListLazyLoadEvent) {
+        const first = event.first ?? 0;
+        const rows = event.rows ?? this.pageSize;
+        this.pageNumber = rows ? first / rows + 1 : 1;
+        this.pageSize = rows;
 
         if (event.sortField) {
-            this.sortColumn = event.sortField;
+            this.sortColumn = Array.isArray(event.sortField) ? event.sortField[0] : event.sortField;
             this.sortOrder = event.sortOrder === 1 ? 'asc' : 'desc';
         }
 

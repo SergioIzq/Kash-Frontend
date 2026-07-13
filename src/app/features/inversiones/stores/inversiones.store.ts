@@ -8,6 +8,7 @@ import { MarketDataService, CotizacionActivo } from '../services/market-data.ser
 import { RealtimeMarketDataService } from '../services/realtime-market-data.service';
 import { PortfolioPerformanceService, RendimientoPeriodo, PortfolioChartData, PeriodoKey } from '../services/portfolio-performance.service';
 import { Inversion, InversionCreate, InversionConPrecio, ResumenPortfolio, TIPOS_INVERSION_CONFIG, BrokerFormat, ImportarExtractoResult } from '@/core/models/inversion.model';
+import { HttpErrorLike } from '@/core/models/error-response.model';
 
 interface InversionesState {
     inversiones: Inversion[];
@@ -167,7 +168,7 @@ export const InversionesStore = signalStore(
                             next: (inversiones) => {
                                 patchState(store, { inversiones, loading: false, lastUpdated: Date.now() });
                             },
-                            error: (err: any) =>
+                            error: (err: HttpErrorLike) =>
                                 patchState(store, { loading: false, error: err.userMessage || 'Error al cargar inversiones' })
                         })
                     )
@@ -284,10 +285,10 @@ export const InversionesStore = signalStore(
                     lastUpdated: Date.now()
                 });
                 return newId;
-            } catch (err: any) {
+            } catch (err) {
                 patchState(store, {
                     inversiones: store.inversiones().filter((i) => i.id !== tempId),
-                    error: err.userMessage || 'Error al crear inversión'
+                    error: (err as HttpErrorLike).userMessage ||'Error al crear inversión'
                 });
                 throw err;
             }
@@ -305,11 +306,11 @@ export const InversionesStore = signalStore(
             try {
                 await firstValueFrom(inversionService.update(id, inversion));
                 patchState(store, { loading: false, lastUpdated: Date.now() });
-            } catch (err: any) {
+            } catch (err) {
                 if (anterior) {
                     patchState(store, { inversiones: store.inversiones().map((i) => (i.id === id ? anterior : i)) });
                 }
-                patchState(store, { loading: false, error: err.userMessage || 'Error al actualizar inversión' });
+                patchState(store, { loading: false, error: (err as HttpErrorLike).userMessage || 'Error al actualizar inversión' });
                 throw err;
             }
         },
@@ -321,8 +322,8 @@ export const InversionesStore = signalStore(
             try {
                 await firstValueFrom(inversionService.delete(id));
                 patchState(store, { lastUpdated: Date.now() });
-            } catch (err: any) {
-                patchState(store, { inversiones: anterior, error: err.userMessage || 'Error al eliminar inversión' });
+            } catch (err) {
+                patchState(store, { inversiones: anterior, error: (err as HttpErrorLike).userMessage || 'Error al eliminar inversión' });
                 throw err;
             }
         },
@@ -335,8 +336,8 @@ export const InversionesStore = signalStore(
                 const inversiones = await firstValueFrom(inversionService.getAllInversiones());
                 patchState(store, { inversiones, importing: false, lastUpdated: Date.now() });
                 return result;
-            } catch (err: any) {
-                patchState(store, { importing: false, error: err.userMessage || 'Error al importar el extracto' });
+            } catch (err) {
+                patchState(store, { importing: false, error: (err as HttpErrorLike).userMessage || 'Error al importar el extracto' });
                 throw err;
             }
         },

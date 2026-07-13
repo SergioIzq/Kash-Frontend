@@ -5,6 +5,7 @@ import { firstValueFrom, pipe, switchMap, tap } from 'rxjs';
 import { tapResponse } from '@ngrx/operators';
 import { IngresoProgramadoService } from '@/core/services/api/ingreso-programado.service';
 import { IngresoProgramado } from '@/core/models/ingreso-programado.model';
+import { HttpErrorLike } from '@/core/models/error-response.model';
 
 interface IngresosProgramadosState {
     ingresosProgramados: IngresoProgramado[];
@@ -53,7 +54,7 @@ export const IngresosProgramadosStore = signalStore(
                                     error: null
                                 });
                             },
-                            error: (error: any) => {
+                            error: (error: HttpErrorLike) => {
                                 patchState(store, {
                                     loading: false,
                                     error: error.message || 'Error al cargar ingresos programados'
@@ -108,7 +109,7 @@ export const IngresosProgramadosStore = signalStore(
                                     error: null
                                 });
                             },
-                            error: (error: any) => {
+                            error: (error: HttpErrorLike) => {
                                 patchState(store, {
                                     ingresosProgramados: store.ingresosProgramados().filter(i => i.id !== tempId),
                                     totalRecords: store.totalRecords() - 1,
@@ -169,7 +170,7 @@ export const IngresosProgramadosStore = signalStore(
                             next: () => {
                                 patchState(store, { error: null });
                             },
-                            error: (error: any) => {
+                            error: (error: HttpErrorLike) => {
                                 if (ingresoEliminado) {
                                     patchState(store, {
                                         ingresosProgramados: [...store.ingresosProgramados(), ingresoEliminado],

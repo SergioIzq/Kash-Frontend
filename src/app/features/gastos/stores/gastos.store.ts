@@ -5,7 +5,7 @@ import { pipe, switchMap, tap, debounceTime, firstValueFrom } from 'rxjs';
 import { tapResponse } from '@ngrx/operators';
 import { GastoService } from '@/core/services/api/gasto.service';
 import { Gasto, GastoCreate } from '@/core/models';
-import { ErrorResponse } from '@/core/models/error-response.model';
+import { ErrorResponse, HttpErrorLike } from '@/core/models/error-response.model';
 import { ConceptoStore } from '@/features/conceptos/store/concepto.store';
 import { CategoriaStore } from '@/features/categorias/store/categoria.store';
 import { ProveedorStore } from '@/features/proveedores/store/proveedor.store';
@@ -150,7 +150,7 @@ export const GastosStore = signalStore(
                                         error: null
                                     });
                                 },
-                                error: (error: any) => {
+                                error: (error: HttpErrorLike) => {
                                     patchState(store, {
                                         loading: false,
                                         error: error.userMessage || 'Error al cargar gastos'
@@ -188,7 +188,7 @@ export const GastosStore = signalStore(
                                         searchCache: new Map() // Invalidar caché
                                     });
                                 },
-                                error: (error: any) => {
+                                error: (error: HttpErrorLike) => {
                                     console.error('[STORE] Error al cargar gastos:', error);
                                     patchState(store, {
                                         loading: false,
@@ -215,7 +215,7 @@ export const GastosStore = signalStore(
                                         filters: { ...store.filters(), fechaInicio, fechaFin }
                                     });
                                 },
-                                error: (error: any) => {
+                                error: (error: HttpErrorLike) => {
                                     patchState(store, {
                                         loading: false,
                                         error: error.userMessage || 'Error al cargar gastos'
@@ -281,12 +281,12 @@ export const GastosStore = signalStore(
                         searchCache: new Map()
                     });
                     return newGastoId;
-                } catch (error: any) {
+                } catch (error) {
                     // Rollback si falla
                     patchState(store, {
                         gastos: store.gastos().filter((i) => i.id !== tempId),
                         totalRecords: store.totalRecords() - 1,
-                        error: error.userMessage || 'Error al crear gasto'
+                        error: (error as HttpErrorLike).userMessage || 'Error al crear gasto'
                     });
                     throw error;
                 }
@@ -310,7 +310,7 @@ export const GastosStore = signalStore(
                         lastUpdated: Date.now(),
                         searchCache: new Map() // Invalidar caché
                     });
-                } catch (error: any) {
+                } catch (error) {
                     // Revertir actualización optimista
                     if (gastoAnterior) {
                         const revertedGastos = store.gastos().map((g) => (g.id === id ? gastoAnterior : g));
@@ -319,7 +319,7 @@ export const GastosStore = signalStore(
 
                     patchState(store, {
                         loading: false,
-                        error: error.userMessage || 'Error al actualizar gasto'
+                        error: (error as HttpErrorLike).userMessage || 'Error al actualizar gasto'
                     });
                     throw error;
                 }

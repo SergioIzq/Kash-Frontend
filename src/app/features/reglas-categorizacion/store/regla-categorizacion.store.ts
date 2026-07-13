@@ -5,6 +5,7 @@ import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { tapResponse } from '@ngrx/operators';
 import { ReglaCategorizacionService } from '@/core/services/api/regla-categorizacion.service';
 import { ReglaCategorizacion, ReglaCategorizacionCreate } from '@/core/models/regla-categorizacion.model';
+import { HttpErrorLike } from '@/core/models/error-response.model';
 
 interface ReglaCategorizacionState {
     reglas: ReglaCategorizacion[];
@@ -53,7 +54,7 @@ export const ReglaCategorizacionStore = signalStore(
                                     error: null,
                                     lastUpdated: Date.now()
                                 }),
-                            error: (error: any) =>
+                            error: (error: HttpErrorLike) =>
                                 patchState(store, {
                                     loading: false,
                                     error: error.userMessage || 'Error al cargar las reglas de categorización'
@@ -70,8 +71,8 @@ export const ReglaCategorizacionStore = signalStore(
                 const id = await firstValueFrom(reglaService.create(regla));
                 patchState(store, { loading: false, lastUpdated: Date.now() });
                 return id;
-            } catch (err: any) {
-                patchState(store, { loading: false, error: err.userMessage || 'Error al crear la regla' });
+            } catch (err) {
+                patchState(store, { loading: false, error: (err as HttpErrorLike).userMessage || 'Error al crear la regla' });
                 throw err;
             }
         },
@@ -88,11 +89,11 @@ export const ReglaCategorizacionStore = signalStore(
             try {
                 await firstValueFrom(reglaService.update(id, regla));
                 patchState(store, { loading: false, lastUpdated: Date.now() });
-            } catch (err: any) {
+            } catch (err) {
                 if (anterior) {
                     patchState(store, { reglas: store.reglas().map((r) => (r.id === id ? anterior : r)) });
                 }
-                patchState(store, { loading: false, error: err.userMessage || 'Error al actualizar la regla' });
+                patchState(store, { loading: false, error: (err as HttpErrorLike).userMessage || 'Error al actualizar la regla' });
                 throw err;
             }
         },
@@ -111,7 +112,7 @@ export const ReglaCategorizacionStore = signalStore(
                     return reglaService.delete(id).pipe(
                         tapResponse({
                             next: () => patchState(store, { lastUpdated: Date.now() }),
-                            error: (err: any) => {
+                            error: (err: HttpErrorLike) => {
                                 if (eliminada) {
                                     patchState(store, (state) => ({
                                         reglas: [...state.reglas, eliminada].sort((a, b) => a.prioridad - b.prioridad),
