@@ -2,7 +2,7 @@ import { computed, inject } from '@angular/core';
 import { signalStore, withComputed, withMethods } from '@ngrx/signals';
 import { CuentaService } from '@/core/services/api/cuenta.service';
 import { Cuenta } from '@/core/models/cuenta.model';
-import { withCrudStore } from '@/shared/stores/with-crud-store';
+import { withCrudStore } from '@sergioizq/ngrx-crud-store';
 
 export const CuentaStore = signalStore(
     { providedIn: 'root' },

@@ -5,14 +5,14 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { MessageService } from 'primeng/api';
 import { AuthStore } from '../../../core/stores/auth.store';
 import { AuthWrapperComponent } from '../components/auth-wrapper.component';
-import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-crud-ui';
 
 @Component({
     selector: 'app-confirm-correo',
     standalone: true,
     imports: [AuthWrapperComponent, ButtonModule, ProgressSpinnerModule, RouterModule, BasePageTemplateComponent],
     template: `
-        <app-base-page-template [loading]="authStore.loading()" [skeletonType]="'form'">
+        <ngxc-base-page-template [loading]="authStore.loading()" [skeletonType]="'form'">
             <app-auth-wrapper [title]="viewTitle()" [subtitle]="viewSubtitle()">
                 @if (authStore.loading()) {
                     <div class="w-full md:w-120 flex flex-col items-center justify-center py-8 animate-fadein">
@@ -49,7 +49,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                     </div>
                 }
             </app-auth-wrapper>
-        </app-base-page-template>
+        </ngxc-base-page-template>
     `
 })
 export class ConfirmEmail extends BasePageComponent implements OnInit {

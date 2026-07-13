@@ -2,7 +2,7 @@ import { computed, inject } from '@angular/core';
 import { signalStore, withComputed, withMethods } from '@ngrx/signals';
 import { CategoriaService } from '@/core/services/api/categoria.service';
 import { Categoria } from '@/core/models/categoria.model';
-import { withCrudStore } from '@/shared/stores/with-crud-store';
+import { withCrudStore } from '@sergioizq/ngrx-crud-store';
 
 export const CategoriaStore = signalStore(
     { providedIn: 'root' },

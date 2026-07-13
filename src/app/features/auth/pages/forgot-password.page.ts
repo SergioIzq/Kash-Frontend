@@ -7,14 +7,14 @@ import { MessageService } from 'primeng/api';
 import { AuthStore } from '../../../core/stores/auth.store';
 import { AuthWrapperComponent } from '../components/auth-wrapper.component';
 import { CommonModule } from '@angular/common';
-import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-crud-ui';
 
 @Component({
     selector: 'app-forgot-password',
     standalone: true,
     imports: [CommonModule, AuthWrapperComponent, ReactiveFormsModule, ButtonModule, InputTextModule, RouterModule, BasePageTemplateComponent],
     template: `
-        <app-base-page-template [loading]="authStore.loading() && !correoSent()" [skeletonType]="'form'">
+        <ngxc-base-page-template [loading]="authStore.loading() && !correoSent()" [skeletonType]="'form'">
             <app-auth-wrapper [title]="correoSent() ? '¡Correo Enviado!' : 'Recuperar cuenta'" [subtitle]="correoSent() ? 'Revisa tu bandeja de entrada' : 'Ingresa tu correo para buscar tu cuenta'">
                 @if (!correoSent()) {
                     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="w-full md:w-120 animate-fadein">
@@ -58,7 +58,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                     </div>
                 }
             </app-auth-wrapper>
-        </app-base-page-template>
+        </ngxc-base-page-template>
     `
 })
 export class ForgotPasswordPage extends BasePageComponent {

@@ -3,7 +3,7 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { FormaPagoStore } from '@/features/formas-pago/store/forma-pago.store';
 import { FormaPago } from '@/core/models/forma-pago.model';
 import { FormaPagoFormModalComponent } from '../components/forma-pago-form-modal.component';
-import { BaseCrudListPage, CrudListViewComponent, CrudListConfig } from '@/shared/components';
+import { BaseCrudListPage, CrudListViewComponent, CrudListConfig } from '@sergioizq/ngx-crud-ui';
 
 @Component({
     selector: 'app-formas-pago-list-page',
@@ -12,7 +12,7 @@ import { BaseCrudListPage, CrudListViewComponent, CrudListConfig } from '@/share
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <app-crud-list-view
+        <ngxc-crud-list-view
             [config]="config"
             [items]="store.items()"
             [totalRecords]="store.totalRecords()"
@@ -33,7 +33,7 @@ import { BaseCrudListPage, CrudListViewComponent, CrudListConfig } from '@/share
                 (save)="save($event)"
                 (cancel)="hideDialog()"
             />
-        </app-crud-list-view>
+        </ngxc-crud-list-view>
     `
 })
 export class FormasPagoListPage extends BaseCrudListPage<FormaPago> {

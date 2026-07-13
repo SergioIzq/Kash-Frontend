@@ -13,7 +13,7 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { TagModule } from 'primeng/tag';
 import { TraspasosStore } from '../stores/traspasos.store';
 import { Traspaso, TraspasoCreate } from '@/core/models/traspaso.model';
-import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig, ListLazyLoadEvent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig, ListLazyLoadEvent } from '@sergioizq/ngx-crud-ui';
 import { DataViewModule } from 'primeng/dataview';
 import { LayoutService } from '@/layout/service/layout.service';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
@@ -45,7 +45,7 @@ import { TraspasoFormModalComponent } from '../components/traspaso-form-modal.co
         }
     `],
     template: `
-        <app-base-page-template [loading]="traspasosStore.loading()" [skeletonType]="'table'">
+        <ngxc-base-page-template [loading]="traspasosStore.loading()" [skeletonType]="'table'">
             <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
                 <div class="surface-card shadow-2 border-round p-6">
 
@@ -55,7 +55,7 @@ import { TraspasoFormModalComponent } from '../components/traspaso-form-modal.co
                         </ng-template>
 
                         <ng-template #end>
-                            <app-help-glossary [config]="glossary" class="mr-2" />
+                            <ngxc-help-glossary [config]="glossary" class="mr-2" />
                             <p-button icon="pi pi-refresh" severity="secondary" outlined (onClick)="refreshTable()" pTooltip="Actualizar" />
                         </ng-template>
                     </p-toolbar>
@@ -238,7 +238,7 @@ import { TraspasoFormModalComponent } from '../components/traspaso-form-modal.co
                     }
                 </div>
             </div>
-        </app-base-page-template>
+        </ngxc-base-page-template>
 
         <!-- Modal de Formulario -->
         <app-traspaso-form-modal [visible]="traspasoDialog" [traspaso]="currentTraspaso" (save)="saveTraspaso($event)" (cancel)="hideDialog()" />

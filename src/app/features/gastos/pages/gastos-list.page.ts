@@ -16,7 +16,7 @@ import { GastosStore } from '../stores/gastos.store';
 import { Gasto, GastoCreate } from '@/core/models';
 import { HttpErrorLike } from '@/core/models/error-response.model';
 import { GastoFormModalComponent } from '../components/gasto-form-modal.component';
-import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig, ListLazyLoadEvent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig, ListLazyLoadEvent } from '@sergioizq/ngx-crud-ui';
 import { DataViewModule } from 'primeng/dataview';
 import { LayoutService } from '@/layout/service/layout.service';
 
@@ -45,7 +45,7 @@ import { LayoutService } from '@/layout/service/layout.service';
         }
     `],
     template: `
-        <app-base-page-template [loading]="gastosStore.loading() && gastosStore.gastos().length === 0" [skeletonType]="'table'">
+        <ngxc-base-page-template [loading]="gastosStore.loading() && gastosStore.gastos().length === 0" [skeletonType]="'table'">
             <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
                 <div class="surface-card shadow-2 border-round p-6">
                     <p-toolbar styleClass="mb-6 gap-2 p-6">
@@ -54,7 +54,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                         </ng-template>
 
                         <ng-template #end>
-                            <app-help-glossary [config]="glossary" class="mr-2" />
+                            <ngxc-help-glossary [config]="glossary" class="mr-2" />
                             <p-button icon="pi pi-refresh" severity="secondary" outlined (onClick)="refreshTable()" pTooltip="Actualizar" class="mr-2" />
                             <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
                         </ng-template>
@@ -270,7 +270,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                     <app-gasto-form-modal [visible]="gastoDialog()" [gasto]="currentGasto()" (visibleChange)="gastoDialog.set($event)" (save)="onSaveGasto($event)" (cancel)="hideDialog()" />
                 </div>
             </div>
-        </app-base-page-template>
+        </ngxc-base-page-template>
     `
 })
 export class GastosListPage extends BasePageComponent implements OnDestroy {

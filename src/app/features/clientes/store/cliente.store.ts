@@ -2,7 +2,7 @@ import { computed, inject } from '@angular/core';
 import { signalStore, withComputed, withMethods } from '@ngrx/signals';
 import { ClienteService } from '@/core/services/api/cliente.service';
 import { Cliente } from '@/core/models/cliente.model';
-import { withCrudStore } from '@/shared/stores/with-crud-store';
+import { withCrudStore } from '@sergioizq/ngrx-crud-store';
 
 export const ClienteStore = signalStore(
     { providedIn: 'root' },

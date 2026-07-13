@@ -20,7 +20,7 @@ import { ReglaCategorizacionStore } from '@/features/reglas-categorizacion/store
 import { ReglaCategorizacion, ReglaCategorizacionCreate } from '@/core/models/regla-categorizacion.model';
 import { HttpErrorLike } from '@/core/models/error-response.model';
 import { ReglaCategorizacionFormModalComponent } from '../components/regla-categorizacion-form-modal.component';
-import { BasePageComponent, BasePageTemplateComponent, ListLazyLoadEvent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent, ListLazyLoadEvent } from '@sergioizq/ngx-crud-ui';
 import { LayoutService } from '@/layout/service/layout.service';
 
 @Component({
@@ -66,7 +66,7 @@ import { LayoutService } from '@/layout/service/layout.service';
         }
     `],
     template: `
-        <app-base-page-template [loading]="store.loading()" [skeletonType]="'table'">
+        <ngxc-base-page-template [loading]="store.loading()" [skeletonType]="'table'">
             <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
                 <div class="surface-card shadow-2 border-round p-6">
 
@@ -258,7 +258,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                     />
                 </div>
             </div>
-        </app-base-page-template>
+        </ngxc-base-page-template>
     `
 })
 export class ReglasCategorizacionListPage extends BasePageComponent {

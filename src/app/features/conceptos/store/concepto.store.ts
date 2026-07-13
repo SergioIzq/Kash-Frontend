@@ -2,7 +2,7 @@ import { computed, inject } from '@angular/core';
 import { signalStore, withComputed, withMethods } from '@ngrx/signals';
 import { ConceptoService } from '@/core/services/api/concepto.service';
 import { Concepto } from '@/core/models/concepto.model';
-import { withCrudStore } from '@/shared/stores/with-crud-store';
+import { withCrudStore } from '@sergioizq/ngrx-crud-store';
 
 export const ConceptoStore = signalStore(
     { providedIn: 'root' },

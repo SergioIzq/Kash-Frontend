@@ -3,7 +3,7 @@ import { MessageService, ConfirmationService } from 'primeng/api';
 import { ConceptoStore } from '../store/concepto.store';
 import { Concepto } from '@/core/models/concepto.model';
 import { ConceptoCreateModalComponent } from '../components/concepto-create-modal.component';
-import { BaseCrudListPage, CrudListViewComponent, CrudListConfig, TagSeverity } from '@/shared/components';
+import { BaseCrudListPage, CrudListViewComponent, CrudListConfig, TagSeverity } from '@sergioizq/ngx-crud-ui';
 
 @Component({
     selector: 'app-conceptos-list',
@@ -12,7 +12,7 @@ import { BaseCrudListPage, CrudListViewComponent, CrudListConfig, TagSeverity } 
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <app-crud-list-view
+        <ngxc-crud-list-view
             [config]="config"
             [items]="store.items()"
             [totalRecords]="store.totalRecords()"
@@ -33,7 +33,7 @@ import { BaseCrudListPage, CrudListViewComponent, CrudListConfig, TagSeverity } 
                 (save)="save($event)"
                 (cancel)="hideDialog()"
             />
-        </app-crud-list-view>
+        </ngxc-crud-list-view>
     `
 })
 export class ConceptosListPage extends BaseCrudListPage<Concepto> {

@@ -2,7 +2,7 @@ import { computed, inject } from '@angular/core';
 import { signalStore, withComputed, withMethods } from '@ngrx/signals';
 import { PersonaService } from '@/core/services/api/persona.service';
 import { Persona } from '@/core/models/persona.model';
-import { withCrudStore } from '@/shared/stores/with-crud-store';
+import { withCrudStore } from '@sergioizq/ngrx-crud-store';
 
 export const PersonaStore = signalStore(
     { providedIn: 'root' },

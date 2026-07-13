@@ -13,7 +13,7 @@ import { IconFieldModule } from 'primeng/iconfield';
 
 // Tu Arquitectura
 import { AuthStore } from '@/core/stores/auth.store';
-import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-crud-ui';
 
 @Component({
     selector: 'app-my-profile',
@@ -57,7 +57,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
         `
     ],
     template: `
-        <app-base-page-template [loading]="loadingSignal() || isLoadingInitial()" [skeletonType]="'profile'">
+        <ngxc-base-page-template [loading]="loadingSignal() || isLoadingInitial()" [skeletonType]="'profile'">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-y-2 md:gap-x-2">
                 <div class="card surface-card shadow-2 border-round p-6 h-full">
                     <div class="grid grid-flow-col grid-rows-1 gap-4">
@@ -127,7 +127,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                     </form>
                 </div>
             </div>
-        </app-base-page-template>
+        </ngxc-base-page-template>
     `
 })
 export class MyProfilePage extends BasePageComponent implements OnInit {

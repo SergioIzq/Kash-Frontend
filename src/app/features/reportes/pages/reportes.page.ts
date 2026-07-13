@@ -11,7 +11,7 @@ import { MessageService } from 'primeng/api';
 import { getDocument, GlobalWorkerOptions, type PDFDocumentProxy, type PDFDocumentLoadingTask } from 'pdfjs-dist';
 
 import { ReporteService } from '@/core/services/api/reporte.service';
-import { BasePageTemplateComponent } from '@/shared/components';
+import { BasePageTemplateComponent } from '@sergioizq/ngx-crud-ui';
 
 // El worker se sirve como asset propio del bundle (mismo origen), sin CDN.
 GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
@@ -72,7 +72,7 @@ type Preset = 'mes' | 'mesAnterior' | 'anio' | 'personalizado';
         :host ::ng-deep .p-selectbutton .p-togglebutton { flex: 1 1 auto; justify-content: center; }
     `],
     template: `
-        <app-base-page-template>
+        <ngxc-base-page-template>
             <div class="card flex items-center justify-between flex-wrap gap-3 mb-5">
                 <div>
                     <h1 class="text-900 font-bold text-3xl md:text-4xl m-0 mb-2">Informe de Presupuesto</h1>
@@ -156,7 +156,7 @@ type Preset = 'mes' | 'mesAnterior' | 'anio' | 'personalizado';
                     </div>
                 </div>
             </div>
-        </app-base-page-template>
+        </ngxc-base-page-template>
     `
 })
 export class ReportesPage implements OnDestroy {

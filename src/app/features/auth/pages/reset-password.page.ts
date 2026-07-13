@@ -7,14 +7,14 @@ import { MessageService } from 'primeng/api';
 import { AuthStore } from '../../../core/stores/auth.store';
 import { AuthWrapperComponent } from '../components/auth-wrapper.component';
 import { CommonModule } from '@angular/common';
-import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-crud-ui';
 
 @Component({
     selector: 'app-reset-password',
     standalone: true,
     imports: [CommonModule, AuthWrapperComponent, ReactiveFormsModule, ButtonModule, PasswordModule, RouterModule, BasePageTemplateComponent],
     template: `
-        <app-base-page-template [loading]="showSkeleton()" [skeletonType]="'form'">
+        <ngxc-base-page-template [loading]="showSkeleton()" [skeletonType]="'form'">
         <app-auth-wrapper [title]="success() ? '¡Contraseña Actualizada!' : 'Nueva Contraseña'" [subtitle]="success() ? 'Tu seguridad ha sido restaurada' : 'Ingresa tu nueva clave de acceso'">
                 @if (invalidLink()) {
                     <div class="w-full md:w-120 flex flex-col items-center text-center animate-fadein">
@@ -57,7 +57,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                     </div>
                 }
             </app-auth-wrapper>
-        </app-base-page-template>
+        </ngxc-base-page-template>
     `
 })
 export class ResetPasswordPage extends BasePageComponent implements OnInit {

@@ -2,7 +2,7 @@ import { computed, inject } from '@angular/core';
 import { signalStore, withComputed, withMethods } from '@ngrx/signals';
 import { FormaPagoService } from '@/core/services/api/forma-pago.service';
 import { FormaPago } from '@/core/models/forma-pago.model';
-import { withCrudStore } from '@/shared/stores/with-crud-store';
+import { withCrudStore } from '@sergioizq/ngrx-crud-store';
 
 export const FormaPagoStore = signalStore(
     { providedIn: 'root' },

@@ -14,7 +14,7 @@ import { CuentaStore } from '../store/cuenta.store';
 import { Cuenta } from '@/core/models/cuenta.model';
 import { HttpErrorLike } from '@/core/models/error-response.model';
 import { CuentaFormModalComponent } from '../components/cuenta-form-modal.component';
-import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig, ListLazyLoadEvent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig, ListLazyLoadEvent } from '@sergioizq/ngx-crud-ui';
 import { DataViewModule } from 'primeng/dataview';
 import { LayoutService } from '@/layout/service/layout.service';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
@@ -45,7 +45,7 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
         }
     `],
     template: `
-        <app-base-page-template [loading]="cuentaStore.loading()" [skeletonType]="'table'">
+        <ngxc-base-page-template [loading]="cuentaStore.loading()" [skeletonType]="'table'">
             <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
                 <div class="surface-card shadow-2 border-round p-6">
 
@@ -55,7 +55,7 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
                         </ng-template>
 
                         <ng-template #end>
-                            <app-help-glossary [config]="glossary" class="mr-2" />
+                            <ngxc-help-glossary [config]="glossary" class="mr-2" />
                             <p-button icon="pi pi-refresh" severity="secondary" outlined (onClick)="refreshTable()" pTooltip="Actualizar" />
                         </ng-template>
                     </p-toolbar>
@@ -204,7 +204,7 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
                     <app-cuenta-form-modal [visible]="cuentaDialog" [cuenta]="currentCuenta" (visibleChange)="cuentaDialog = $event" (save)="onSaveCuenta($event)" (cancel)="hideDialog()" />
                 </div>
             </div>
-        </app-base-page-template>
+        </ngxc-base-page-template>
     `
 })
 export class CuentasListPage extends BasePageComponent {

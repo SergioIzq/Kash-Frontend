@@ -9,7 +9,7 @@ import { MessageModule } from 'primeng/message';
 import { AuthStore } from '../../../core/stores/auth.store';
 import { AuthWrapperComponent } from '../components/auth-wrapper.component';
 import { CommonModule } from '@angular/common';
-import { BasePageComponent, BasePageTemplateComponent } from '@/shared/components';
+import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-crud-ui';
 
 @Component({
     selector: 'app-login-page',
@@ -21,7 +21,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
     ,
     imports: [CommonModule, AuthWrapperComponent, ButtonModule, CheckboxModule, InputTextModule, PasswordModule, ReactiveFormsModule, FormsModule, RouterModule, MessageModule, BasePageTemplateComponent],
     template: `
-        <app-base-page-template [loading]="showSkeleton()" [skeletonType]="'form'">
+        <ngxc-base-page-template [loading]="showSkeleton()" [skeletonType]="'form'">
             <app-auth-wrapper title="Bienvenido a Kash" subtitle="Inicia sesión para continuar">
                 @if (authStore.error()) {
                     <p-message severity="error" [text]="authStore.error()!" styleClass="mb-4 w-full"></p-message>
@@ -78,7 +78,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@/shared/component
                     </div>
                 </div>
             </app-auth-wrapper>
-        </app-base-page-template>
+        </ngxc-base-page-template>
     `
 })
 export class LoginPage extends BasePageComponent {
