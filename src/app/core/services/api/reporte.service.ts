@@ -23,4 +23,20 @@ export class ReporteService {
             withCredentials: true
         });
     }
+
+    /**
+     * Descarga el reporte Excel de presupuesto financiero para el rango de fechas.
+     * Las fechas van en formato ISO corto (yyyy-MM-dd).
+     */
+    descargarPresupuestoExcel(fechaInicio: string, fechaFin: string): Observable<Blob> {
+        const params = new HttpParams()
+            .set('fechaInicio', fechaInicio)
+            .set('fechaFin', fechaFin);
+
+        return this.http.get(`${this.apiUrl}/presupuesto/excel`, {
+            params,
+            responseType: 'blob',
+            withCredentials: true
+        });
+    }
 }

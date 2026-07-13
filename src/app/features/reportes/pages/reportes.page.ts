@@ -129,6 +129,16 @@ type Preset = 'mes' | 'mesAnterior' | 'anio' | 'personalizado';
                                 [disabled]="!pdfBlob()"
                                 (onClick)="descargar()"
                                 styleClass="w-full" />
+
+                            <p-button
+                                label="Descargar Excel"
+                                icon="pi pi-file-excel"
+                                severity="secondary"
+                                [outlined]="true"
+                                [loading]="generandoExcel()"
+                                [disabled]="!rangoValido()"
+                                (onClick)="descargarExcel()"
+                                styleClass="w-full" />
                         </div>
 
                         @if (!rangoValido()) {
@@ -183,6 +193,7 @@ export class ReportesPage implements OnDestroy {
     // PrimeNG selectionMode="range" trabaja con un array [inicio, fin] (fin puede ser null mientras se elige).
     readonly rango = signal<Date[] | null>(null);
     readonly generando = signal(false);
+    readonly generandoExcel = signal(false);
     readonly pdfBlob = signal<Blob | null>(null);
 
     readonly fechaInicio = computed(() => this.rango()?.[0] ?? null);
@@ -253,10 +264,35 @@ export class ReportesPage implements OnDestroy {
         const blob = this.pdfBlob();
         if (!blob) return;
 
+        this.descargarBlob(blob, this.nombreArchivo('pdf'));
+    }
+
+    async descargarExcel(): Promise<void> {
+        if (!this.rangoValido() || this.generandoExcel()) return;
+
+        this.generandoExcel.set(true);
+        try {
+            const desde = this.toApiDate(this.fechaInicio()!);
+            const hasta = this.toApiDate(this.fechaFin()!);
+
+            const blob = await firstValueFrom(this.reporteService.descargarPresupuestoExcel(desde, hasta));
+            this.descargarBlob(blob, this.nombreArchivo('xlsx'));
+        } catch {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'No se pudo generar el Excel',
+                detail: 'Inténtalo de nuevo en unos instantes.'
+            });
+        } finally {
+            this.generandoExcel.set(false);
+        }
+    }
+
+    private descargarBlob(blob: Blob, nombre: string): void {
         const url = URL.createObjectURL(blob);
         const enlace = document.createElement('a');
         enlace.href = url;
-        enlace.download = this.nombreArchivo();
+        enlace.download = nombre;
         enlace.click();
         URL.revokeObjectURL(url);
     }
@@ -279,8 +315,8 @@ export class ReportesPage implements OnDestroy {
         }
     }
 
-    private nombreArchivo(): string {
-        return `presupuesto_${this.toFileStamp(this.fechaInicio()!)}_${this.toFileStamp(this.fechaFin()!)}.pdf`;
+    private nombreArchivo(extension: 'pdf' | 'xlsx'): string {
+        return `presupuesto_${this.toFileStamp(this.fechaInicio()!)}_${this.toFileStamp(this.fechaFin()!)}.${extension}`;
     }
 
     private toApiDate(d: Date): string {
