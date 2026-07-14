@@ -10,14 +10,15 @@ WORKDIR /app
 # Nota: He eliminado 'extra-webpack.config.js' ya que Angular 20+ usa esbuild
 # Añadimos .postcssrc.json explícitamente
 COPY package*.json angular.json tsconfig*.json ngsw-config.json .postcssrc.json ./
+# scripts/ y public/ deben existir ANTES de 'npm ci': el postinstall
+# (scripts/copy-pdf-worker.mjs) copia el worker de pdfjs-dist a public/.
+COPY scripts ./scripts
+COPY public ./public
 # OPTIMIZACIÓN 2: Instalar dependencias
 RUN npm ci --legacy-peer-deps --prefer-offline --no-audit --no-fund
 
 # OPTIMIZACIÓN 3: Copiar código fuente
 COPY src ./src
-COPY public ./public
-# Nota: Si tienes carpeta 'public' (nueva en Angular 18+) descomenta la línea de arriba, 
-# si sigues usando 'assets' dentro de 'src', la línea de 'src' es suficiente.
 
 # OPTIMIZACIÓN 4: Build actualizado para Angular 20+ (Application Builder)
 # Se han eliminado flags obsoletos de Webpack (--vendor-chunk, --common-chunk, --build-optimizer).
