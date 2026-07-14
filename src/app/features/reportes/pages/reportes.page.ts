@@ -17,7 +17,7 @@ import { BasePageTemplateComponent } from '@sergioizq/ngx-crud-ui';
 // y se sirve como asset propio en la raíz, mismo origen, sin CDN. No usar
 // `new URL('pdfjs-dist/...', import.meta.url)`: en el dev server (Vite) esa
 // resolución falla en Windows por la letra de unidad en la ruta `/@fs/C:/...`.
-GlobalWorkerOptions.workerSrc = 'pdf.worker.min.mjs';
+GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
 type Preset = 'mes' | 'mesAnterior' | 'anio' | 'personalizado';
 
@@ -252,7 +252,8 @@ export class ReportesPage implements OnDestroy {
 
             this.pdfBlob.set(blob);
             await this.loadPdf(blob);
-        } catch {
+        } catch (e) {
+            console.error('Error al generar/previsualizar el informe PDF:', e);
             this.messageService.add({
                 severity: 'error',
                 summary: 'No se pudo generar el informe',
