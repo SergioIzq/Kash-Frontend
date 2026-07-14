@@ -3,6 +3,7 @@
   "version": "21.0.0",
   "scripts": {
     "ng": "ng",
+    "postinstall": "node scripts/copy-pdf-worker.mjs",
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
