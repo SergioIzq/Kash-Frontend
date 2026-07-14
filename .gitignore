@@ -11,6 +11,9 @@
 npm-debug.log
 yarn-error.log
 
+# Generado por scripts/copy-pdf-worker.mjs (postinstall)
+/public/pdf.worker.min.mjs
+
 # IDEs and editors
 .idea/
 .project

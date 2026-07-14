@@ -13,8 +13,11 @@ import { getDocument, GlobalWorkerOptions, type PDFDocumentProxy, type PDFDocume
 import { ReporteService } from '@/core/services/api/reporte.service';
 import { BasePageTemplateComponent } from '@sergioizq/ngx-crud-ui';
 
-// El worker se sirve como asset propio del bundle (mismo origen), sin CDN.
-GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
+// El worker se copia a public/ (ver scripts/copy-pdf-worker.mjs, ejecutado en postinstall)
+// y se sirve como asset propio en la raíz, mismo origen, sin CDN. No usar
+// `new URL('pdfjs-dist/...', import.meta.url)`: en el dev server (Vite) esa
+// resolución falla en Windows por la letra de unidad en la ruta `/@fs/C:/...`.
+GlobalWorkerOptions.workerSrc = 'pdf.worker.min.mjs';
 
 type Preset = 'mes' | 'mesAnterior' | 'anio' | 'personalizado';
 
