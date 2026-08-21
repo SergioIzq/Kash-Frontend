@@ -1,6 +1,7 @@
 import { Component, inject, input, output, effect, ChangeDetectionStrategy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 import { DrawerModule } from 'primeng/drawer';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -13,6 +14,9 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 
 // Modelos
 import { Gasto } from '@/core/models';
+
+// Servicios
+import { GastoService } from '@/core/services/api/gasto.service';
 
 // Stores
 import { ProveedorStore } from '@/features/proveedores/store/proveedor.store';
@@ -86,10 +90,16 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
-                    <label for="importe" class="font-semibold text-gray-700 block mb-2">Importe</label>
+                    <label for="importe" class="font-semibold text-gray-700 block mb-2">
+                        Importe
+                        @if (sugeridoImporte()) {
+                            <i class="pi pi-bolt text-primary text-sm ml-1" pTooltip="Importe sugerido a partir del último uso de este concepto"></i>
+                        }
+                    </label>
                     <app-money-input
                         inputId="importe"
-                        [(ngModel)]="formData.importe"
+                        [ngModel]="formData.importe"
+                        (ngModelChange)="onImporteChange($event)"
                         inputClass="text-right font-bold text-xl text-green-600"
                         placeholder="0,00 €"
                     />
@@ -136,7 +146,12 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
-                    <label class="font-medium text-gray-700 block mb-2 text-sm">Forma de Pago</label>
+                    <label class="font-medium text-gray-700 block mb-2 text-sm">
+                        Forma de Pago
+                        @if (sugeridoFormaPago()) {
+                            <i class="pi pi-bolt text-primary text-sm ml-1" pTooltip="Sugerida a partir del último uso de este concepto"></i>
+                        }
+                    </label>
                     <div class="flex align-items-center gap-2">
                         <p-autoComplete
                             [(ngModel)]="selectedFormaPago"
@@ -162,7 +177,12 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                 </div>
 
                 <div class="col-span-12 field">
-                    <label class="font-medium text-gray-700 block mb-2 text-sm">Cuenta de Destino</label>
+                    <label class="font-medium text-gray-700 block mb-2 text-sm">
+                        Cuenta de Destino
+                        @if (sugeridoCuenta()) {
+                            <i class="pi pi-bolt text-primary text-sm ml-1" pTooltip="Sugerida a partir del último uso de este concepto"></i>
+                        }
+                    </label>
                     <div class="flex align-items-center gap-2">
                         <p-autoComplete
                             [(ngModel)]="selectedCuenta"
@@ -194,7 +214,12 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
-                    <label class="font-medium text-gray-700 block mb-2 text-sm">Proveedor</label>
+                    <label class="font-medium text-gray-700 block mb-2 text-sm">
+                        Proveedor
+                        @if (sugeridoProveedor()) {
+                            <i class="pi pi-bolt text-primary text-sm ml-1" pTooltip="Sugerido a partir del último uso de este concepto"></i>
+                        }
+                    </label>
                     <div class="flex align-items-center gap-2">
                         <p-autoComplete
                             [(ngModel)]="selectedProveedor"
@@ -217,7 +242,12 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
-                    <label class="font-medium text-gray-700 block mb-2 text-sm">Persona</label>
+                    <label class="font-medium text-gray-700 block mb-2 text-sm">
+                        Persona
+                        @if (sugeridoPersona()) {
+                            <i class="pi pi-bolt text-primary text-sm ml-1" pTooltip="Sugerida a partir del último uso de este concepto"></i>
+                        }
+                    </label>
                     <div class="flex align-items-center gap-2">
                         <p-autoComplete
                             [(ngModel)]="selectedPersona"
@@ -281,6 +311,7 @@ export class GastoFormModalComponent {
     private personaStore = inject(PersonaStore);
     private cuentaStore = inject(CuentaStore);
     private formaPagoStore = inject(FormaPagoStore);
+    private gastoService = inject(GastoService);
 
     // Inputs/Outputs
     visible = input<boolean>(false);
@@ -315,6 +346,13 @@ export class GastoFormModalComponent {
     newProveedorMessage = signal<string>('');
     newPersonaMessage = signal<string>('');
     newCuentaMessage = signal<string>('');
+
+    // Indicadores de campo pre-rellenado por sugerencia (histórico del concepto)
+    sugeridoCuenta = signal(false);
+    sugeridoFormaPago = signal(false);
+    sugeridoImporte = signal(false);
+    sugeridoProveedor = signal(false);
+    sugeridoPersona = signal(false);
 
     // Flags para evitar validación en blur después de selección
     private skipNextConceptoBlur = false;
@@ -361,21 +399,36 @@ export class GastoFormModalComponent {
             this.selectedCuenta = gastoData.cuentaId && gastoData.cuentaNombre ? { id: gastoData.cuentaId, nombre: gastoData.cuentaNombre } : null;
             this.selectedFormaPago = gastoData.formaPagoId && gastoData.formaPagoNombre ? { id: gastoData.formaPagoId, nombre: gastoData.formaPagoNombre } : null;
         } else {
-            // Modo creación
+            // Modo creación. `gastoData` puede venir vacío ("Nuevo Gasto" desde cero) o con
+            // campos precargados (ej. al repetir un gasto habitual desde un chip): en ambos
+            // casos se parte de esos valores en vez de asumir siempre un formulario en blanco.
             this.isEditMode.set(false);
             const fechaActual = new Date();
             fechaActual.setHours(0, 0, 0, 0);
 
             this.formData = {
                 fecha: fechaActual,
-                descripcion: ''
+                descripcion: '',
+                importe: gastoData?.importe,
+                conceptoId: gastoData?.conceptoId,
+                conceptoNombre: gastoData?.conceptoNombre,
+                categoriaId: gastoData?.categoriaId,
+                categoriaNombre: gastoData?.categoriaNombre,
+                proveedorId: gastoData?.proveedorId,
+                proveedorNombre: gastoData?.proveedorNombre,
+                personaId: gastoData?.personaId,
+                personaNombre: gastoData?.personaNombre,
+                cuentaId: gastoData?.cuentaId,
+                cuentaNombre: gastoData?.cuentaNombre,
+                formaPagoId: gastoData?.formaPagoId,
+                formaPagoNombre: gastoData?.formaPagoNombre
             };
-            this.selectedConcepto = null;
-            this.selectedCategoria = null;
-            this.selectedProveedor = null;
-            this.selectedPersona = null;
-            this.selectedCuenta = null;
-            this.selectedFormaPago = null;
+            this.selectedConcepto = gastoData?.conceptoId && gastoData?.conceptoNombre ? { id: gastoData.conceptoId, nombre: gastoData.conceptoNombre } : null;
+            this.selectedCategoria = gastoData?.categoriaId && gastoData?.categoriaNombre ? { id: gastoData.categoriaId, nombre: gastoData.categoriaNombre } : null;
+            this.selectedProveedor = gastoData?.proveedorId && gastoData?.proveedorNombre ? { id: gastoData.proveedorId, nombre: gastoData.proveedorNombre } : null;
+            this.selectedPersona = gastoData?.personaId && gastoData?.personaNombre ? { id: gastoData.personaId, nombre: gastoData.personaNombre } : null;
+            this.selectedCuenta = gastoData?.cuentaId && gastoData?.cuentaNombre ? { id: gastoData.cuentaId, nombre: gastoData.cuentaNombre } : null;
+            this.selectedFormaPago = gastoData?.formaPagoId && gastoData?.formaPagoNombre ? { id: gastoData.formaPagoId, nombre: gastoData.formaPagoNombre } : null;
         }
         this.submitted.set(false);
         this.newConceptoMessage.set('');
@@ -384,6 +437,59 @@ export class GastoFormModalComponent {
         this.newProveedorMessage.set('');
         this.newPersonaMessage.set('');
         this.newCuentaMessage.set('');
+        this.sugeridoCuenta.set(false);
+        this.sugeridoFormaPago.set(false);
+        this.sugeridoImporte.set(false);
+        this.sugeridoProveedor.set(false);
+        this.sugeridoPersona.set(false);
+    }
+
+    onImporteChange(value: number | null): void {
+        this.formData.importe = value ?? undefined;
+        this.sugeridoImporte.set(false);
+    }
+
+    /**
+     * Pre-rellena cuenta/forma de pago/importe/proveedor/persona a partir del último gasto
+     * registrado para este concepto. Solo se aplica en modo creación y solo sobre campos que
+     * el usuario todavía no ha rellenado (no sobrescribe valores ya introducidos a mano).
+     */
+    private async aplicarSugerencia(conceptoId: string): Promise<void> {
+        try {
+            const sugerencia = await firstValueFrom(this.gastoService.getSugerencia(conceptoId));
+            if (!sugerencia) return;
+
+            if (!this.selectedCuenta && sugerencia.cuentaId) {
+                this.selectedCuenta = { id: sugerencia.cuentaId, nombre: sugerencia.cuentaNombre };
+                this.formData.cuentaId = sugerencia.cuentaId;
+                this.formData.cuentaNombre = sugerencia.cuentaNombre;
+                this.sugeridoCuenta.set(true);
+            }
+            if (!this.selectedFormaPago && sugerencia.formaPagoId) {
+                this.selectedFormaPago = { id: sugerencia.formaPagoId, nombre: sugerencia.formaPagoNombre };
+                this.formData.formaPagoId = sugerencia.formaPagoId;
+                this.formData.formaPagoNombre = sugerencia.formaPagoNombre;
+                this.sugeridoFormaPago.set(true);
+            }
+            if (!this.formData.importe && sugerencia.importe) {
+                this.formData.importe = sugerencia.importe;
+                this.sugeridoImporte.set(true);
+            }
+            if (!this.selectedProveedor && sugerencia.proveedorId) {
+                this.selectedProveedor = { id: sugerencia.proveedorId, nombre: sugerencia.proveedorNombre ?? '' };
+                this.formData.proveedorId = sugerencia.proveedorId;
+                this.formData.proveedorNombre = sugerencia.proveedorNombre ?? undefined;
+                this.sugeridoProveedor.set(true);
+            }
+            if (!this.selectedPersona && sugerencia.personaId) {
+                this.selectedPersona = { id: sugerencia.personaId, nombre: sugerencia.personaNombre ?? '' };
+                this.formData.personaId = sugerencia.personaId;
+                this.formData.personaNombre = sugerencia.personaNombre ?? undefined;
+                this.sugeridoPersona.set(true);
+            }
+        } catch {
+            // Mejora no crítica: si falla la consulta de sugerencia, el alta sigue funcionando con normalidad.
+        }
     }
 
     // --- Métodos de búsqueda (Search) ---
@@ -496,6 +602,12 @@ export class GastoFormModalComponent {
             this.newCategoriaMessage.set(''); // Limpiar mensaje si se asigna una categoría existente
             this.messageService.add({ severity: 'info', summary: 'Info', detail: `Categoría ${value.categoriaNombre} asignada` });
         }
+
+        // Sugerencia: pre-rellenar cuenta/forma de pago/importe/proveedor/persona con el
+        // último uso de este concepto. Solo en alta (nunca sobrescribe una edición existente).
+        if (!this.isEditMode() && value.id) {
+            this.aplicarSugerencia(value.id);
+        }
     }
 
     onConceptoBlur() {
@@ -587,6 +699,7 @@ export class GastoFormModalComponent {
                     this.selectedFormaPago = { id: '', nombre: formaPagoNombre };
                     this.formData.formaPagoId = undefined;
                     this.formData.formaPagoNombre = formaPagoNombre;
+                    this.sugeridoFormaPago.set(false);
                     this.newFormaPagoMessage.set(`Ha seleccionado una forma de pago "${formaPagoNombre}" que no existe, se creará automáticamente.`);
                     this.messageService.add({
                         severity: 'info',
@@ -604,6 +717,7 @@ export class GastoFormModalComponent {
         this.formData.proveedorId = event.id;
         this.formData.proveedorNombre = event.nombre;
         this.newProveedorMessage.set('');
+        this.sugeridoProveedor.set(false);
     }
 
     onProveedorBlur() {
@@ -624,6 +738,7 @@ export class GastoFormModalComponent {
                     this.selectedProveedor = { id: '', nombre: proveedorNombre };
                     this.formData.proveedorId = undefined;
                     this.formData.proveedorNombre = proveedorNombre;
+                    this.sugeridoProveedor.set(false);
                     this.newProveedorMessage.set(`Ha seleccionado un proveedor "${proveedorNombre}" que no existe, se creará automáticamente.`);
                     this.messageService.add({
                         severity: 'info',
@@ -640,6 +755,7 @@ export class GastoFormModalComponent {
         this.formData.personaId = event.id;
         this.formData.personaNombre = event.nombre;
         this.newPersonaMessage.set('');
+        this.sugeridoPersona.set(false);
     }
 
     onPersonaBlur() {
@@ -660,6 +776,7 @@ export class GastoFormModalComponent {
                     this.selectedPersona = { id: '', nombre: personaNombre };
                     this.formData.personaId = undefined;
                     this.formData.personaNombre = personaNombre;
+                    this.sugeridoPersona.set(false);
                     this.newPersonaMessage.set(`Ha seleccionado una persona "${personaNombre}" que no existe, se creará automáticamente.`);
                     this.messageService.add({
                         severity: 'info',
@@ -676,6 +793,7 @@ export class GastoFormModalComponent {
         this.formData.cuentaId = event.id;
         this.formData.cuentaNombre = event.nombre;
         this.newCuentaMessage.set('');
+        this.sugeridoCuenta.set(false);
     }
 
     onCuentaBlur() {
@@ -696,6 +814,7 @@ export class GastoFormModalComponent {
                     this.selectedCuenta = { id: '', nombre: cuentaNombre };
                     this.formData.cuentaId = undefined;
                     this.formData.cuentaNombre = cuentaNombre;
+                    this.sugeridoCuenta.set(false);
                     this.newCuentaMessage.set(`Ha seleccionado una cuenta "${cuentaNombre}" que no existe, se creará automáticamente.`);
                     this.messageService.add({
                         severity: 'info',
@@ -713,6 +832,7 @@ export class GastoFormModalComponent {
         this.formData.formaPagoId = event.id;
         this.formData.formaPagoNombre = event.nombre;
         this.newFormaPagoMessage.set('');
+        this.sugeridoFormaPago.set(false);
     }
 
     onConceptoClear() {
@@ -735,6 +855,7 @@ export class GastoFormModalComponent {
         this.formData.proveedorNombre = undefined;
         this.filteredProveedores.set([]);
         this.newProveedorMessage.set('');
+        this.sugeridoProveedor.set(false);
     }
     onPersonaClear() {
         this.selectedPersona = null;
@@ -742,6 +863,7 @@ export class GastoFormModalComponent {
         this.formData.personaNombre = undefined;
         this.filteredPersonas.set([]);
         this.newPersonaMessage.set('');
+        this.sugeridoPersona.set(false);
     }
     onCuentaClear() {
         this.selectedCuenta = null;
@@ -749,6 +871,7 @@ export class GastoFormModalComponent {
         this.formData.cuentaNombre = undefined;
         this.filteredCuentas.set([]);
         this.newCuentaMessage.set('');
+        this.sugeridoCuenta.set(false);
     }
     onFormaPagoClear() {
         this.selectedFormaPago = null;
@@ -756,6 +879,7 @@ export class GastoFormModalComponent {
         this.formData.formaPagoNombre = undefined;
         this.filteredFormasPago.set([]);
         this.newFormaPagoMessage.set('');
+        this.sugeridoFormaPago.set(false);
     }
 
     getConceptoPlaceholder(): string {

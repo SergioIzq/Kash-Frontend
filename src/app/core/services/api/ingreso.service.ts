@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { shareReplay, map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
-import { Ingreso, ResumenIngresos, IngresoCreate } from '../../models';
+import { Ingreso, ResumenIngresos, IngresoCreate, IngresoHabitual } from '../../models';
 import { PaginatedList, Result } from '@/core/models/common.model';
 
 @Injectable({
@@ -105,6 +105,26 @@ export class IngresoService {
     getById(id: string): Observable<Ingreso> {
         return this.http.get<Result<Ingreso>>(`${this.apiUrl}/${id}`)
             .pipe(map(response => response.value));
+    }
+
+    /**
+     * Sugerencia de campos (cuenta, forma de pago, importe, cliente, persona) a partir del
+     * ingreso más reciente registrado para un concepto. El backend devuelve 200 con una lista
+     * de 0 o 1 elementos (nunca 404); se mapea a null cuando el concepto no tiene histórico.
+     */
+    getSugerencia(conceptoId: string): Observable<Ingreso | null> {
+        const params = new HttpParams().set('conceptoId', conceptoId);
+        return this.http.get<Result<Ingreso[]>>(`${this.apiUrl}/sugerencia`, { params })
+            .pipe(map(response => response.value?.[0] ?? null));
+    }
+
+    /**
+     * Combinaciones completas de ingreso más repetidas por el usuario (para chips de un toque).
+     */
+    getHabituales(limit: number = 6): Observable<IngresoHabitual[]> {
+        const params = new HttpParams().set('limit', limit.toString());
+        return this.http.get<Result<IngresoHabitual[]>>(`${this.apiUrl}/habituales`, { params })
+            .pipe(map(response => response.value ?? []));
     }
 
     /**

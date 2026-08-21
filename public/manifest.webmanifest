@@ -23,10 +23,25 @@
         "purpose": "any"
       },
       {
-        "src": "icons/icon-maskable.png", 
+        "src": "icons/icon-maskable.png",
         "sizes": "512x512",
         "type": "image/png",
         "purpose": "maskable"
+      }
+    ],
+  "shortcuts": [
+      {
+        "name": "Nuevo gasto",
+        "short_name": "Nuevo gasto",
+        "description": "Registrar un gasto o ingreso rápido",
+        "url": "/alta-rapida",
+        "icons": [
+          {
+            "src": "icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+          }
+        ]
       }
     ]
 }
