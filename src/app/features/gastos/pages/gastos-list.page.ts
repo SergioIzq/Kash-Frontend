@@ -1,7 +1,7 @@
 import { Component, inject, ChangeDetectionStrategy, signal, computed, effect, ViewChild, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
+import { Subject, firstValueFrom } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -19,11 +19,31 @@ import { GastoFormModalComponent } from '../components/gasto-form-modal.componen
 import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig, ListLazyLoadEvent } from '@sergioizq/ngx-crud-ui';
 import { DataViewModule } from 'primeng/dataview';
 import { LayoutService } from '@/layout/service/layout.service';
+import { TransaccionesHabitualesChipsComponent, TransaccionHabitualSeleccionada, ExportarExcelDialogComponent, ExportarExcelFiltros } from '@/shared/components';
+import { GastoService } from '@/core/services/api/gasto.service';
 
 @Component({
     selector: 'app-gastos-list-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, TagModule, InputIconModule, IconFieldModule, SkeletonModule, DataViewModule, GastoFormModalComponent, BasePageTemplateComponent, HelpGlossaryComponent],
+    imports: [
+        CommonModule,
+        FormsModule,
+        ButtonModule,
+        InputTextModule,
+        ToastModule,
+        TableModule,
+        ToolbarModule,
+        TagModule,
+        InputIconModule,
+        IconFieldModule,
+        SkeletonModule,
+        DataViewModule,
+        GastoFormModalComponent,
+        BasePageTemplateComponent,
+        HelpGlossaryComponent,
+        TransaccionesHabitualesChipsComponent,
+        ExportarExcelDialogComponent
+    ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
         /* Toolbar responsive en móvil */
@@ -48,6 +68,8 @@ import { LayoutService } from '@/layout/service/layout.service';
         <ngxc-base-page-template [loading]="gastosStore.loading() && gastosStore.gastos().length === 0" [skeletonType]="'table'">
             <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
                 <div class="surface-card shadow-2 border-round p-6">
+                    <app-transacciones-habituales-chips tipo="gasto" [refresco]="habitualesRefresco()" (seleccionar)="onHabitualSeleccionado($event)" />
+
                     <p-toolbar styleClass="mb-6 gap-2 p-6">
                         <ng-template #start>
                             <p-button label="Nuevo Gasto" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
@@ -56,7 +78,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                         <ng-template #end>
                             <ngxc-help-glossary [config]="glossary" class="mr-2" />
                             <p-button icon="pi pi-refresh" severity="secondary" outlined (onClick)="refreshTable()" pTooltip="Actualizar" class="mr-2" />
-                            <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
+                            <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportarDialogVisible.set(true)" />
                         </ng-template>
                     </p-toolbar>
 
@@ -268,6 +290,8 @@ import { LayoutService } from '@/layout/service/layout.service';
 
                     <!-- Nuevo componente de formulario modal con autocomplete -->
                     <app-gasto-form-modal [visible]="gastoDialog()" [gasto]="currentGasto()" (visibleChange)="gastoDialog.set($event)" (save)="onSaveGasto($event)" (cancel)="hideDialog()" />
+
+                    <app-exportar-excel-dialog tipo="gasto" [visible]="exportarDialogVisible()" (visibleChange)="exportarDialogVisible.set($event)" [searchTermActual]="searchTerm()" [exportando]="exportandoExcel()" (exportar)="onExportarExcel($event)" />
                 </div>
             </div>
         </ngxc-base-page-template>
@@ -276,13 +300,14 @@ import { LayoutService } from '@/layout/service/layout.service';
 export class GastosListPage extends BasePageComponent implements OnDestroy {
     gastosStore = inject(GastosStore);
     protected readonly layout = inject(LayoutService);
+    private readonly gastoService = inject(GastoService);
 
     protected override loadingSignal = this.gastosStore.loading;
     protected override skeletonType = 'table' as const;
 
     readonly glossary: GlossaryConfig = {
         title: 'Glosario · Gastos',
-        intro: 'Esta pantalla registra y consulta tus <strong>gastos</strong> (salidas de dinero). Cada gasto descuenta su importe del saldo de la cuenta asociada. Puedes buscarlos, ordenarlos, paginarlos y exportarlos a CSV.',
+        intro: 'Esta pantalla registra y consulta tus <strong>gastos</strong> (salidas de dinero). Cada gasto descuenta su importe del saldo de la cuenta asociada. Puedes buscarlos, ordenarlos, paginarlos y exportarlos a Excel.',
         sections: [
             {
                 title: 'Botones y acciones',
@@ -290,7 +315,7 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
                     { icon: 'pi pi-plus', color: '#22c55e', term: 'Nuevo Gasto', def: 'Abre el formulario para registrar un gasto: fecha, importe, concepto, categoría, proveedor, persona, forma de pago y cuenta.' },
                     { icon: 'pi pi-search', color: '#6366f1', term: 'Buscar', def: 'Filtra la tabla por concepto, categoría, proveedor o descripción. La búsqueda se aplica automáticamente al dejar de escribir.' },
                     { icon: 'pi pi-refresh', color: '#64748b', term: 'Actualizar', def: 'Vuelve a cargar la lista de gastos desde el servidor con los filtros actuales.' },
-                    { icon: 'pi pi-upload', color: '#3b82f6', term: 'Exportar', def: 'Descarga los gastos cargados en un archivo CSV (compatible con Excel).' },
+                    { icon: 'pi pi-upload', color: '#3b82f6', term: 'Exportar', def: 'Abre un diálogo de filtros (fecha, concepto, categoría, proveedor, persona) y descarga un Excel con los gastos que los cumplen.' },
                     { icon: 'pi pi-pencil', color: '#f59e0b', term: 'Editar', def: 'Modifica los datos del gasto seleccionado.' },
                     { icon: 'pi pi-trash', color: '#ef4444', term: 'Eliminar', def: 'Borra el gasto (pide confirmación). El saldo de la cuenta se recalcula.' },
                 ]
@@ -315,6 +340,11 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
     gastoDialog = signal<boolean>(false);
     selectedGastos = signal<Gasto[]>([]);
     currentGasto = signal<Partial<Gasto>>({});
+    /** Se incrementa tras crear un gasto para forzar la recarga de "gastos habituales". */
+    habitualesRefresco = signal(0);
+
+    exportarDialogVisible = signal(false);
+    exportandoExcel = signal(false);
 
     pageSize = signal<number>(10);
     pageNumber = signal<number>(1);
@@ -405,6 +435,25 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
         this.gastoDialog.set(true);
     }
 
+    /** Repetir un gasto habitual: abre el modal de alta con la combinación ya rellenada. */
+    onHabitualSeleccionado(habitual: TransaccionHabitualSeleccionada) {
+        this.currentGasto.set({
+            conceptoId: habitual.conceptoId,
+            conceptoNombre: habitual.conceptoNombre,
+            categoriaId: habitual.categoriaId ?? undefined,
+            categoriaNombre: habitual.categoriaNombre ?? undefined,
+            cuentaId: habitual.cuentaId,
+            cuentaNombre: habitual.cuentaNombre,
+            formaPagoId: habitual.formaPagoId,
+            formaPagoNombre: habitual.formaPagoNombre,
+            proveedorId: habitual.terceroId,
+            proveedorNombre: habitual.terceroNombre,
+            personaId: habitual.personaId,
+            personaNombre: habitual.personaNombre
+        });
+        this.gastoDialog.set(true);
+    }
+
     hideDialog() {
         this.gastoDialog.set(false);
         this.currentGasto.set({});
@@ -452,6 +501,7 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
 
             this.gastosStore.createGasto(gastoCreate, displayData).then(() => {
                 this.showSuccess('Gasto creado correctamente');
+                this.habitualesRefresco.update((v) => v + 1);
             });
             
             this.gastoDialog.set(false);
@@ -502,34 +552,27 @@ export class GastosListPage extends BasePageComponent implements OnDestroy {
         );
     }
 
-    exportCSV() {
-        // En lazy mode, exportar los datos actuales del store
-        const gastos = this.gastosStore.gastos();
-        if (!gastos || gastos.length === 0) {
-            this.showWarning('No hay datos para exportar');
-            return;
-        }
+    onExportarExcel(filtros: ExportarExcelFiltros): void {
+        this.exportandoExcel.set(true);
+        firstValueFrom(this.gastoService.descargarExcel(filtros))
+            .then((blob) => {
+                this.descargarBlob(blob, `gastos_${new Date().toISOString().split('T')[0]}.xlsx`);
+                this.exportarDialogVisible.set(false);
+                this.showSuccess('El archivo se ha descargado correctamente.', 'Exportación completada');
+            })
+            .catch(() => {
+                this.showError('No se pudo generar el archivo. Inténtalo de nuevo.', 'Error al exportar');
+            })
+            .finally(() => this.exportandoExcel.set(false));
+    }
 
-        // Crear CSV manualmente con BOM para UTF-8
-        const headers = ['Concepto', 'Categoría', 'Proveedor', 'Fecha', 'Importe', 'Descripción'];
-        const csvData = gastos.map((g) => [g.conceptoNombre, g.categoriaNombre || '', g.proveedorNombre || '', g.fecha, g.importe, g.descripcion || '']);
-
-        // Agregar BOM (Byte Order Mark) para UTF-8
-        let csv = '\uFEFF';
-        csv += headers.join(',') + '\n';
-        csvData.forEach((row) => {
-            csv += row.map((field) => `"${field}"`).join(',') + '\n';
-        });
-
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
+    private descargarBlob(blob: Blob, nombre: string): void {
         const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `gastos_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const enlace = document.createElement('a');
+        enlace.href = url;
+        enlace.download = nombre;
+        enlace.click();
+        URL.revokeObjectURL(url);
     }
 
     getCategorySeverity(categoria: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {

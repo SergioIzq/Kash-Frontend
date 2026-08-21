@@ -1,7 +1,7 @@
 import { Component, inject, ChangeDetectionStrategy, signal, computed, effect, ViewChild, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
+import { Subject, firstValueFrom } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -19,11 +19,31 @@ import { IngresoFormModalComponent } from '../components/ingreso-form-modal.comp
 import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig, ListLazyLoadEvent } from '@sergioizq/ngx-crud-ui';
 import { DataViewModule } from 'primeng/dataview';
 import { LayoutService } from '@/layout/service/layout.service';
+import { TransaccionesHabitualesChipsComponent, TransaccionHabitualSeleccionada, ExportarExcelDialogComponent, ExportarExcelFiltros } from '@/shared/components';
+import { IngresoService } from '@/core/services/api/ingreso.service';
 
 @Component({
     selector: 'app-ingresos-list-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, TagModule, InputIconModule, IconFieldModule, SkeletonModule, DataViewModule, IngresoFormModalComponent, BasePageTemplateComponent, HelpGlossaryComponent],
+    imports: [
+        CommonModule,
+        FormsModule,
+        ButtonModule,
+        InputTextModule,
+        ToastModule,
+        TableModule,
+        ToolbarModule,
+        TagModule,
+        InputIconModule,
+        IconFieldModule,
+        SkeletonModule,
+        DataViewModule,
+        IngresoFormModalComponent,
+        BasePageTemplateComponent,
+        HelpGlossaryComponent,
+        TransaccionesHabitualesChipsComponent,
+        ExportarExcelDialogComponent
+    ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
         /* Toolbar responsive en móvil */
@@ -48,6 +68,8 @@ import { LayoutService } from '@/layout/service/layout.service';
         <ngxc-base-page-template [loading]="ingresosStore.loading() && ingresosStore.ingresos().length === 0" [skeletonType]="'table'">
             <div class="card surface-ground px-4 py-5 md:px-6 lg:px-8">
                 <div class="surface-card shadow-2 border-round p-6">
+                    <app-transacciones-habituales-chips tipo="ingreso" [refresco]="habitualesRefresco()" (seleccionar)="onHabitualSeleccionado($event)" />
+
                     <p-toolbar styleClass="mb-6 gap-2 p-6">
                         <ng-template #start>
                             <p-button label="Nuevo Ingreso" icon="pi pi-plus" severity="secondary" class="mr-2" (onClick)="openNew()" />
@@ -56,7 +78,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                         <ng-template #end>
                             <ngxc-help-glossary [config]="glossary" class="mr-2" />
                             <p-button icon="pi pi-refresh" severity="secondary" outlined (onClick)="refreshTable()" pTooltip="Actualizar" class="mr-2" />
-                            <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportCSV()" />
+                            <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportarDialogVisible.set(true)" />
                         </ng-template>
                     </p-toolbar>
 
@@ -271,6 +293,8 @@ import { LayoutService } from '@/layout/service/layout.service';
 
                     <!-- Nuevo componente de formulario modal con autocomplete -->
                     <app-ingreso-form-modal [visible]="ingresoDialog()" [ingreso]="currentIngreso()" (visibleChange)="ingresoDialog.set($event)" (save)="onSaveIngreso($event)" (cancel)="hideDialog()" />
+
+                    <app-exportar-excel-dialog tipo="ingreso" [visible]="exportarDialogVisible()" (visibleChange)="exportarDialogVisible.set($event)" [searchTermActual]="searchTerm()" [exportando]="exportandoExcel()" (exportar)="onExportarExcel($event)" />
                 </div>
             </div>
         </ngxc-base-page-template>
@@ -279,13 +303,14 @@ import { LayoutService } from '@/layout/service/layout.service';
 export class IngresosListPage extends BasePageComponent implements OnDestroy {
     ingresosStore = inject(IngresosStore);
     protected readonly layout = inject(LayoutService);
+    private readonly ingresoService = inject(IngresoService);
 
     protected override loadingSignal = this.ingresosStore.loading;
     protected override skeletonType = 'table' as const;
 
     readonly glossary: GlossaryConfig = {
         title: 'Glosario · Ingresos',
-        intro: 'Esta pantalla registra y consulta tus <strong>ingresos</strong> (entradas de dinero). Cada ingreso suma su importe al saldo de la cuenta asociada. Puedes buscarlos, ordenarlos, paginarlos y exportarlos a CSV.',
+        intro: 'Esta pantalla registra y consulta tus <strong>ingresos</strong> (entradas de dinero). Cada ingreso suma su importe al saldo de la cuenta asociada. Puedes buscarlos, ordenarlos, paginarlos y exportarlos a Excel.',
         sections: [
             {
                 title: 'Botones y acciones',
@@ -293,7 +318,7 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
                     { icon: 'pi pi-plus', color: '#22c55e', term: 'Nuevo Ingreso', def: 'Abre el formulario para registrar un ingreso: fecha, importe, concepto, categoría, cliente, persona, forma de pago y cuenta.' },
                     { icon: 'pi pi-search', color: '#6366f1', term: 'Buscar', def: 'Filtra la tabla por concepto, categoría, cliente o descripción. Se aplica automáticamente al dejar de escribir.' },
                     { icon: 'pi pi-refresh', color: '#64748b', term: 'Actualizar', def: 'Vuelve a cargar la lista de ingresos desde el servidor con los filtros actuales.' },
-                    { icon: 'pi pi-upload', color: '#3b82f6', term: 'Exportar', def: 'Descarga los ingresos cargados en un archivo CSV (compatible con Excel).' },
+                    { icon: 'pi pi-upload', color: '#3b82f6', term: 'Exportar', def: 'Abre un diálogo de filtros (fecha, concepto, categoría, cliente, persona) y descarga un Excel con los ingresos que los cumplen.' },
                     { icon: 'pi pi-pencil', color: '#f59e0b', term: 'Editar', def: 'Modifica los datos del ingreso seleccionado.' },
                     { icon: 'pi pi-trash', color: '#ef4444', term: 'Eliminar', def: 'Borra el ingreso (pide confirmación). El saldo de la cuenta se recalcula.' },
                 ]
@@ -318,6 +343,11 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
     ingresoDialog = signal<boolean>(false);
     selectedIngresos = signal<Ingreso[]>([]);
     currentIngreso = signal<Partial<Ingreso>>({});
+    /** Se incrementa tras crear un ingreso para forzar la recarga de "ingresos habituales". */
+    habitualesRefresco = signal(0);
+
+    exportarDialogVisible = signal(false);
+    exportandoExcel = signal(false);
 
     pageSize = signal<number>(10);
     pageNumber = signal<number>(1);
@@ -408,6 +438,25 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
         this.ingresoDialog.set(true);
     }
 
+    /** Repetir un ingreso habitual: abre el modal de alta con la combinación ya rellenada. */
+    onHabitualSeleccionado(habitual: TransaccionHabitualSeleccionada) {
+        this.currentIngreso.set({
+            conceptoId: habitual.conceptoId,
+            conceptoNombre: habitual.conceptoNombre,
+            categoriaId: habitual.categoriaId ?? undefined,
+            categoriaNombre: habitual.categoriaNombre ?? undefined,
+            cuentaId: habitual.cuentaId,
+            cuentaNombre: habitual.cuentaNombre,
+            formaPagoId: habitual.formaPagoId,
+            formaPagoNombre: habitual.formaPagoNombre,
+            clienteId: habitual.terceroId,
+            clienteNombre: habitual.terceroNombre,
+            personaId: habitual.personaId,
+            personaNombre: habitual.personaNombre
+        });
+        this.ingresoDialog.set(true);
+    }
+
     hideDialog() {
         this.ingresoDialog.set(false);
         this.currentIngreso.set({});
@@ -455,6 +504,7 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
 
             this.ingresosStore.createIngreso(ingresoCreate, displayData).then(() => {
                 this.showSuccess('Ingreso creado correctamente');
+                this.habitualesRefresco.update((v) => v + 1);
             });
             
             this.ingresoDialog.set(false);
@@ -505,34 +555,27 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
         );
     }
 
-    exportCSV() {
-        // En lazy mode, exportar los datos actuales del store
-        const ingresos = this.ingresosStore.ingresos();
-        if (!ingresos || ingresos.length === 0) {
-            this.showWarning('No hay datos para exportar');
-            return;
-        }
+    onExportarExcel(filtros: ExportarExcelFiltros): void {
+        this.exportandoExcel.set(true);
+        firstValueFrom(this.ingresoService.descargarExcel(filtros))
+            .then((blob) => {
+                this.descargarBlob(blob, `ingresos_${new Date().toISOString().split('T')[0]}.xlsx`);
+                this.exportarDialogVisible.set(false);
+                this.showSuccess('El archivo se ha descargado correctamente.', 'Exportación completada');
+            })
+            .catch(() => {
+                this.showError('No se pudo generar el archivo. Inténtalo de nuevo.', 'Error al exportar');
+            })
+            .finally(() => this.exportandoExcel.set(false));
+    }
 
-        // Crear CSV manualmente con BOM para UTF-8
-        const headers = ['Concepto', 'Categoría', 'Proveedor', 'Fecha', 'Importe', 'Descripción'];
-        const csvData = ingresos.map((g) => [g.conceptoNombre, g.categoriaNombre || '', g.clienteNombre || '', g.fecha, g.importe, g.descripcion || '']);
-
-        // Agregar BOM (Byte Order Mark) para UTF-8
-        let csv = '\uFEFF';
-        csv += headers.join(',') + '\n';
-        csvData.forEach((row) => {
-            csv += row.map((field) => `"${field}"`).join(',') + '\n';
-        });
-
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
+    private descargarBlob(blob: Blob, nombre: string): void {
         const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `ingresos_${new Date().toISOString().split('T')[0]}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const enlace = document.createElement('a');
+        enlace.href = url;
+        enlace.download = nombre;
+        enlace.click();
+        URL.revokeObjectURL(url);
     }
 
     getCategorySeverity(categoria: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' | undefined {

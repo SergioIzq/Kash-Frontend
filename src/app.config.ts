@@ -5,6 +5,7 @@ import { provideRouter, withEnabledBlockingInitialNavigation, withInMemoryScroll
 import Aura from '@primeuix/themes/aura';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
+import { NGX_CRUD_UI_TEXT } from '@sergioizq/ngx-crud-ui';
 import { appRoutes } from './app.routes';
 import { authInterceptor } from './app/core/interceptors/auth.interceptor';
 import { errorInterceptor } from './app/core/interceptors/error.interceptor';
@@ -43,6 +44,35 @@ export const appConfig: ApplicationConfig = {
         MessageService,
         ConfirmationService,
         { provide: LOCALE_ID, useValue: 'es-ES' },
+        {
+            provide: NGX_CRUD_UI_TEXT,
+            useValue: {
+                currentPageReportTemplate: 'Mostrando {first} a {last} de {totalRecords}',
+                mobilePageReportTemplate: '{first}-{last} de {totalRecords}',
+                titleHeader: 'Nombre',
+                actionsHeader: 'Acciones',
+                editTooltip: 'Editar',
+                deleteTooltip: 'Eliminar',
+                refreshTooltip: 'Actualizar',
+                helpTooltip: 'Ayuda / Glosario',
+                closeLabel: 'Cerrar',
+                successSummary: 'Éxito',
+                errorSummary: 'Error',
+                warningSummary: 'Aviso',
+                infoSummary: 'Información',
+                confirmHeader: 'Confirmar',
+                confirmAcceptLabel: 'Sí',
+                confirmRejectLabel: 'Cancelar',
+                unknownErrorMessage: 'Error desconocido',
+                unexpectedErrorMessage: 'Se ha producido un error inesperado',
+                refreshedMessage: 'Datos actualizados',
+                refreshedSummary: 'Actualizar',
+                saveErrorFallback: 'No se ha podido guardar el registro',
+                deleteConfirmMessage: '¿Seguro que quieres eliminar {label}?',
+                deleteConfirmHeader: 'Confirmar eliminación',
+                deleteConfirmAcceptLabel: 'Sí, eliminar'
+            }
+        },
         // Aquí estaba el error, lo he dejado una sola vez:
         provideServiceWorker('ngsw-worker.js', {
             enabled: !isDevMode(),

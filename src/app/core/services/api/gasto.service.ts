@@ -3,8 +3,9 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { shareReplay, map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
-import { Gasto, ResumenGastos, GastoCreate } from '../../models';
+import { Gasto, ResumenGastos, GastoCreate, GastoHabitual } from '../../models';
 import { PaginatedList, Result } from '@/core/models/common.model';
+import { ExportarExcelFiltros } from '@/core/models/exportar-excel-filtros.model';
 
 @Injectable({
     providedIn: 'root'
@@ -98,6 +99,24 @@ export class GastoService {
     }
 
     /**
+     * Sugerencia de campos (cuenta, forma de pago, importe, proveedor, persona) a partir del
+     * gasto más reciente registrado para un concepto. El backend devuelve 200 con una lista de
+     * 0 o 1 elementos (nunca 404); se mapea a null cuando el concepto no tiene histórico.
+     */
+    getSugerencia(conceptoId: string): Observable<Gasto | null> {
+        const params = new HttpParams().set('conceptoId', conceptoId);
+        return this.http.get<Result<Gasto[]>>(`${this.apiUrl}/sugerencia`, { params }).pipe(map((response) => response.value?.[0] ?? null));
+    }
+
+    /**
+     * Combinaciones completas de gasto más repetidas por el usuario (para chips de un toque).
+     */
+    getHabituales(limit: number = 6): Observable<GastoHabitual[]> {
+        const params = new HttpParams().set('limit', limit.toString());
+        return this.http.get<Result<GastoHabitual[]>>(`${this.apiUrl}/habituales`, { params }).pipe(map((response) => response.value ?? []));
+    }
+
+    /**
      * Crear gasto
      */
     create(gasto: GastoCreate): Observable<string> {
@@ -132,6 +151,29 @@ export class GastoService {
                 return undefined as void;
             })
         );
+    }
+
+    /**
+     * Descarga un Excel con los Gastos que cumplen los filtros indicados (todos opcionales y
+     * combinables). Mismo patrón que `reporte.service.ts` (`responseType: 'blob'`).
+     */
+    descargarExcel(filtros: ExportarExcelFiltros): Observable<Blob> {
+        let params = new HttpParams();
+
+        if (filtros.fechaInicio) params = params.set('fechaInicio', filtros.fechaInicio);
+        if (filtros.fechaFin) params = params.set('fechaFin', filtros.fechaFin);
+        if (filtros.searchTerm) params = params.set('searchTerm', filtros.searchTerm);
+
+        for (const id of filtros.conceptoIds ?? []) params = params.append('conceptoIds', id);
+        for (const id of filtros.categoriaIds ?? []) params = params.append('categoriaIds', id);
+        for (const id of filtros.proveedorIds ?? []) params = params.append('proveedorIds', id);
+        for (const id of filtros.personaIds ?? []) params = params.append('personaIds', id);
+
+        return this.http.get(`${this.apiUrl}/excel`, {
+            params,
+            responseType: 'blob',
+            withCredentials: true
+        });
     }
 
     /**

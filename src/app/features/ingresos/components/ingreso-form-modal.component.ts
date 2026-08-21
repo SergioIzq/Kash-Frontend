@@ -1,18 +1,28 @@
 import { Component, inject, input, output, effect, ChangeDetectionStrategy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 import { DrawerModule } from 'primeng/drawer';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { MoneyInputComponent } from '@/shared/components';
 import { TextareaModule } from 'primeng/textarea';
 import { DatePickerModule } from 'primeng/datepicker';
-import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
+import { AutoCompleteModule, AutoCompleteCompleteEvent, AutoCompleteLazyLoadEvent } from 'primeng/autocomplete';
 import { TooltipModule } from 'primeng/tooltip';
 import { ConfirmationService, MessageService } from 'primeng/api';
 
 // Modelos
 import { Ingreso } from '@/core/models';
+
+// Servicios
+import { IngresoService } from '@/core/services/api/ingreso.service';
+import { ConceptoService } from '@/core/services/api/concepto.service';
+import { CategoriaService } from '@/core/services/api/categoria.service';
+import { CuentaService } from '@/core/services/api/cuenta.service';
+import { FormaPagoService } from '@/core/services/api/forma-pago.service';
+import { ClienteService } from '@/core/services/api/cliente.service';
+import { PersonaService } from '@/core/services/api/persona.service';
 
 // Stores
 import { ClienteStore } from '@/features/clientes/store/cliente.store';
@@ -22,10 +32,9 @@ import { ConceptoStore } from '@/features/conceptos/store/concepto.store';
 import { CategoriaStore } from '@/features/categorias/store/categoria.store';
 import { PersonaStore } from '@/features/personas/store/persona.store';
 
-interface CatalogItem {
-    id: string;
-    nombre: string;
-}
+// Catálogo completo con scroll perezoso + botón "cerrar teclado" en el header del desplegable
+import { CatalogItem, CargadorCatalogoScroll } from '@/shared/utils/catalogo-scroll.util';
+import { CerrarTecladoBotonComponent } from '@/shared/components';
 
 interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
     fecha?: Date | string;
@@ -44,7 +53,8 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
         TextareaModule,
         DatePickerModule,
         AutoCompleteModule,
-        TooltipModule
+        TooltipModule,
+        CerrarTecladoBotonComponent
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
@@ -60,6 +70,7 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
                     <label for="concepto" class="font-semibold text-gray-700 block mb-2">Concepto</label>
                     <div class="flex align-items-center gap-2">
                         <p-autoComplete
+                            #conceptoAc
                             [(ngModel)]="selectedConcepto"
                             [placeholder]="getConceptoPlaceholder()"
                             [suggestions]="filteredConceptos()"
@@ -75,7 +86,15 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
                             (onSelect)="onConceptoSelect($event)"
                             (onBlur)="onConceptoBlur()"
                             inputStyleClass="font-semibold"
-                        />
+                            [lazy]="true"
+                            [virtualScroll]="true"
+                            [virtualScrollItemSize]="44"
+                            (onLazyLoad)="onConceptoLazyLoad($event)"
+                        >
+                            <ng-template pTemplate="header">
+                                <app-cerrar-teclado-boton (cerrar)="conceptoAc.inputEL?.nativeElement?.blur()" />
+                            </ng-template>
+                        </p-autoComplete>
                     </div>
                     @if (submitted() && !selectedConcepto) {
                         <small class="text-red-500 block mt-1">El concepto es requerido.</small>
@@ -89,7 +108,8 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
                     <label for="importe" class="font-semibold text-gray-700 block mb-2">Importe</label>
                     <app-money-input
                         inputId="importe"
-                        [(ngModel)]="formData.importe"
+                        [ngModel]="formData.importe"
+                        (ngModelChange)="onImporteChange($event)"
                         inputClass="text-right font-bold text-xl text-green-600"
                         placeholder="0,00 €"
                     />
@@ -111,6 +131,7 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
                     <label class="font-medium text-gray-700 block mb-2 text-sm">Categoría</label>
                     <div class="flex align-items-center gap-2">
                         <p-autoComplete
+                            #categoriaAc
                             [(ngModel)]="selectedCategoria"
                             [suggestions]="filteredCategorias()"
                             (completeMethod)="searchCategorias($event)"
@@ -125,7 +146,15 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
                             (onBlur)="onCategoriaBlur()"
                             class="flex-1 w-full"
                             styleClass="w-full"
-                        />
+                            [lazy]="true"
+                            [virtualScroll]="true"
+                            [virtualScrollItemSize]="44"
+                            (onLazyLoad)="onCategoriaLazyLoad($event)"
+                        >
+                            <ng-template pTemplate="header">
+                                <app-cerrar-teclado-boton (cerrar)="categoriaAc.inputEL?.nativeElement?.blur()" />
+                            </ng-template>
+                        </p-autoComplete>
                     </div>
                     @if (submitted() && !selectedCategoria) {
                         <small class="text-red-500 block mt-1">La categoría es requerida.</small>
@@ -136,9 +165,15 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
-                    <label class="font-medium text-gray-700 block mb-2 text-sm">Forma de Pago</label>
+                    <label class="font-medium text-gray-700 block mb-2 text-sm">
+                        Forma de Pago
+                        @if (sugeridoFormaPago()) {
+                            <i class="pi pi-bolt text-primary text-sm ml-1" pTooltip="Sugerida a partir del último uso de este concepto"></i>
+                        }
+                    </label>
                     <div class="flex align-items-center gap-2">
                         <p-autoComplete
+                            #formaPagoAc
                             [(ngModel)]="selectedFormaPago"
                             [suggestions]="filteredFormasPago()"
                             (completeMethod)="searchFormasPago($event)"
@@ -151,7 +186,15 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
                             (onBlur)="onFormaPagoBlur()"
                             class="flex-1 w-full"
                             styleClass="w-full"
-                        />
+                            [lazy]="true"
+                            [virtualScroll]="true"
+                            [virtualScrollItemSize]="44"
+                            (onLazyLoad)="onFormaPagoLazyLoad($event)"
+                        >
+                            <ng-template pTemplate="header">
+                                <app-cerrar-teclado-boton (cerrar)="formaPagoAc.inputEL?.nativeElement?.blur()" />
+                            </ng-template>
+                        </p-autoComplete>
                     </div>
                     @if (submitted() && !selectedFormaPago) {
                         <small class="text-red-500 block mt-1">La forma de pago es requerida.</small>
@@ -162,9 +205,15 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
                 </div>
 
                 <div class="col-span-12 field">
-                    <label class="font-medium text-gray-700 block mb-2 text-sm">Cuenta de Destino</label>
+                    <label class="font-medium text-gray-700 block mb-2 text-sm">
+                        Cuenta de Destino
+                        @if (sugeridoCuenta()) {
+                            <i class="pi pi-bolt text-primary text-sm ml-1" pTooltip="Sugerida a partir del último uso de este concepto"></i>
+                        }
+                    </label>
                     <div class="flex align-items-center gap-2">
                         <p-autoComplete
+                            #cuentaAc
                             [(ngModel)]="selectedCuenta"
                             [suggestions]="filteredCuentas()"
                             (completeMethod)="searchCuentas($event)"
@@ -179,7 +228,15 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
                             (onClear)="onCuentaClear()"
                             class="flex-1 w-full"
                             styleClass="w-full"
-                        />
+                            [lazy]="true"
+                            [virtualScroll]="true"
+                            [virtualScrollItemSize]="44"
+                            (onLazyLoad)="onCuentaLazyLoad($event)"
+                        >
+                            <ng-template pTemplate="header">
+                                <app-cerrar-teclado-boton (cerrar)="cuentaAc.inputEL?.nativeElement?.blur()" />
+                            </ng-template>
+                        </p-autoComplete>
                     </div>
                     @if (submitted() && !selectedCuenta) {
                         <small class="text-red-500 block mt-1">La cuenta de destino es requerida.</small>
@@ -194,9 +251,15 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
-                    <label class="font-medium text-gray-700 block mb-2 text-sm">Cliente</label>
+                    <label class="font-medium text-gray-700 block mb-2 text-sm">
+                        Cliente
+                        @if (sugeridoCliente()) {
+                            <i class="pi pi-bolt text-primary text-sm ml-1" pTooltip="Sugerido a partir del último uso de este concepto"></i>
+                        }
+                    </label>
                     <div class="flex align-items-center gap-2">
                         <p-autoComplete
+                            #clienteAc
                             [(ngModel)]="selectedCliente"
                             [suggestions]="filteredClientes()"
                             (completeMethod)="searchClientes($event)"
@@ -209,7 +272,15 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
                             (onBlur)="onClienteBlur()"
                             class="flex-1 w-full"
                             styleClass="w-full"
-                        />
+                            [lazy]="true"
+                            [virtualScroll]="true"
+                            [virtualScrollItemSize]="44"
+                            (onLazyLoad)="onClienteLazyLoad($event)"
+                        >
+                            <ng-template pTemplate="header">
+                                <app-cerrar-teclado-boton (cerrar)="clienteAc.inputEL?.nativeElement?.blur()" />
+                            </ng-template>
+                        </p-autoComplete>
                     </div>
                     @if (newClienteMessage()) {
                         <small class="text-blue-600 block mt-1"><i class="pi pi-info-circle"></i> {{ newClienteMessage() }}</small>
@@ -217,9 +288,15 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
-                    <label class="font-medium text-gray-700 block mb-2 text-sm">Persona</label>
+                    <label class="font-medium text-gray-700 block mb-2 text-sm">
+                        Persona
+                        @if (sugeridoPersona()) {
+                            <i class="pi pi-bolt text-primary text-sm ml-1" pTooltip="Sugerida a partir del último uso de este concepto"></i>
+                        }
+                    </label>
                     <div class="flex align-items-center gap-2">
                         <p-autoComplete
+                            #personaAc
                             [(ngModel)]="selectedPersona"
                             [suggestions]="filteredPersonas()"
                             (completeMethod)="searchPersonas($event)"
@@ -232,7 +309,15 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
                             (onBlur)="onPersonaBlur()"
                             class="flex-1 w-full"
                             styleClass="w-full"
-                        />
+                            [lazy]="true"
+                            [virtualScroll]="true"
+                            [virtualScrollItemSize]="44"
+                            (onLazyLoad)="onPersonaLazyLoad($event)"
+                        >
+                            <ng-template pTemplate="header">
+                                <app-cerrar-teclado-boton (cerrar)="personaAc.inputEL?.nativeElement?.blur()" />
+                            </ng-template>
+                        </p-autoComplete>
                     </div>
                     @if (newPersonaMessage()) {
                         <small class="text-blue-600 block mt-1"><i class="pi pi-info-circle"></i> {{ newPersonaMessage() }}</small>
@@ -281,6 +366,21 @@ export class IngresoFormModalComponent {
     private personaStore = inject(PersonaStore);
     private cuentaStore = inject(CuentaStore);
     private formaPagoStore = inject(FormaPagoStore);
+    private ingresoService = inject(IngresoService);
+    private conceptoService = inject(ConceptoService);
+    private categoriaService = inject(CategoriaService);
+    private cuentaService = inject(CuentaService);
+    private formaPagoService = inject(FormaPagoService);
+    private clienteService = inject(ClienteService);
+    private personaService = inject(PersonaService);
+
+    // Catálogo completo con scroll perezoso (aparece al seguir bajando tras "recientes"/búsqueda)
+    private readonly conceptoScroll = new CargadorCatalogoScroll<CatalogItem>((page, pageSize) => this.conceptoService.getConceptos(page, pageSize, '', 'nombre', 'asc', this.selectedCategoria?.id));
+    private readonly categoriaScroll = new CargadorCatalogoScroll<CatalogItem>((page, pageSize) => this.categoriaService.getCategorias(page, pageSize, '', 'nombre', 'asc'));
+    private readonly cuentaScroll = new CargadorCatalogoScroll<CatalogItem>((page, pageSize) => this.cuentaService.getCuentas(page, pageSize, '', 'nombre', 'asc'));
+    private readonly formaPagoScroll = new CargadorCatalogoScroll<CatalogItem>((page, pageSize) => this.formaPagoService.getFormasPago(page, pageSize, '', 'nombre', 'asc'));
+    private readonly clienteScroll = new CargadorCatalogoScroll<CatalogItem>((page, pageSize) => this.clienteService.getClientes(page, pageSize, '', 'nombre', 'asc'));
+    private readonly personaScroll = new CargadorCatalogoScroll<CatalogItem>((page, pageSize) => this.personaService.getPersonas(page, pageSize, '', 'nombre', 'asc'));
 
     // Inputs/Outputs
     visible = input<boolean>(false);
@@ -315,6 +415,12 @@ export class IngresoFormModalComponent {
     newClienteMessage = signal<string>('');
     newPersonaMessage = signal<string>('');
     newCuentaMessage = signal<string>('');
+
+    // Indicadores de campo pre-rellenado por sugerencia (histórico del concepto)
+    sugeridoCuenta = signal(false);
+    sugeridoFormaPago = signal(false);
+    sugeridoCliente = signal(false);
+    sugeridoPersona = signal(false);
 
     // Flags para evitar validación en blur después de selección
     private skipNextConceptoBlur = false;
@@ -361,21 +467,36 @@ export class IngresoFormModalComponent {
             this.selectedCuenta = ingresoData.cuentaId && ingresoData.cuentaNombre ? { id: ingresoData.cuentaId, nombre: ingresoData.cuentaNombre } : null;
             this.selectedFormaPago = ingresoData.formaPagoId && ingresoData.formaPagoNombre ? { id: ingresoData.formaPagoId, nombre: ingresoData.formaPagoNombre } : null;
         } else {
-            // Modo creación
+            // Modo creación. `ingresoData` puede venir vacío ("Nuevo Ingreso" desde cero) o con
+            // campos precargados (ej. al repetir un ingreso habitual desde un chip): en ambos
+            // casos se parte de esos valores en vez de asumir siempre un formulario en blanco.
             this.isEditMode.set(false);
             const fechaActual = new Date();
             fechaActual.setHours(0, 0, 0, 0);
 
             this.formData = {
                 fecha: fechaActual,
-                descripcion: ''
+                descripcion: '',
+                importe: ingresoData?.importe,
+                conceptoId: ingresoData?.conceptoId,
+                conceptoNombre: ingresoData?.conceptoNombre,
+                categoriaId: ingresoData?.categoriaId,
+                categoriaNombre: ingresoData?.categoriaNombre,
+                clienteId: ingresoData?.clienteId,
+                clienteNombre: ingresoData?.clienteNombre,
+                personaId: ingresoData?.personaId,
+                personaNombre: ingresoData?.personaNombre,
+                cuentaId: ingresoData?.cuentaId,
+                cuentaNombre: ingresoData?.cuentaNombre,
+                formaPagoId: ingresoData?.formaPagoId,
+                formaPagoNombre: ingresoData?.formaPagoNombre
             };
-            this.selectedConcepto = null;
-            this.selectedCategoria = null;
-            this.selectedCliente = null;
-            this.selectedPersona = null;
-            this.selectedCuenta = null;
-            this.selectedFormaPago = null;
+            this.selectedConcepto = ingresoData?.conceptoId && ingresoData?.conceptoNombre ? { id: ingresoData.conceptoId, nombre: ingresoData.conceptoNombre } : null;
+            this.selectedCategoria = ingresoData?.categoriaId && ingresoData?.categoriaNombre ? { id: ingresoData.categoriaId, nombre: ingresoData.categoriaNombre } : null;
+            this.selectedCliente = ingresoData?.clienteId && ingresoData?.clienteNombre ? { id: ingresoData.clienteId, nombre: ingresoData.clienteNombre } : null;
+            this.selectedPersona = ingresoData?.personaId && ingresoData?.personaNombre ? { id: ingresoData.personaId, nombre: ingresoData.personaNombre } : null;
+            this.selectedCuenta = ingresoData?.cuentaId && ingresoData?.cuentaNombre ? { id: ingresoData.cuentaId, nombre: ingresoData.cuentaNombre } : null;
+            this.selectedFormaPago = ingresoData?.formaPagoId && ingresoData?.formaPagoNombre ? { id: ingresoData.formaPagoId, nombre: ingresoData.formaPagoNombre } : null;
         }
         this.submitted.set(false);
         this.newConceptoMessage.set('');
@@ -384,6 +505,55 @@ export class IngresoFormModalComponent {
         this.newClienteMessage.set('');
         this.newPersonaMessage.set('');
         this.newCuentaMessage.set('');
+        this.sugeridoCuenta.set(false);
+        this.sugeridoFormaPago.set(false);
+        this.sugeridoCliente.set(false);
+        this.sugeridoPersona.set(false);
+    }
+
+    onImporteChange(value: number | null): void {
+        this.formData.importe = value ?? undefined;
+    }
+
+    /**
+     * Pre-rellena cuenta/forma de pago/cliente/persona a partir del último ingreso registrado
+     * para este concepto. Solo se aplica en modo creación y solo sobre campos que el usuario
+     * todavía no ha rellenado (no sobrescribe valores ya introducidos a mano). El importe NUNCA
+     * se pre-rellena aquí: el usuario lo introduce siempre a mano (ver change
+     * `importe-siempre-manual-sugerencias`).
+     */
+    private async aplicarSugerencia(conceptoId: string): Promise<void> {
+        try {
+            const sugerencia = await firstValueFrom(this.ingresoService.getSugerencia(conceptoId));
+            if (!sugerencia) return;
+
+            if (!this.selectedCuenta && sugerencia.cuentaId) {
+                this.selectedCuenta = { id: sugerencia.cuentaId, nombre: sugerencia.cuentaNombre };
+                this.formData.cuentaId = sugerencia.cuentaId;
+                this.formData.cuentaNombre = sugerencia.cuentaNombre;
+                this.sugeridoCuenta.set(true);
+            }
+            if (!this.selectedFormaPago && sugerencia.formaPagoId) {
+                this.selectedFormaPago = { id: sugerencia.formaPagoId, nombre: sugerencia.formaPagoNombre };
+                this.formData.formaPagoId = sugerencia.formaPagoId;
+                this.formData.formaPagoNombre = sugerencia.formaPagoNombre;
+                this.sugeridoFormaPago.set(true);
+            }
+            if (!this.selectedCliente && sugerencia.clienteId) {
+                this.selectedCliente = { id: sugerencia.clienteId, nombre: sugerencia.clienteNombre ?? '' };
+                this.formData.clienteId = sugerencia.clienteId;
+                this.formData.clienteNombre = sugerencia.clienteNombre ?? undefined;
+                this.sugeridoCliente.set(true);
+            }
+            if (!this.selectedPersona && sugerencia.personaId) {
+                this.selectedPersona = { id: sugerencia.personaId, nombre: sugerencia.personaNombre ?? '' };
+                this.formData.personaId = sugerencia.personaId;
+                this.formData.personaNombre = sugerencia.personaNombre ?? undefined;
+                this.sugeridoPersona.set(true);
+            }
+        } catch {
+            // Mejora no crítica: si falla la consulta de sugerencia, el alta sigue funcionando con normalidad.
+        }
     }
 
     // --- Métodos de búsqueda (Search) ---
@@ -393,14 +563,26 @@ export class IngresoFormModalComponent {
         if (!query || query.length < 2) {
             this.conceptoStore
                 .getRecent(5, categoriaId)
-                .then((data) => this.filteredConceptos.set(data))
+                .then((data) => {
+                    this.filteredConceptos.set(data);
+                    this.conceptoScroll.reset(data.length);
+                })
                 .catch(() => this.filteredConceptos.set([]));
         } else {
             this.conceptoStore
                 .search(query, 10, categoriaId)
-                .then((data) => this.filteredConceptos.set(data))
+                .then((data) => {
+                    this.filteredConceptos.set(data);
+                    this.conceptoScroll.reset(data.length);
+                })
                 .catch(() => this.filteredConceptos.set([]));
         }
+    }
+
+    onConceptoLazyLoad(event: AutoCompleteLazyLoadEvent) {
+        this.conceptoScroll.cargarPagina(event, this.filteredConceptos()).then((resultado) => {
+            if (resultado) this.filteredConceptos.set(resultado);
+        });
     }
 
     searchCategorias(event: AutoCompleteCompleteEvent) {
@@ -408,14 +590,26 @@ export class IngresoFormModalComponent {
         if (!query || query.length < 2) {
             this.categoriaStore
                 .getRecent(5)
-                .then((data) => this.filteredCategorias.set(data))
+                .then((data) => {
+                    this.filteredCategorias.set(data);
+                    this.categoriaScroll.reset(data.length);
+                })
                 .catch(() => this.filteredCategorias.set([]));
         } else {
             this.categoriaStore
                 .search(query, 10)
-                .then((data) => this.filteredCategorias.set(data))
+                .then((data) => {
+                    this.filteredCategorias.set(data);
+                    this.categoriaScroll.reset(data.length);
+                })
                 .catch(() => this.filteredCategorias.set([]));
         }
+    }
+
+    onCategoriaLazyLoad(event: AutoCompleteLazyLoadEvent) {
+        this.categoriaScroll.cargarPagina(event, this.filteredCategorias()).then((resultado) => {
+            if (resultado) this.filteredCategorias.set(resultado);
+        });
     }
 
     searchClientes(event: AutoCompleteCompleteEvent) {
@@ -423,14 +617,26 @@ export class IngresoFormModalComponent {
         if (!query || query.length < 2) {
             this.clienteStore
                 .getRecent(5)
-                .then((data) => this.filteredClientes.set(data))
+                .then((data) => {
+                    this.filteredClientes.set(data);
+                    this.clienteScroll.reset(data.length);
+                })
                 .catch(() => this.filteredClientes.set([]));
         } else {
             this.clienteStore
                 .search(query, 10)
-                .then((data) => this.filteredClientes.set(data))
+                .then((data) => {
+                    this.filteredClientes.set(data);
+                    this.clienteScroll.reset(data.length);
+                })
                 .catch(() => this.filteredClientes.set([]));
         }
+    }
+
+    onClienteLazyLoad(event: AutoCompleteLazyLoadEvent) {
+        this.clienteScroll.cargarPagina(event, this.filteredClientes()).then((resultado) => {
+            if (resultado) this.filteredClientes.set(resultado);
+        });
     }
 
     searchPersonas(event: AutoCompleteCompleteEvent) {
@@ -438,14 +644,26 @@ export class IngresoFormModalComponent {
         if (!query || query.length < 2) {
             this.personaStore
                 .getRecent(5)
-                .then((data) => this.filteredPersonas.set(data))
+                .then((data) => {
+                    this.filteredPersonas.set(data);
+                    this.personaScroll.reset(data.length);
+                })
                 .catch(() => this.filteredPersonas.set([]));
         } else {
             this.personaStore
                 .search(query, 10)
-                .then((data) => this.filteredPersonas.set(data))
+                .then((data) => {
+                    this.filteredPersonas.set(data);
+                    this.personaScroll.reset(data.length);
+                })
                 .catch(() => this.filteredPersonas.set([]));
         }
+    }
+
+    onPersonaLazyLoad(event: AutoCompleteLazyLoadEvent) {
+        this.personaScroll.cargarPagina(event, this.filteredPersonas()).then((resultado) => {
+            if (resultado) this.filteredPersonas.set(resultado);
+        });
     }
 
     searchCuentas(event: AutoCompleteCompleteEvent) {
@@ -453,14 +671,26 @@ export class IngresoFormModalComponent {
         if (!query || query.length < 2) {
             this.cuentaStore
                 .getRecent(5)
-                .then((data) => this.filteredCuentas.set(data))
+                .then((data) => {
+                    this.filteredCuentas.set(data);
+                    this.cuentaScroll.reset(data.length);
+                })
                 .catch(() => this.filteredCuentas.set([]));
         } else {
             this.cuentaStore
                 .search(query, 10)
-                .then((data) => this.filteredCuentas.set(data))
+                .then((data) => {
+                    this.filteredCuentas.set(data);
+                    this.cuentaScroll.reset(data.length);
+                })
                 .catch(() => this.filteredCuentas.set([]));
         }
+    }
+
+    onCuentaLazyLoad(event: AutoCompleteLazyLoadEvent) {
+        this.cuentaScroll.cargarPagina(event, this.filteredCuentas()).then((resultado) => {
+            if (resultado) this.filteredCuentas.set(resultado);
+        });
     }
 
     searchFormasPago(event: AutoCompleteCompleteEvent) {
@@ -468,14 +698,26 @@ export class IngresoFormModalComponent {
         if (!query || query.length < 2) {
             this.formaPagoStore
                 .getRecent(5)
-                .then((data) => this.filteredFormasPago.set(data))
+                .then((data) => {
+                    this.filteredFormasPago.set(data);
+                    this.formaPagoScroll.reset(data.length);
+                })
                 .catch(() => this.filteredFormasPago.set([]));
         } else {
             this.formaPagoStore
                 .search(query, 10)
-                .then((data) => this.filteredFormasPago.set(data))
+                .then((data) => {
+                    this.filteredFormasPago.set(data);
+                    this.formaPagoScroll.reset(data.length);
+                })
                 .catch(() => this.filteredFormasPago.set([]));
         }
+    }
+
+    onFormaPagoLazyLoad(event: AutoCompleteLazyLoadEvent) {
+        this.formaPagoScroll.cargarPagina(event, this.filteredFormasPago()).then((resultado) => {
+            if (resultado) this.filteredFormasPago.set(resultado);
+        });
     }
 
     // --- Eventos de selección y limpieza ---
@@ -495,6 +737,12 @@ export class IngresoFormModalComponent {
             this.formData.categoriaNombre = categoriaAsociada.nombre;
             this.newCategoriaMessage.set(''); // Limpiar mensaje si se asigna una categoría existente
             this.messageService.add({ severity: 'info', summary: 'Info', detail: `Categoría ${value.categoriaNombre} asignada` });
+        }
+
+        // Sugerencia: pre-rellenar cuenta/forma de pago/importe/cliente/persona con el
+        // último uso de este concepto. Solo en alta (nunca sobrescribe una edición existente).
+        if (!this.isEditMode() && value.id) {
+            this.aplicarSugerencia(value.id);
         }
     }
 
@@ -538,6 +786,9 @@ export class IngresoFormModalComponent {
         this.formData.conceptoId = undefined;
         this.formData.conceptoNombre = undefined;
         this.newConceptoMessage.set(''); // Limpiar mensaje de concepto al cambiar de categoría
+        // El catálogo completo de Concepto se filtra por categoría: al cambiarla hay que
+        // reiniciar el scroll para no arrastrar páginas de la categoría anterior.
+        this.conceptoScroll.reset();
     }
 
     onCategoriaBlur() {
@@ -587,6 +838,7 @@ export class IngresoFormModalComponent {
                     this.selectedFormaPago = { id: '', nombre: formaPagoNombre };
                     this.formData.formaPagoId = undefined;
                     this.formData.formaPagoNombre = formaPagoNombre;
+                    this.sugeridoFormaPago.set(false);
                     this.newFormaPagoMessage.set(`Ha seleccionado una forma de pago "${formaPagoNombre}" que no existe, se creará automáticamente.`);
                     this.messageService.add({
                         severity: 'info',
@@ -604,6 +856,7 @@ export class IngresoFormModalComponent {
         this.formData.clienteId = event.id;
         this.formData.clienteNombre = event.nombre;
         this.newClienteMessage.set('');
+        this.sugeridoCliente.set(false);
     }
 
     onClienteBlur() {
@@ -624,6 +877,7 @@ export class IngresoFormModalComponent {
                     this.selectedCliente = { id: '', nombre: clienteNombre };
                     this.formData.clienteId = undefined;
                     this.formData.clienteNombre = clienteNombre;
+                    this.sugeridoCliente.set(false);
                     this.newClienteMessage.set(`Ha seleccionado un cliente "${clienteNombre}" que no existe, se creará automáticamente.`);
                     this.messageService.add({
                         severity: 'info',
@@ -640,6 +894,7 @@ export class IngresoFormModalComponent {
         this.formData.personaId = event.id;
         this.formData.personaNombre = event.nombre;
         this.newPersonaMessage.set('');
+        this.sugeridoPersona.set(false);
     }
 
     onPersonaBlur() {
@@ -660,6 +915,7 @@ export class IngresoFormModalComponent {
                     this.selectedPersona = { id: '', nombre: personaNombre };
                     this.formData.personaId = undefined;
                     this.formData.personaNombre = personaNombre;
+                    this.sugeridoPersona.set(false);
                     this.newPersonaMessage.set(`Ha seleccionado una persona "${personaNombre}" que no existe, se creará automáticamente.`);
                     this.messageService.add({
                         severity: 'info',
@@ -676,6 +932,7 @@ export class IngresoFormModalComponent {
         this.formData.cuentaId = event.id;
         this.formData.cuentaNombre = event.nombre;
         this.newCuentaMessage.set('');
+        this.sugeridoCuenta.set(false);
     }
 
     onCuentaBlur() {
@@ -696,6 +953,7 @@ export class IngresoFormModalComponent {
                     this.selectedCuenta = { id: '', nombre: cuentaNombre };
                     this.formData.cuentaId = undefined;
                     this.formData.cuentaNombre = cuentaNombre;
+                    this.sugeridoCuenta.set(false);
                     this.newCuentaMessage.set(`Ha seleccionado una cuenta "${cuentaNombre}" que no existe, se creará automáticamente.`);
                     this.messageService.add({
                         severity: 'info',
@@ -713,6 +971,7 @@ export class IngresoFormModalComponent {
         this.formData.formaPagoId = event.id;
         this.formData.formaPagoNombre = event.nombre;
         this.newFormaPagoMessage.set('');
+        this.sugeridoFormaPago.set(false);
     }
 
     onConceptoClear() {
@@ -721,6 +980,7 @@ export class IngresoFormModalComponent {
         this.formData.conceptoNombre = undefined;
         this.filteredConceptos.set([]);
         this.newConceptoMessage.set('');
+        this.conceptoScroll.reset();
     }
     onCategoriaClear() {
         this.selectedCategoria = null;
@@ -728,6 +988,11 @@ export class IngresoFormModalComponent {
         this.formData.categoriaNombre = undefined;
         this.filteredConceptos.set([]);
         this.newCategoriaMessage.set('');
+        this.categoriaScroll.reset();
+        // La categoría filtra el catálogo completo de Concepto: al limpiarla hay que
+        // reiniciar también ese scroll para que la próxima carga no arrastre páginas de la
+        // categoría anterior.
+        this.conceptoScroll.reset();
     }
     onClienteClear() {
         this.selectedCliente = null;
@@ -735,6 +1000,8 @@ export class IngresoFormModalComponent {
         this.formData.clienteNombre = undefined;
         this.filteredClientes.set([]);
         this.newClienteMessage.set('');
+        this.sugeridoCliente.set(false);
+        this.clienteScroll.reset();
     }
     onPersonaClear() {
         this.selectedPersona = null;
@@ -742,6 +1009,8 @@ export class IngresoFormModalComponent {
         this.formData.personaNombre = undefined;
         this.filteredPersonas.set([]);
         this.newPersonaMessage.set('');
+        this.sugeridoPersona.set(false);
+        this.personaScroll.reset();
     }
     onCuentaClear() {
         this.selectedCuenta = null;
@@ -749,6 +1018,8 @@ export class IngresoFormModalComponent {
         this.formData.cuentaNombre = undefined;
         this.filteredCuentas.set([]);
         this.newCuentaMessage.set('');
+        this.sugeridoCuenta.set(false);
+        this.cuentaScroll.reset();
     }
     onFormaPagoClear() {
         this.selectedFormaPago = null;
@@ -756,6 +1027,8 @@ export class IngresoFormModalComponent {
         this.formData.formaPagoNombre = undefined;
         this.filteredFormasPago.set([]);
         this.newFormaPagoMessage.set('');
+        this.sugeridoFormaPago.set(false);
+        this.formaPagoScroll.reset();
     }
 
     getConceptoPlaceholder(): string {

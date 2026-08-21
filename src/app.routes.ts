@@ -38,6 +38,10 @@ export const appRoutes: Routes = [
                         loadChildren: () => import('./app/features/dashboard/dashboard.routes')
                     },
                     {
+                        path: 'alta-rapida',
+                        loadChildren: () => import('./app/features/alta-rapida/alta-rapida.routes')
+                    },
+                    {
                         path: 'gastos',
                         loadChildren: () => import('./app/features/gastos/gastos.routes')
                     },
