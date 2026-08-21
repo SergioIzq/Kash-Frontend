@@ -1,5 +1,6 @@
 export * from './money-input.component';
 export * from './transacciones-habituales-chips/transacciones-habituales-chips.component';
+export * from './cerrar-teclado-boton/cerrar-teclado-boton.component';
 export * from './create-modals/categoria-create-modal.component';
 export * from './create-modals/cliente-create-modal.component';
 export * from './create-modals/persona-create-modal.component';

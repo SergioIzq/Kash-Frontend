@@ -5,14 +5,21 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ButtonModule } from 'primeng/button';
 import { SelectButtonModule } from 'primeng/selectbutton';
-import { AutoCompleteModule, AutoCompleteCompleteEvent } from 'primeng/autocomplete';
+import { AutoCompleteModule, AutoCompleteCompleteEvent, AutoCompleteLazyLoadEvent } from 'primeng/autocomplete';
 import { DatePickerModule } from 'primeng/datepicker';
 import { TooltipModule } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
-import { MoneyInputComponent, TransaccionesHabitualesChipsComponent, TransaccionHabitualSeleccionada } from '@/shared/components';
+import { MoneyInputComponent, TransaccionesHabitualesChipsComponent, TransaccionHabitualSeleccionada, CerrarTecladoBotonComponent } from '@/shared/components';
 
 import { GastoService } from '@/core/services/api/gasto.service';
 import { IngresoService } from '@/core/services/api/ingreso.service';
+import { ConceptoService } from '@/core/services/api/concepto.service';
+import { CategoriaService } from '@/core/services/api/categoria.service';
+import { CuentaService } from '@/core/services/api/cuenta.service';
+import { FormaPagoService } from '@/core/services/api/forma-pago.service';
+import { ProveedorService } from '@/core/services/api/proveedor.service';
+import { ClienteService } from '@/core/services/api/cliente.service';
+import { PersonaService } from '@/core/services/api/persona.service';
 import { GastosStore } from '@/features/gastos/stores/gastos.store';
 import { IngresosStore } from '@/features/ingresos/stores/ingresos.store';
 import { ConceptoStore } from '@/features/conceptos/store/concepto.store';
@@ -24,17 +31,15 @@ import { ClienteStore } from '@/features/clientes/store/cliente.store';
 import { PersonaStore } from '@/features/personas/store/persona.store';
 import { GastoCreate, IngresoCreate } from '@/core/models';
 
-interface CatalogItem {
-    id: string;
-    nombre: string;
-}
+// Catálogo completo con scroll perezoso + botón "cerrar teclado" en el header del desplegable
+import { CatalogItem, CargadorCatalogoScroll } from '@/shared/utils/catalogo-scroll.util';
 
 type Tipo = 'gasto' | 'ingreso';
 
 @Component({
     selector: 'app-alta-rapida-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, SelectButtonModule, AutoCompleteModule, DatePickerModule, TooltipModule, MoneyInputComponent, TransaccionesHabitualesChipsComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, SelectButtonModule, AutoCompleteModule, DatePickerModule, TooltipModule, MoneyInputComponent, TransaccionesHabitualesChipsComponent, CerrarTecladoBotonComponent],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [
         `
@@ -116,6 +121,7 @@ type Tipo = 'gasto' | 'ingreso';
             <div class="field mb-3">
                 <label class="font-semibold text-gray-700 block mb-2">Concepto</label>
                 <p-autoComplete
+                    #conceptoAc
                     [(ngModel)]="selectedConcepto"
                     [suggestions]="filteredConceptos()"
                     (completeMethod)="searchConceptos($event)"
@@ -131,7 +137,15 @@ type Tipo = 'gasto' | 'ingreso';
                     styleClass="w-full"
                     class="w-full"
                     inputStyleClass="font-semibold"
-                />
+                    [lazy]="true"
+                    [virtualScroll]="true"
+                    [virtualScrollItemSize]="44"
+                    (onLazyLoad)="onConceptoLazyLoad($event)"
+                >
+                    <ng-template pTemplate="header">
+                        <app-cerrar-teclado-boton (cerrar)="conceptoAc.inputEL?.nativeElement?.blur()" />
+                    </ng-template>
+                </p-autoComplete>
                 @if (submitted() && !selectedConcepto) {
                     <small class="text-red-500 block mt-1">El concepto es requerido.</small>
                 }
@@ -163,6 +177,7 @@ type Tipo = 'gasto' | 'ingreso';
                     <div class="field">
                         <label class="font-medium text-gray-700 block mb-2 text-sm">Categoría</label>
                         <p-autoComplete
+                            #categoriaAc
                             [(ngModel)]="selectedCategoria"
                             [suggestions]="filteredCategorias()"
                             (completeMethod)="searchCategorias($event)"
@@ -174,7 +189,15 @@ type Tipo = 'gasto' | 'ingreso';
                             (onBlur)="onCategoriaBlur()"
                             styleClass="w-full"
                             class="w-full"
-                        />
+                            [lazy]="true"
+                            [virtualScroll]="true"
+                            [virtualScrollItemSize]="44"
+                            (onLazyLoad)="onCategoriaLazyLoad($event)"
+                        >
+                            <ng-template pTemplate="header">
+                                <app-cerrar-teclado-boton (cerrar)="categoriaAc.inputEL?.nativeElement?.blur()" />
+                            </ng-template>
+                        </p-autoComplete>
                         @if (submitted() && !selectedCategoria) {
                             <small class="text-red-500 block mt-1">La categoría es requerida.</small>
                         }
@@ -183,6 +206,7 @@ type Tipo = 'gasto' | 'ingreso';
                     <div class="field">
                         <label class="font-medium text-gray-700 block mb-2 text-sm">Cuenta</label>
                         <p-autoComplete
+                            #cuentaAc
                             [(ngModel)]="selectedCuenta"
                             [suggestions]="filteredCuentas()"
                             (completeMethod)="searchCuentas($event)"
@@ -194,7 +218,15 @@ type Tipo = 'gasto' | 'ingreso';
                             (onBlur)="onCuentaBlur()"
                             styleClass="w-full"
                             class="w-full"
-                        />
+                            [lazy]="true"
+                            [virtualScroll]="true"
+                            [virtualScrollItemSize]="44"
+                            (onLazyLoad)="onCuentaLazyLoad($event)"
+                        >
+                            <ng-template pTemplate="header">
+                                <app-cerrar-teclado-boton (cerrar)="cuentaAc.inputEL?.nativeElement?.blur()" />
+                            </ng-template>
+                        </p-autoComplete>
                         @if (submitted() && !selectedCuenta) {
                             <small class="text-red-500 block mt-1">La cuenta es requerida.</small>
                         }
@@ -203,6 +235,7 @@ type Tipo = 'gasto' | 'ingreso';
                     <div class="field">
                         <label class="font-medium text-gray-700 block mb-2 text-sm">Forma de Pago</label>
                         <p-autoComplete
+                            #formaPagoAc
                             [(ngModel)]="selectedFormaPago"
                             [suggestions]="filteredFormasPago()"
                             (completeMethod)="searchFormasPago($event)"
@@ -214,7 +247,15 @@ type Tipo = 'gasto' | 'ingreso';
                             (onBlur)="onFormaPagoBlur()"
                             styleClass="w-full"
                             class="w-full"
-                        />
+                            [lazy]="true"
+                            [virtualScroll]="true"
+                            [virtualScrollItemSize]="44"
+                            (onLazyLoad)="onFormaPagoLazyLoad($event)"
+                        >
+                            <ng-template pTemplate="header">
+                                <app-cerrar-teclado-boton (cerrar)="formaPagoAc.inputEL?.nativeElement?.blur()" />
+                            </ng-template>
+                        </p-autoComplete>
                         @if (submitted() && !selectedFormaPago) {
                             <small class="text-red-500 block mt-1">La forma de pago es requerida.</small>
                         }
@@ -223,6 +264,7 @@ type Tipo = 'gasto' | 'ingreso';
                     <div class="field">
                         <label class="font-medium text-gray-700 block mb-2 text-sm">{{ tipo() === 'gasto' ? 'Proveedor' : 'Cliente' }}</label>
                         <p-autoComplete
+                            #terceroAc
                             [(ngModel)]="selectedTercero"
                             [suggestions]="filteredTerceros()"
                             (completeMethod)="searchTerceros($event)"
@@ -234,12 +276,21 @@ type Tipo = 'gasto' | 'ingreso';
                             (onBlur)="onTerceroBlur()"
                             styleClass="w-full"
                             class="w-full"
-                        />
+                            [lazy]="true"
+                            [virtualScroll]="true"
+                            [virtualScrollItemSize]="44"
+                            (onLazyLoad)="onTerceroLazyLoad($event)"
+                        >
+                            <ng-template pTemplate="header">
+                                <app-cerrar-teclado-boton (cerrar)="terceroAc.inputEL?.nativeElement?.blur()" />
+                            </ng-template>
+                        </p-autoComplete>
                     </div>
 
                     <div class="field">
                         <label class="font-medium text-gray-700 block mb-2 text-sm">Persona</label>
                         <p-autoComplete
+                            #personaAc
                             [(ngModel)]="selectedPersona"
                             [suggestions]="filteredPersonas()"
                             (completeMethod)="searchPersonas($event)"
@@ -251,7 +302,15 @@ type Tipo = 'gasto' | 'ingreso';
                             (onBlur)="onPersonaBlur()"
                             styleClass="w-full"
                             class="w-full"
-                        />
+                            [lazy]="true"
+                            [virtualScroll]="true"
+                            [virtualScrollItemSize]="44"
+                            (onLazyLoad)="onPersonaLazyLoad($event)"
+                        >
+                            <ng-template pTemplate="header">
+                                <app-cerrar-teclado-boton (cerrar)="personaAc.inputEL?.nativeElement?.blur()" />
+                            </ng-template>
+                        </p-autoComplete>
                     </div>
 
                     @if (resumenCompleto()) {
@@ -288,6 +347,23 @@ export class AltaRapidaPage {
     private readonly proveedorStore = inject(ProveedorStore);
     private readonly clienteStore = inject(ClienteStore);
     private readonly personaStore = inject(PersonaStore);
+    private readonly conceptoService = inject(ConceptoService);
+    private readonly categoriaService = inject(CategoriaService);
+    private readonly cuentaService = inject(CuentaService);
+    private readonly formaPagoService = inject(FormaPagoService);
+    private readonly proveedorService = inject(ProveedorService);
+    private readonly clienteService = inject(ClienteService);
+    private readonly personaService = inject(PersonaService);
+
+    // Catálogo completo con scroll perezoso (aparece al seguir bajando tras "recientes"/búsqueda)
+    private readonly conceptoScroll = new CargadorCatalogoScroll<CatalogItem>((page, pageSize) => this.conceptoService.getConceptos(page, pageSize, '', 'nombre', 'asc', this.selectedCategoria?.id));
+    private readonly categoriaScroll = new CargadorCatalogoScroll<CatalogItem>((page, pageSize) => this.categoriaService.getCategorias(page, pageSize, '', 'nombre', 'asc'));
+    private readonly cuentaScroll = new CargadorCatalogoScroll<CatalogItem>((page, pageSize) => this.cuentaService.getCuentas(page, pageSize, '', 'nombre', 'asc'));
+    private readonly formaPagoScroll = new CargadorCatalogoScroll<CatalogItem>((page, pageSize) => this.formaPagoService.getFormasPago(page, pageSize, '', 'nombre', 'asc'));
+    private readonly terceroScroll = new CargadorCatalogoScroll<CatalogItem>((page, pageSize) =>
+        this.tipo() === 'gasto' ? this.proveedorService.getProveedores(page, pageSize, '', 'nombre', 'asc') : this.clienteService.getClientes(page, pageSize, '', 'nombre', 'asc')
+    );
+    private readonly personaScroll = new CargadorCatalogoScroll<CatalogItem>((page, pageSize) => this.personaService.getPersonas(page, pageSize, '', 'nombre', 'asc'));
 
     readonly tipoOptions = [
         { label: 'Gasto', value: 'gasto' as Tipo },
@@ -343,6 +419,9 @@ export class AltaRapidaPage {
     onTipoChange(tipo: Tipo): void {
         this.tipo.set(tipo);
         this.resetFormulario();
+        // El tercero cambia de catálogo (Proveedor/Cliente) según el tipo: reiniciar su scroll
+        // para no arrastrar páginas del catálogo anterior.
+        this.terceroScroll.reset();
     }
 
     private resetFormulario(): void {
@@ -357,6 +436,18 @@ export class AltaRapidaPage {
         this.expandido.set(false);
         this.submitted.set(false);
         this.newConceptoMessage.set('');
+        this.filteredConceptos.set([]);
+        this.filteredCategorias.set([]);
+        this.filteredCuentas.set([]);
+        this.filteredFormasPago.set([]);
+        this.filteredTerceros.set([]);
+        this.filteredPersonas.set([]);
+        this.conceptoScroll.reset();
+        this.categoriaScroll.reset();
+        this.cuentaScroll.reset();
+        this.formaPagoScroll.reset();
+        this.terceroScroll.reset();
+        this.personaScroll.reset();
     }
 
     onImporteChange(value: number | null): void {
@@ -366,39 +457,106 @@ export class AltaRapidaPage {
     // --- Búsquedas ---
     searchConceptos(event: AutoCompleteCompleteEvent): void {
         const query = event.query;
-        const call = !query || query.length < 2 ? this.conceptoStore.getRecent(5) : this.conceptoStore.search(query, 10);
-        call.then((data) => this.filteredConceptos.set(data)).catch(() => this.filteredConceptos.set([]));
+        const categoriaId = this.selectedCategoria?.id;
+        const call = !query || query.length < 2 ? this.conceptoStore.getRecent(5, categoriaId) : this.conceptoStore.search(query, 10, categoriaId);
+        call
+            .then((data) => {
+                this.filteredConceptos.set(data);
+                this.conceptoScroll.reset(data.length);
+            })
+            .catch(() => this.filteredConceptos.set([]));
+    }
+
+    onConceptoLazyLoad(event: AutoCompleteLazyLoadEvent): void {
+        this.conceptoScroll.cargarPagina(event, this.filteredConceptos()).then((resultado) => {
+            if (resultado) this.filteredConceptos.set(resultado);
+        });
     }
 
     searchCategorias(event: AutoCompleteCompleteEvent): void {
         const query = event.query;
         const call = !query || query.length < 2 ? this.categoriaStore.getRecent(5) : this.categoriaStore.search(query, 10);
-        call.then((data) => this.filteredCategorias.set(data)).catch(() => this.filteredCategorias.set([]));
+        call
+            .then((data) => {
+                this.filteredCategorias.set(data);
+                this.categoriaScroll.reset(data.length);
+            })
+            .catch(() => this.filteredCategorias.set([]));
+    }
+
+    onCategoriaLazyLoad(event: AutoCompleteLazyLoadEvent): void {
+        this.categoriaScroll.cargarPagina(event, this.filteredCategorias()).then((resultado) => {
+            if (resultado) this.filteredCategorias.set(resultado);
+        });
     }
 
     searchCuentas(event: AutoCompleteCompleteEvent): void {
         const query = event.query;
         const call = !query || query.length < 2 ? this.cuentaStore.getRecent(5) : this.cuentaStore.search(query, 10);
-        call.then((data) => this.filteredCuentas.set(data)).catch(() => this.filteredCuentas.set([]));
+        call
+            .then((data) => {
+                this.filteredCuentas.set(data);
+                this.cuentaScroll.reset(data.length);
+            })
+            .catch(() => this.filteredCuentas.set([]));
+    }
+
+    onCuentaLazyLoad(event: AutoCompleteLazyLoadEvent): void {
+        this.cuentaScroll.cargarPagina(event, this.filteredCuentas()).then((resultado) => {
+            if (resultado) this.filteredCuentas.set(resultado);
+        });
     }
 
     searchFormasPago(event: AutoCompleteCompleteEvent): void {
         const query = event.query;
         const call = !query || query.length < 2 ? this.formaPagoStore.getRecent(5) : this.formaPagoStore.search(query, 10);
-        call.then((data) => this.filteredFormasPago.set(data)).catch(() => this.filteredFormasPago.set([]));
+        call
+            .then((data) => {
+                this.filteredFormasPago.set(data);
+                this.formaPagoScroll.reset(data.length);
+            })
+            .catch(() => this.filteredFormasPago.set([]));
+    }
+
+    onFormaPagoLazyLoad(event: AutoCompleteLazyLoadEvent): void {
+        this.formaPagoScroll.cargarPagina(event, this.filteredFormasPago()).then((resultado) => {
+            if (resultado) this.filteredFormasPago.set(resultado);
+        });
     }
 
     searchTerceros(event: AutoCompleteCompleteEvent): void {
         const query = event.query;
         const store = this.tipo() === 'gasto' ? this.proveedorStore : this.clienteStore;
         const call = !query || query.length < 2 ? store.getRecent(5) : store.search(query, 10);
-        call.then((data) => this.filteredTerceros.set(data)).catch(() => this.filteredTerceros.set([]));
+        call
+            .then((data) => {
+                this.filteredTerceros.set(data);
+                this.terceroScroll.reset(data.length);
+            })
+            .catch(() => this.filteredTerceros.set([]));
+    }
+
+    onTerceroLazyLoad(event: AutoCompleteLazyLoadEvent): void {
+        this.terceroScroll.cargarPagina(event, this.filteredTerceros()).then((resultado) => {
+            if (resultado) this.filteredTerceros.set(resultado);
+        });
     }
 
     searchPersonas(event: AutoCompleteCompleteEvent): void {
         const query = event.query;
         const call = !query || query.length < 2 ? this.personaStore.getRecent(5) : this.personaStore.search(query, 10);
-        call.then((data) => this.filteredPersonas.set(data)).catch(() => this.filteredPersonas.set([]));
+        call
+            .then((data) => {
+                this.filteredPersonas.set(data);
+                this.personaScroll.reset(data.length);
+            })
+            .catch(() => this.filteredPersonas.set([]));
+    }
+
+    onPersonaLazyLoad(event: AutoCompleteLazyLoadEvent): void {
+        this.personaScroll.cargarPagina(event, this.filteredPersonas()).then((resultado) => {
+            if (resultado) this.filteredPersonas.set(resultado);
+        });
     }
 
     // --- Concepto ---
@@ -424,6 +582,7 @@ export class AltaRapidaPage {
         this.selectedConcepto = null;
         this.filteredConceptos.set([]);
         this.newConceptoMessage.set('');
+        this.conceptoScroll.reset();
     }
 
     onConceptoBlur(): void {
@@ -491,6 +650,9 @@ export class AltaRapidaPage {
     onCategoriaSelect(event: any): void {
         this.skipNextCategoriaBlur = true;
         this.selectedCategoria = event;
+        // El catálogo completo de Concepto se filtra por categoría: al cambiarla hay que
+        // reiniciar el scroll para no arrastrar páginas de la categoría anterior.
+        this.conceptoScroll.reset();
     }
 
     onCategoriaBlur(): void {

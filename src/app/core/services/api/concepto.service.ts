@@ -13,13 +13,18 @@ export class ConceptoService {
     private apiUrl = `${environment.apiUrl}/conceptos`;
 
     /**
-     * Obtener conceptos paginados
+     * Obtener conceptos paginados. `categoriaId` es opcional (pendiente de soporte en el
+     * backend, change `conceptos-paginados-por-categoria`): cuando se informa, restringe
+     * los conceptos devueltos a esa categoría.
      */
-    getConceptos(page: number = 1, pageSize: number = 10, searchTerm: string = '', sortColumn: string = 'nombre', sortOrder: string = 'asc'): Observable<PaginatedList<Concepto>> {
+    getConceptos(page: number = 1, pageSize: number = 10, searchTerm: string = '', sortColumn: string = 'nombre', sortOrder: string = 'asc', categoriaId?: string): Observable<PaginatedList<Concepto>> {
         let params = new HttpParams().set('page', page.toString()).set('pageSize', pageSize.toString()).set('sortColumn', sortColumn).set('sortOrder', sortOrder);
 
         if (searchTerm) {
             params = params.set('searchTerm', searchTerm);
+        }
+        if (categoriaId) {
+            params = params.set('categoriaId', categoriaId);
         }
 
         return this.http.get<Result<PaginatedList<Concepto>>>(`${this.apiUrl}`, { params }).pipe(map((response) => response.value));
