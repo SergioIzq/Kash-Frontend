@@ -1,10 +1,4 @@
-# sugerencias-transaccion Specification
-
-## Purpose
-
-Pre-rellenar automáticamente cuenta, forma de pago, importe y tercero (proveedor/persona) al seleccionar un concepto ya usado anteriormente, a partir de la transacción más reciente registrada para ese concepto, reduciendo el número de campos que el usuario debe completar a mano en un alta de gasto o ingreso.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Pre-rellenado de campos al seleccionar un concepto con histórico
 Al seleccionar un concepto existente en el formulario de alta de un gasto o ingreso, el sistema SHALL consultar la combinación de campos (cuenta, forma de pago, proveedor o persona según el tipo) de la transacción más reciente registrada por el usuario para ese concepto y ese tipo (gasto/ingreso), y SHALL pre-rellenar con esos valores únicamente los campos del formulario que estén vacíos en ese momento. El importe SHALL NOT pre-rellenarse nunca por esta funcionalidad: el usuario lo introduce siempre a mano, aunque exista un importe registrado en esa transacción histórica.
@@ -27,10 +21,3 @@ Al editar una transacción existente, el sistema SHALL NOT aplicar el pre-rellen
 #### Scenario: Edición de un gasto existente
 - **WHEN** el usuario abre un gasto ya existente para editarlo y cambia el concepto seleccionado
 - **THEN** el sistema no pre-rellena cuenta, forma de pago ni tercero a partir del histórico del nuevo concepto; esos campos conservan los valores actuales del gasto en edición hasta que el usuario los cambie explícitamente (el importe, al no pre-rellenarse nunca por sugerencia, tampoco se ve afectado)
-
-### Requirement: Indicación visual de campo pre-rellenado por sugerencia
-Cuando un campo se rellena automáticamente por esta funcionalidad, el sistema SHALL mostrar una indicación visual junto al campo que permita al usuario distinguir un valor sugerido de uno introducido manualmente.
-
-#### Scenario: Campo autocompletado visible como sugerencia
-- **WHEN** el sistema pre-rellena la cuenta o la forma de pago a partir del histórico del concepto seleccionado
-- **THEN** el campo muestra un indicador (icono con tooltip explicativo) señalando que el valor proviene de un uso anterior de ese concepto, y desaparece si el usuario modifica el valor manualmente
