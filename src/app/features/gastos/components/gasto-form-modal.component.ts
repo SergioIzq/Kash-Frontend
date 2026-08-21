@@ -105,12 +105,7 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
                 </div>
 
                 <div class="col-span-12 md:col-span-6 field">
-                    <label for="importe" class="font-semibold text-gray-700 block mb-2">
-                        Importe
-                        @if (sugeridoImporte()) {
-                            <i class="pi pi-bolt text-primary text-sm ml-1" pTooltip="Importe sugerido a partir del último uso de este concepto"></i>
-                        }
-                    </label>
+                    <label for="importe" class="font-semibold text-gray-700 block mb-2">Importe</label>
                     <app-money-input
                         inputId="importe"
                         [ngModel]="formData.importe"
@@ -424,7 +419,6 @@ export class GastoFormModalComponent {
     // Indicadores de campo pre-rellenado por sugerencia (histórico del concepto)
     sugeridoCuenta = signal(false);
     sugeridoFormaPago = signal(false);
-    sugeridoImporte = signal(false);
     sugeridoProveedor = signal(false);
     sugeridoPersona = signal(false);
 
@@ -513,20 +507,20 @@ export class GastoFormModalComponent {
         this.newCuentaMessage.set('');
         this.sugeridoCuenta.set(false);
         this.sugeridoFormaPago.set(false);
-        this.sugeridoImporte.set(false);
         this.sugeridoProveedor.set(false);
         this.sugeridoPersona.set(false);
     }
 
     onImporteChange(value: number | null): void {
         this.formData.importe = value ?? undefined;
-        this.sugeridoImporte.set(false);
     }
 
     /**
-     * Pre-rellena cuenta/forma de pago/importe/proveedor/persona a partir del último gasto
-     * registrado para este concepto. Solo se aplica en modo creación y solo sobre campos que
-     * el usuario todavía no ha rellenado (no sobrescribe valores ya introducidos a mano).
+     * Pre-rellena cuenta/forma de pago/proveedor/persona a partir del último gasto registrado
+     * para este concepto. Solo se aplica en modo creación y solo sobre campos que el usuario
+     * todavía no ha rellenado (no sobrescribe valores ya introducidos a mano). El importe NUNCA
+     * se pre-rellena aquí: el usuario lo introduce siempre a mano (ver change
+     * `importe-siempre-manual-sugerencias`).
      */
     private async aplicarSugerencia(conceptoId: string): Promise<void> {
         try {
@@ -544,10 +538,6 @@ export class GastoFormModalComponent {
                 this.formData.formaPagoId = sugerencia.formaPagoId;
                 this.formData.formaPagoNombre = sugerencia.formaPagoNombre;
                 this.sugeridoFormaPago.set(true);
-            }
-            if (!this.formData.importe && sugerencia.importe) {
-                this.formData.importe = sugerencia.importe;
-                this.sugeridoImporte.set(true);
             }
             if (!this.selectedProveedor && sugerencia.proveedorId) {
                 this.selectedProveedor = { id: sugerencia.proveedorId, nombre: sugerencia.proveedorNombre ?? '' };

@@ -616,7 +616,7 @@ export class AltaRapidaPage {
             if (sugerencia.categoriaId) this.selectedCategoria = { id: sugerencia.categoriaId, nombre: sugerencia.categoriaNombre };
             if (sugerencia.cuentaId) this.selectedCuenta = { id: sugerencia.cuentaId, nombre: sugerencia.cuentaNombre };
             if (sugerencia.formaPagoId) this.selectedFormaPago = { id: sugerencia.formaPagoId, nombre: sugerencia.formaPagoNombre };
-            if (!this.formData.importe && sugerencia.importe) this.formData.importe = sugerencia.importe;
+            // El importe NUNCA se pre-rellena: el usuario lo introduce siempre a mano.
 
             const terceroId = this.tipo() === 'gasto' ? sugerencia.proveedorId : sugerencia.clienteId;
             const terceroNombre = this.tipo() === 'gasto' ? sugerencia.proveedorNombre : sugerencia.clienteNombre;
