@@ -5,6 +5,7 @@ import { shareReplay, map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import { Ingreso, ResumenIngresos, IngresoCreate, IngresoHabitual } from '../../models';
 import { PaginatedList, Result } from '@/core/models/common.model';
+import { ExportarExcelFiltros } from '@/core/models/exportar-excel-filtros.model';
 
 @Injectable({
     providedIn: 'root'
@@ -162,6 +163,29 @@ export class IngresoService {
                 return undefined as void;
             })
         );
+    }
+
+    /**
+     * Descarga un Excel con los Ingresos que cumplen los filtros indicados (todos opcionales y
+     * combinables). Mismo patrón que `reporte.service.ts` (`responseType: 'blob'`).
+     */
+    descargarExcel(filtros: ExportarExcelFiltros): Observable<Blob> {
+        let params = new HttpParams();
+
+        if (filtros.fechaInicio) params = params.set('fechaInicio', filtros.fechaInicio);
+        if (filtros.fechaFin) params = params.set('fechaFin', filtros.fechaFin);
+        if (filtros.searchTerm) params = params.set('searchTerm', filtros.searchTerm);
+
+        for (const id of filtros.conceptoIds ?? []) params = params.append('conceptoIds', id);
+        for (const id of filtros.categoriaIds ?? []) params = params.append('categoriaIds', id);
+        for (const id of filtros.clienteIds ?? []) params = params.append('clienteIds', id);
+        for (const id of filtros.personaIds ?? []) params = params.append('personaIds', id);
+
+        return this.http.get(`${this.apiUrl}/excel`, {
+            params,
+            responseType: 'blob',
+            withCredentials: true
+        });
     }
 
     /**
