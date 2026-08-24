@@ -144,4 +144,8 @@ export class AuthService {
 
         return this.http.post<Result<string>>(`${this.apiUrl}/avatar`, formData).pipe(map((res) => res.value));
     }
+
+    generateApiToken(): Observable<string> {
+        return this.http.post<Result<string>>(`${this.apiUrl}/api-token`, {}).pipe(map((res) => res.value));
+    }
 }

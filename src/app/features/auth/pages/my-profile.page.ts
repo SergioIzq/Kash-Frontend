@@ -10,6 +10,7 @@ import { FileUploadHandlerEvent, FileUploadModule, FileUpload } from 'primeng/fi
 import { DividerModule } from 'primeng/divider';
 import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
+import { DialogModule } from 'primeng/dialog';
 
 // Tu Arquitectura
 import { AuthStore } from '@/core/stores/auth.store';
@@ -18,7 +19,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-cru
 @Component({
     selector: 'app-my-profile',
     standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, CardModule, InputTextModule, ButtonModule, AvatarModule, FileUploadModule, DividerModule, InputIconModule, IconFieldModule, BasePageTemplateComponent],
+    imports: [CommonModule, ReactiveFormsModule, CardModule, InputTextModule, ButtonModule, AvatarModule, FileUploadModule, DividerModule, InputIconModule, IconFieldModule, DialogModule, BasePageTemplateComponent],
     styles: [
         `
             /* ESTILOS DEL AVATAR DE PERFIL (GRANDE) */
@@ -127,6 +128,30 @@ import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-cru
                     </form>
                 </div>
             </div>
+
+            <div class="card surface-card shadow-2 border-round p-6 mt-2">
+                <h3 class="text-900 font-semibold text-xl mb-2 mt-0">Accesos API</h3>
+                <p class="text-600 mb-4">
+                    Genera un token de acceso personal para autenticar integraciones externas, como el Atajo de iPhone. Generar un token nuevo invalida cualquier token anterior.
+                </p>
+                <p-button label="Crear token para Atajo iPhone" icon="pi pi-key" (onClick)="onGenerateApiToken()" [loading]="generatingToken()"></p-button>
+            </div>
+
+            <p-dialog header="Token de acceso generado" [visible]="tokenDialogVisible()" (visibleChange)="onTokenDialogVisibleChange($event)" [modal]="true" [style]="{ width: '600px' }" [closable]="true">
+                <div class="flex flex-col gap-3">
+                    <p class="text-600 m-0">
+                        Copia este token ahora. <strong>No se volverá a mostrar.</strong> Cualquier token anterior ha dejado de funcionar.
+                    </p>
+                    <div class="flex items-center gap-2">
+                        <input pInputText [value]="apiToken()" readonly class="w-full flex-1" />
+                        <p-button icon="pi pi-copy" (onClick)="onCopyToken()" [outlined]="true"></p-button>
+                    </div>
+                </div>
+
+                <ng-template #footer>
+                    <p-button label="Cerrar" icon="pi pi-check" (onClick)="onTokenDialogVisibleChange(false)"></p-button>
+                </ng-template>
+            </p-dialog>
         </ngxc-base-page-template>
     `
 })
@@ -230,6 +255,55 @@ export class MyProfilePage extends BasePageComponent implements OnInit {
         } catch (error) {
             console.error(error);
             this.showError('No se pudo subir la imagen.');
+        }
+    }
+
+    // --- Token de acceso API ---
+
+    generatingToken = signal(false);
+    apiToken = signal<string | null>(null);
+    tokenDialogVisible = signal(false);
+
+    onGenerateApiToken() {
+        this.confirmAction('Se generará un nuevo token de acceso. Cualquier token anterior dejará de funcionar y las integraciones que lo usen (como el Atajo de iPhone) deberán actualizarse.', () => this.confirmedGenerateApiToken(), {
+            header: 'Generar token de acceso',
+            acceptLabel: 'Sí, generar',
+            rejectLabel: 'Cancelar'
+        });
+    }
+
+    private async confirmedGenerateApiToken() {
+        this.generatingToken.set(true);
+
+        try {
+            const token = await this.authStore.generateApiToken();
+            this.apiToken.set(token);
+            this.tokenDialogVisible.set(true);
+        } catch (error) {
+            console.error(error);
+            this.showError('No se pudo generar el token de acceso.');
+        } finally {
+            this.generatingToken.set(false);
+        }
+    }
+
+    async onCopyToken() {
+        const token = this.apiToken();
+        if (!token) return;
+
+        try {
+            await navigator.clipboard.writeText(token);
+            this.showSuccess('Token copiado al portapapeles.');
+        } catch (error) {
+            console.error(error);
+            this.showError('No se pudo copiar el token. Selecciónalo y cópialo manualmente.');
+        }
+    }
+
+    onTokenDialogVisibleChange(visible: boolean) {
+        this.tokenDialogVisible.set(visible);
+        if (!visible) {
+            this.apiToken.set(null);
         }
     }
 }
