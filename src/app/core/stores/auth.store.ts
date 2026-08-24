@@ -237,6 +237,19 @@ export const AuthStore = signalStore(
             }
         },
 
+        async generateApiToken(): Promise<string> {
+            patchState(store, { loading: true, error: null });
+            try {
+                const token = await firstValueFrom(authService.generateApiToken());
+                patchState(store, { loading: false });
+                return token;
+            } catch (err) {
+                const errorMsg = ((err as HttpErrorResponse).error as ErrorResponse)?.detail || 'Error al generar el token de acceso';
+                patchState(store, { loading: false, error: errorMsg });
+                throw err;
+            }
+        },
+
         // --- Utilidades Públicas ---
 
         async checkSession(): Promise<boolean> {
