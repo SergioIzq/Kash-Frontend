@@ -5,7 +5,8 @@ import { firstValueFrom } from 'rxjs';
 import { DrawerModule } from 'primeng/drawer';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { MoneyInputComponent } from '@/shared/components';
+import { InputGroupModule } from 'primeng/inputgroup';
+import { MoneyInputComponent, CalculadoraImporteComponent } from '@/shared/components';
 import { TextareaModule } from 'primeng/textarea';
 import { DatePickerModule } from 'primeng/datepicker';
 import { AutoCompleteModule, AutoCompleteCompleteEvent, AutoCompleteLazyLoadEvent } from 'primeng/autocomplete';
@@ -49,7 +50,9 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
         DrawerModule, // Usamos Drawer en lugar de Dialog
         ButtonModule,
         InputTextModule,
+        InputGroupModule,
         MoneyInputComponent,
+        CalculadoraImporteComponent,
         TextareaModule,
         DatePickerModule,
         AutoCompleteModule,
@@ -106,13 +109,16 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
 
                 <div class="col-span-12 md:col-span-6 field">
                     <label for="importe" class="font-semibold text-gray-700 block mb-2">Importe</label>
-                    <app-money-input
-                        inputId="importe"
-                        [ngModel]="formData.importe"
-                        (ngModelChange)="onImporteChange($event)"
-                        inputClass="text-right font-bold text-xl text-green-600"
-                        placeholder="0,00 €"
-                    />
+                    <p-inputgroup>
+                        <app-money-input
+                            inputId="importe"
+                            [ngModel]="formData.importe"
+                            (ngModelChange)="onImporteChange($event)"
+                            inputClass="text-right font-bold text-xl text-green-600"
+                            placeholder="0,00 €"
+                        />
+                        <app-calculadora-importe (valorConfirmado)="onImporteChange($event)" />
+                    </p-inputgroup>
                     @if (submitted() && !formData.importe) {
                         <small class="text-red-500 block mt-1">El importe es requerido.</small>
                     }
@@ -562,7 +568,7 @@ export class GastoFormModalComponent {
         const categoriaId = this.selectedCategoria?.id;
         if (!query || query.length < 2) {
             this.conceptoStore
-                .getRecent(5, categoriaId)
+                .getRecent(10000, categoriaId)
                 .then((data) => {
                     this.filteredConceptos.set(data);
                     this.conceptoScroll.reset(data.length);
@@ -589,7 +595,7 @@ export class GastoFormModalComponent {
         const query = event.query;
         if (!query || query.length < 2) {
             this.categoriaStore
-                .getRecent(5)
+                .getRecent(10000)
                 .then((data) => {
                     this.filteredCategorias.set(data);
                     this.categoriaScroll.reset(data.length);
@@ -616,7 +622,7 @@ export class GastoFormModalComponent {
         const query = event.query;
         if (!query || query.length < 2) {
             this.proveedorStore
-                .getRecent(5)
+                .getRecent(10000)
                 .then((data) => {
                     this.filteredProveedores.set(data);
                     this.proveedorScroll.reset(data.length);
@@ -643,7 +649,7 @@ export class GastoFormModalComponent {
         const query = event.query;
         if (!query || query.length < 2) {
             this.personaStore
-                .getRecent(5)
+                .getRecent(10000)
                 .then((data) => {
                     this.filteredPersonas.set(data);
                     this.personaScroll.reset(data.length);
@@ -670,7 +676,7 @@ export class GastoFormModalComponent {
         const query = event.query;
         if (!query || query.length < 2) {
             this.cuentaStore
-                .getRecent(5)
+                .getRecent(10000)
                 .then((data) => {
                     this.filteredCuentas.set(data);
                     this.cuentaScroll.reset(data.length);
@@ -697,7 +703,7 @@ export class GastoFormModalComponent {
         const query = event.query;
         if (!query || query.length < 2) {
             this.formaPagoStore
-                .getRecent(5)
+                .getRecent(10000)
                 .then((data) => {
                     this.filteredFormasPago.set(data);
                     this.formaPagoScroll.reset(data.length);

@@ -1,4 +1,5 @@
 export * from './money-input.component';
+export * from './calculadora-importe/calculadora-importe.component';
 export * from './transacciones-habituales-chips/transacciones-habituales-chips.component';
 export * from './cerrar-teclado-boton/cerrar-teclado-boton.component';
 export * from './exportar-excel-dialog/exportar-excel-dialog.component';
