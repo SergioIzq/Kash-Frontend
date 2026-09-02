@@ -35,6 +35,23 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
             (beforeinput)="onBeforeInput($event)"
         />
     `,
+    styles: [
+        `
+            /* Dentro de un p-inputgroup (p. ej. junto a app-calculadora-importe), el host
+               debe desaparecer del árbol de cajas para que el <input> pase a ser un hijo
+               flex directo de .p-inputgroup, y su borde derecho debe quedar recto para
+               fundirse visualmente con el addon contiguo. Fuera de un p-inputgroup (los
+               otros usos de este componente) el host conserva su display por defecto. */
+            :host-context(.p-inputgroup) {
+                display: contents;
+            }
+            :host-context(.p-inputgroup) input {
+                flex: 1 1 auto;
+                border-top-right-radius: 0;
+                border-bottom-right-radius: 0;
+            }
+        `
+    ],
     providers: [
         {
             provide: NG_VALUE_ACCESSOR,

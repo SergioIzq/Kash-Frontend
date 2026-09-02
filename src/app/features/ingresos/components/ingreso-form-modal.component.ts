@@ -5,7 +5,8 @@ import { firstValueFrom } from 'rxjs';
 import { DrawerModule } from 'primeng/drawer';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
-import { MoneyInputComponent } from '@/shared/components';
+import { InputGroupModule } from 'primeng/inputgroup';
+import { MoneyInputComponent, CalculadoraImporteComponent } from '@/shared/components';
 import { TextareaModule } from 'primeng/textarea';
 import { DatePickerModule } from 'primeng/datepicker';
 import { AutoCompleteModule, AutoCompleteCompleteEvent, AutoCompleteLazyLoadEvent } from 'primeng/autocomplete';
@@ -49,7 +50,9 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
         DrawerModule, // Usamos Drawer en lugar de Dialog
         ButtonModule,
         InputTextModule,
+        InputGroupModule,
         MoneyInputComponent,
+        CalculadoraImporteComponent,
         TextareaModule,
         DatePickerModule,
         AutoCompleteModule,
@@ -106,13 +109,16 @@ interface IngresoFormData extends Omit<Partial<Ingreso>, 'fecha'> {
 
                 <div class="col-span-12 md:col-span-6 field">
                     <label for="importe" class="font-semibold text-gray-700 block mb-2">Importe</label>
-                    <app-money-input
-                        inputId="importe"
-                        [ngModel]="formData.importe"
-                        (ngModelChange)="onImporteChange($event)"
-                        inputClass="text-right font-bold text-xl text-green-600"
-                        placeholder="0,00 €"
-                    />
+                    <p-inputgroup>
+                        <app-money-input
+                            inputId="importe"
+                            [ngModel]="formData.importe"
+                            (ngModelChange)="onImporteChange($event)"
+                            inputClass="text-right font-bold text-xl text-green-600"
+                            placeholder="0,00 €"
+                        />
+                        <app-calculadora-importe (valorConfirmado)="onImporteChange($event)" />
+                    </p-inputgroup>
                     @if (submitted() && !formData.importe) {
                         <small class="text-red-500 block mt-1">El importe es requerido.</small>
                     }
