@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { shareReplay, map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
-import { Ingreso, ResumenIngresos, IngresoCreate, IngresoHabitual } from '../../models';
+import { Ingreso, ResumenIngresos, IngresoCreate, IngresoHabitual, IngresosPeriodoResponse } from '../../models';
 import { PaginatedList, Result } from '@/core/models/common.model';
 import { ExportarExcelFiltros } from '@/core/models/exportar-excel-filtros.model';
 
@@ -59,16 +59,17 @@ export class IngresoService {
     }
 
     /**
-     * Obtener ingresos por período
+     * Obtener ingresos por período, junto con el sumatorio del importe de todo el periodo
+     * (no solo de la página solicitada).
      */
-    getIngresosPorPeriodo(fechaInicio: string, fechaFin: string): Observable<Ingreso[]> {
+    getIngresosPorPeriodo(fechaInicio: string, fechaFin: string): Observable<IngresosPeriodoResponse> {
         const params = new HttpParams()
             .set('fechaInicio', fechaInicio)
             .set('fechaFin', fechaFin)
             .set('pageSize', '1000');
-        
-        return this.http.get<Result<PaginatedList<Ingreso>>>(`${this.apiUrl}/periodo`, { params }).pipe(
-            map(response => response.value.items),
+
+        return this.http.get<Result<IngresosPeriodoResponse>>(`${this.apiUrl}/periodo`, { params }).pipe(
+            map(response => response.value),
             shareReplay({ bufferSize: 1, refCount: true })
         );
     }

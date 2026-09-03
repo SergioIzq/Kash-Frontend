@@ -1,4 +1,4 @@
-import { Component, inject, input, output, effect, ChangeDetectionStrategy, ChangeDetectorRef, HostListener, signal } from '@angular/core';
+import { Component, inject, input, output, model, effect, ChangeDetectionStrategy, HostListener, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
@@ -61,7 +61,7 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <p-drawer [(visible)]="isVisible" position="right" [closeOnEscape]="false" [style]="{ width: '600px', maxWidth: '100vw' }" [modal]="true" [blockScroll]="true" (onHide)="handleDrawerHide()" styleClass="p-sidebar-md surface-ground">
+        <p-drawer [(visible)]="visible" position="right" [closeOnEscape]="false" [style]="{ width: '600px', maxWidth: '100vw' }" [modal]="true" [blockScroll]="true" (onHide)="handleDrawerHide()" styleClass="p-sidebar-md surface-ground">
             <ng-template pTemplate="header">
                 <div class="flex align-items-center gap-2">
                     <span class="font-bold text-xl text-900">{{ isEditMode() ? 'Editar Gasto' : 'Nuevo Gasto' }}</span>
@@ -365,7 +365,6 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
 })
 export class GastoFormModalComponent {
     private messageService = inject(MessageService);
-    private cdr = inject(ChangeDetectorRef);
     #confirmationService = inject(ConfirmationService);
     private conceptoStore = inject(ConceptoStore);
     private categoriaStore = inject(CategoriaStore);
@@ -390,9 +389,8 @@ export class GastoFormModalComponent {
     private readonly personaScroll = new CargadorCatalogoScroll<CatalogItem>((page, pageSize) => this.personaService.getPersonas(page, pageSize, '', 'nombre', 'asc'));
 
     // Inputs/Outputs
-    visible = input<boolean>(false);
+    visible = model<boolean>(false);
     gasto = input<Partial<Gasto> | null>(null);
-    visibleChange = output<boolean>();
     save = output<Partial<Gasto>>();
     cancel = output<void>();
 
@@ -439,10 +437,6 @@ export class GastoFormModalComponent {
 
     constructor() {
         effect(() => {
-            this.isVisible = this.visible();
-        });
-
-        effect(() => {
             const gastoData = this.gasto();
             if (gastoData) {
                 this.loadFormData();
@@ -450,7 +444,6 @@ export class GastoFormModalComponent {
         });
     }
 
-    isVisible = false;
     isEditMode = signal(false);
 
     private loadFormData() {
@@ -1118,12 +1111,12 @@ export class GastoFormModalComponent {
 
     // El drawer de PrimeNG tiene [closeOnEscape]="false", pero su propio contenedor sigue
     // escuchando Escape internamente y llama a hide(false), que NO emite onHide ni
-    // visibleChange (ver design.md de este change). Sin este listener propio, Escape
-    // dejaría el drawer cerrado visualmente pero isVisible/gastoDialog en `true` para
-    // siempre. Reutilizamos la misma lógica de confirmación que "Cancelar".
+    // visibleChange. Sin este listener propio, Escape dejaría el drawer cerrado
+    // visualmente pero visible/gastoDialog en `true` para siempre. Reutilizamos la
+    // misma lógica de confirmación que "Cancelar".
     @HostListener('document:keydown.escape')
     onEscapePressed() {
-        if (this.isVisible) {
+        if (this.visible()) {
             this.onCancel();
         }
     }
@@ -1145,11 +1138,10 @@ export class GastoFormModalComponent {
                     this.closeModal();
                 },
                 reject: () => {
-                    // Si rechaza, reabrimos el drawer. Este callback lo dispara el
-                    // <p-confirmDialog> ajeno (BasePageTemplateComponent), así que sin
-                    // markForCheck() el drawer nunca recibiría el `true` actualizado.
-                    this.isVisible = true;
-                    this.cdr.markForCheck();
+                    // Si rechaza, reabrimos el drawer. Al ser una escritura de `model()`,
+                    // se propaga sola sin necesidad de markForCheck(), venga de donde venga
+                    // el callback (incluido el <p-confirmDialog> ajeno de BasePageTemplateComponent).
+                    this.visible.set(true);
                 }
             });
         } else {
@@ -1176,11 +1168,10 @@ export class GastoFormModalComponent {
                     this.closeModal();
                 },
                 reject: () => {
-                    // Si rechaza, reabrimos el drawer. Este callback lo dispara el
-                    // <p-confirmDialog> ajeno (BasePageTemplateComponent), así que sin
-                    // markForCheck() el drawer nunca recibiría el `true` actualizado.
-                    this.isVisible = true;
-                    this.cdr.markForCheck();
+                    // Si rechaza, reabrimos el drawer. Al ser una escritura de `model()`,
+                    // se propaga sola sin necesidad de markForCheck(), venga de donde venga
+                    // el callback (incluido el <p-confirmDialog> ajeno de BasePageTemplateComponent).
+                    this.visible.set(true);
                 }
             });
         } else {
@@ -1195,8 +1186,8 @@ export class GastoFormModalComponent {
             this.selectedCategoria != null ||
             this.selectedConcepto != null ||
             this.formData.importe != null ||
-            this.formData.descripcion != null ||
-            this.formData.fecha != null ||
+            !!this.formData.descripcion ||
+            this.hasFechaSinGuardar() ||
             this.formData.cuentaId != null ||
             this.formData.formaPagoId != null ||
             this.selectedProveedor != null ||
@@ -1204,13 +1195,20 @@ export class GastoFormModalComponent {
         );
     }
 
+    // loadFormData() prerellena `fecha` con la de hoy en modo alta: comparar solo `!= null`
+    // hacía que hasUnsavedChanges() fuera siempre `true` desde que se abría el formulario en
+    // blanco. Solo cuenta como cambio si el usuario ha elegido un día distinto de hoy.
+    private hasFechaSinGuardar(): boolean {
+        const fecha = this.formData.fecha;
+        if (!fecha) return false;
+        if (typeof fecha === 'string') return true;
+
+        const hoy = new Date();
+        return fecha.getFullYear() !== hoy.getFullYear() || fecha.getMonth() !== hoy.getMonth() || fecha.getDate() !== hoy.getDate();
+    }
+
     private closeModal() {
-        this.isVisible = false;
-        this.visibleChange.emit(false);
+        this.visible.set(false);
         this.submitted.set(false);
-        // El cierre puede originarse en el <p-confirmDialog> de BasePageTemplateComponent
-        // (otra rama del árbol, fuera de esta plantilla): sin este markForCheck() Angular
-        // no vuelve a comprobar esta vista OnPush y el drawer nunca recibe el cierre.
-        this.cdr.markForCheck();
     }
 }

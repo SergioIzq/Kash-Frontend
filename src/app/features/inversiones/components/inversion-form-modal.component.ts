@@ -1,4 +1,4 @@
-import { Component, inject, input, output, effect, ChangeDetectionStrategy, ChangeDetectorRef, signal, computed } from '@angular/core';
+import { Component, inject, input, output, model, effect, ChangeDetectionStrategy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DrawerModule } from 'primeng/drawer';
@@ -290,13 +290,11 @@ function emptyForm(): InversionFormData {
 })
 export class InversionFormModalComponent {
     private readonly confirmationService = inject(ConfirmationService);
-    private readonly cdr = inject(ChangeDetectorRef);
 
     // Inputs / Outputs
-    visible = input.required<boolean>();
+    visible = model.required<boolean>();
     inversion = input<Partial<Inversion> | null>(null);
 
-    visibleChange = output<boolean>();
     save = output<InversionCreate & { id?: string }>();
     cancel = output<void>();
 
@@ -399,11 +397,10 @@ export class InversionFormModalComponent {
                 rejectLabel: 'Seguir editando',
                 accept: () => this.closeDrawer(),
                 reject: () => {
-                    // No hay campo `isVisible` propio que reabrir (el drawer usa [visible]
-                    // unidireccional sobre la signal del padre, que aquí nunca cambia).
-                    // markForCheck() es una salvaguarda por si el clic en el mask/Escape
-                    // ya inició el cierre visual de p-drawer antes de esta confirmación.
-                    this.cdr.markForCheck();
+                    // No hay nada que reabrir: [visible] es de lectura unidireccional sobre
+                    // el model() del padre, que aquí nunca se ha llegado a tocar (el `false`
+                    // que emite el propio p-drawer al hacer clic en el mask/Escape lo
+                    // intercepta handleDrawerHide() antes de aplicarlo).
                 }
             });
         } else {
@@ -419,7 +416,7 @@ export class InversionFormModalComponent {
         this.submitted.set(false);
         this.formData.set(emptyForm());
         this.cancel.emit();
-        this.visibleChange.emit(false);
+        this.visible.set(false);
     }
 
     private hasUnsavedChanges(): boolean {

@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { shareReplay, map } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
-import { Gasto, ResumenGastos, GastoCreate, GastoHabitual } from '../../models';
+import { Gasto, ResumenGastos, GastoCreate, GastoHabitual, GastosPeriodoResponse } from '../../models';
 import { PaginatedList, Result } from '@/core/models/common.model';
 import { ExportarExcelFiltros } from '@/core/models/exportar-excel-filtros.model';
 
@@ -55,13 +55,14 @@ export class GastoService {
     }
 
     /**
-     * Obtener gastos por período
+     * Obtener gastos por período, junto con el sumatorio del importe de todo el periodo
+     * (no solo de la página solicitada).
      */
-    getGastosPorPeriodo(fechaInicio: string, fechaFin: string): Observable<Gasto[]> {
+    getGastosPorPeriodo(fechaInicio: string, fechaFin: string): Observable<GastosPeriodoResponse> {
         const params = new HttpParams().set('fechaInicio', fechaInicio).set('fechaFin', fechaFin).set('pageSize', '1000');
 
-        return this.http.get<Result<PaginatedList<Gasto>>>(`${this.apiUrl}/periodo`, { params }).pipe(
-            map((response) => response.value.items),
+        return this.http.get<Result<GastosPeriodoResponse>>(`${this.apiUrl}/periodo`, { params }).pipe(
+            map((response) => response.value),
             shareReplay({ bufferSize: 1, refCount: true })
         );
     }
