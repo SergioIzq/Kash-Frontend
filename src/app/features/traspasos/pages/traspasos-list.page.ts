@@ -18,11 +18,12 @@ import { DataViewModule } from 'primeng/dataview';
 import { LayoutService } from '@/layout/service/layout.service';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 import { TraspasoFormModalComponent } from '../components/traspaso-form-modal.component';
+import { HideAmountPipe } from '@/shared/pipes/hide-amount.pipe';
 
 @Component({
     selector: 'app-traspasos-list-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, TagModule, DataViewModule, BasePageTemplateComponent, TraspasoFormModalComponent, HelpGlossaryComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, TagModule, DataViewModule, BasePageTemplateComponent, TraspasoFormModalComponent, HelpGlossaryComponent, HideAmountPipe],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
@@ -111,7 +112,7 @@ import { TraspasoFormModalComponent } from '../components/traspaso-form-modal.co
                                     {{ traspaso.fecha | date: 'dd/MM/yyyy' }}
                                 </td>
                                 <td>
-                                    <span class="font-bold text-blue-600">{{ traspaso.importe | number: '1.2-2' : 'es-ES' }} €</span>
+                                    <span class="font-bold text-blue-600">{{ traspaso.importe | hideAmount:'currency' }}</span>
                                 </td>
                                 <td>
                                     <div class="flex items-center gap-2">
@@ -199,7 +200,7 @@ import { TraspasoFormModalComponent } from '../components/traspaso-form-modal.co
                                             <span class="font-semibold text-base text-900 flex items-center gap-2">
                                                 <i class="pi pi-calendar text-500" style="font-size: 0.85rem"></i>{{ traspaso.fecha | date: 'dd/MM/yyyy' }}
                                             </span>
-                                            <span class="font-bold text-blue-500 text-lg whitespace-nowrap">{{ traspaso.importe | number: '1.2-2' : 'es-ES' }} €</span>
+                                            <span class="font-bold text-blue-500 text-lg whitespace-nowrap">{{ traspaso.importe | hideAmount:'currency' }}</span>
                                         </div>
 
                                         <div class="grid grid-cols-1 gap-3 py-3">

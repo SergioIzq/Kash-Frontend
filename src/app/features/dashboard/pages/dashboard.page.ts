@@ -8,11 +8,12 @@ import { GastosChartComponent } from '../components/gastos-chart/gastos-chart.co
 import { IngresosChartComponent } from '../components/ingresos-chart/ingresos-chart.component';
 import { ResumenFinancieroComponent } from '../components/resumen-financiero/resumen-financiero.component';
 import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-crud-ui';
+import { HideAmountPipe } from '../../../shared/pipes/hide-amount.pipe';
 
 @Component({
     selector: 'app-dashboard-page',
     standalone: true,
-    imports: [CommonModule, RouterModule, ButtonModule, GastosChartComponent, IngresosChartComponent, ResumenFinancieroComponent, BasePageTemplateComponent],
+    imports: [CommonModule, RouterModule, ButtonModule, GastosChartComponent, IngresosChartComponent, ResumenFinancieroComponent, BasePageTemplateComponent, HideAmountPipe],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
         <ngxc-base-page-template [loading]="dashboardStore.loading()" [skeletonType]="'card'">
@@ -76,14 +77,14 @@ import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-cru
                                             <div class="md:text-center">
                                                 <div class="text-xs text-500 uppercase font-semibold mb-1">Necesario para vivir</div>
                                                 <div [class]="'text-2xl font-bold ' + (first ? 'text-primary' : 'text-700')">
-                                                    {{ anio.promedioMensualNecesario | number: '1.0-0' }} € <span class="text-sm font-normal text-500">/mes</span>
+                                                    {{ anio.promedioMensualNecesario | hideAmount:'currency':undefined:'1.0-0' }} <span class="text-sm font-normal text-500">/mes</span>
                                                 </div>
                                             </div>
 
                                             <div class="md:text-right flex md:flex-col items-center md:items-end justify-between md:justify-center">
                                                 <span class="md:hidden text-sm text-500 font-semibold">Gasto Total:</span>
                                                 <div>
-                                                    <div class="text-lg font-medium text-900">{{ anio.gastoTotalAnual | number: '1.0-0' }} €</div>
+                                                    <div class="text-lg font-medium text-900">{{ anio.gastoTotalAnual | hideAmount:'currency':undefined:'1.0-0' }}</div>
                                                     <div class="text-xs text-500 hidden md:block">Total Gastado</div>
                                                 </div>
                                             </div>
@@ -102,7 +103,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-cru
                             <i class="pi pi-wallet text-primary" style="font-size: 1.5rem"></i>
                         </div>
                         <div [class]="'font-bold text-3xl mb-2 ' + (dashboardStore.resumen()!.balanceTotal >= 0 ? 'text-green-500' : 'text-red-500')">
-                            {{ dashboardStore.resumen()!.balanceTotal | number: '1.2-2' }} €
+                            {{ dashboardStore.resumen()!.balanceTotal | hideAmount:'currency' }}
                         </div>
                         <div class="text-500 text-sm mt-auto">{{ dashboardStore.resumen()?.totalCuentas || 0 }} cuentas</div>
                     </div>
@@ -112,12 +113,12 @@ import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-cru
                             <div class="text-500 font-medium">Ingresos Mes Actual</div>
                             <i class="pi pi-arrow-up text-green-500" style="font-size: 1.5rem"></i>
                         </div>
-                        <div class="text-green-500 font-bold text-3xl mb-2">{{ dashboardStore.resumen()?.ingresosMesActual | number: '1.2-2' }} €</div>
+                        <div class="text-green-500 font-bold text-3xl mb-2">{{ dashboardStore.resumen()?.ingresosMesActual | hideAmount:'currency' }}</div>
                         <div class="mt-auto">
                             @if (dashboardStore.resumen()?.comparativaMesAnterior) {
                                 <div [class]="'text-sm flex items-center gap-1 ' + (dashboardStore.resumen()!.comparativaMesAnterior.diferenciaIngresos >= 0 ? 'text-green-600' : 'text-red-600')">
                                     <i [class]="'pi ' + (dashboardStore.resumen()!.comparativaMesAnterior.diferenciaIngresos >= 0 ? 'pi-arrow-up' : 'pi-arrow-down')"></i>
-                                    {{ dashboardStore.resumen()!.comparativaMesAnterior.diferenciaIngresos | number: '1.0-0' }} € vs mes anterior
+                                    {{ dashboardStore.resumen()!.comparativaMesAnterior.diferenciaIngresos | hideAmount:'currency':undefined:'1.0-0' }} vs mes anterior
                                 </div>
                             } @else {
                                 <div class="text-sm text-500">&nbsp;</div>
@@ -130,12 +131,12 @@ import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-cru
                             <div class="text-500 font-medium">Gastos Mes Actual</div>
                             <i class="pi pi-arrow-down text-red-500" style="font-size: 1.5rem"></i>
                         </div>
-                        <div class="text-red-500 font-bold text-3xl mb-2">{{ dashboardStore.resumen()?.gastosMesActual | number: '1.2-2' }} €</div>
+                        <div class="text-red-500 font-bold text-3xl mb-2">{{ dashboardStore.resumen()?.gastosMesActual | hideAmount:'currency' }}</div>
                         <div class="mt-auto">
                             @if (dashboardStore.resumen()?.comparativaMesAnterior) {
                                 <div [class]="'text-sm flex items-center gap-1 ' + (dashboardStore.resumen()!.comparativaMesAnterior.diferenciaGastos <= 0 ? 'text-green-600' : 'text-red-600')">
                                     <i [class]="'pi ' + (dashboardStore.resumen()!.comparativaMesAnterior.diferenciaGastos <= 0 ? 'pi-arrow-down' : 'pi-arrow-up')"></i>
-                                    {{ Math.abs(dashboardStore.resumen()!.comparativaMesAnterior.diferenciaGastos) | number: '1.0-0' }} € vs mes anterior
+                                    {{ Math.abs(dashboardStore.resumen()!.comparativaMesAnterior.diferenciaGastos) | hideAmount:'currency':undefined:'1.0-0' }} vs mes anterior
                                 </div>
                             } @else {
                                 <div class="text-sm text-500">&nbsp;</div>
@@ -149,7 +150,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-cru
                             <i [class]="'pi ' + (dashboardStore.resumen()!.balanceMesActual >= 0 ? 'pi-check-circle text-green-500' : 'pi-times-circle text-red-500')" style="font-size: 1.5rem"></i>
                         </div>
                         <div [class]="'font-bold text-3xl mb-2 ' + (dashboardStore.resumen()!.balanceMesActual >= 0 ? 'text-green-500' : 'text-red-500')">
-                            {{ dashboardStore.resumen()!.balanceMesActual | number: '1.2-2' }} €
+                            {{ dashboardStore.resumen()!.balanceMesActual | hideAmount:'currency' }}
                         </div>
                         <div class="text-500 text-sm mt-auto">Ingresos - Gastos</div>
                     </div>
@@ -168,7 +169,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-cru
                                         <i class="pi pi-wallet text-500"></i>
                                         <span class="font-medium text-900">{{ cuenta.nombre }}</span>
                                     </div>
-                                    <span [class]="'font-bold ' + (cuenta.saldo >= 0 ? 'text-green-600' : 'text-red-600')"> {{ cuenta.saldo | number: '1.2-2' : 'es-ES' }} € </span>
+                                    <span [class]="'font-bold ' + (cuenta.saldo >= 0 ? 'text-green-600' : 'text-red-600')"> {{ cuenta.saldo | hideAmount:'currency' }} </span>
                                 </div>
                             }
                         </div>
@@ -184,13 +185,13 @@ import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-cru
                                 <div class="p-3 surface-border border-round">
                                     <div class="flex items-center justify-between mb-2">
                                         <span class="font-medium text-900">{{ categoria.categoriaNombre }}</span>
-                                        <span class="font-bold text-red-500">{{ categoria.totalGastado | number: '1.2-2' }} €</span>
+                                        <span class="font-bold text-red-500">{{ categoria.totalGastado | hideAmount:'currency' }}</span>
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <div class="flex-1 surface-200 border-round" style="height: 8px">
                                             <div class="bg-red-500 border-round h-full" [style.width.%]="categoria.porcentajeDelTotal"></div>
                                         </div>
-                                        <span class="text-500 text-sm">{{ categoria.porcentajeDelTotal | number: '1.0-0' }}%</span>
+                                        <span class="text-500 text-sm">{{ categoria.porcentajeDelTotal | hideAmount:'percent':undefined:'1.0-0' }}</span>
                                     </div>
                                     <div class="text-500 text-sm mt-1">{{ categoria.cantidadTransacciones }} transacciones</div>
                                 </div>
@@ -218,13 +219,13 @@ import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-cru
 
                         <div class="surface-border border-round p-4 text-center">
                             <i class="pi pi-chart-line text-orange-500 mb-3" style="font-size: 2.5rem"></i>
-                            <div class="text-900 font-bold text-2xl mb-2">{{ dashboardStore.gastoPromedioDiario() | number: '1.0-0' }} €</div>
+                            <div class="text-900 font-bold text-2xl mb-2">{{ dashboardStore.gastoPromedioDiario() | hideAmount:'currency':undefined:'1.0-0' }}</div>
                             <div class="text-600 text-sm">Gasto promedio diario</div>
                         </div>
 
                         <div class="surface-border border-round p-4 text-center">
                             <i class="pi pi-chart-bar text-purple-500 mb-3" style="font-size: 2.5rem"></i>
-                            <div class="text-900 font-bold text-2xl mb-2">{{ dashboardStore.proyeccionGastosFinMes() | number: '1.0-0' }} €</div>
+                            <div class="text-900 font-bold text-2xl mb-2">{{ dashboardStore.proyeccionGastosFinMes() | hideAmount:'currency':undefined:'1.0-0' }}</div>
                             <div class="text-600 text-sm">Proyección fin de mes</div>
                         </div>
                     </div>
@@ -246,7 +247,7 @@ import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-cru
                                     </div>
                                 </div>
                                 <div class="text-right">
-                                    <div [class]="'font-bold text-lg ' + (movimiento.tipo === 'Ingreso' ? 'text-green-600' : 'text-red-600')">{{ movimiento.tipo === 'Ingreso' ? '+' : '-' }}{{ movimiento.importe | number: '1.2-2' : 'es-ES' }} €</div>
+                                    <div [class]="'font-bold text-lg ' + (movimiento.tipo === 'Ingreso' ? 'text-green-600' : 'text-red-600')">{{ movimiento.tipo === 'Ingreso' ? '+' : '-' }}{{ movimiento.importe | hideAmount:'currency' }}</div>
                                     <div class="text-500 text-sm">{{ movimiento.fecha | date: 'dd/MM/yyyy' }}</div>
                                 </div>
                             </div>
@@ -292,9 +293,9 @@ import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-cru
                                     @for (historico of dashboardStore.resumen()!.historicoUltimos6Meses; track historico.mes) {
                                         <tr class="border-b surface-border hover:surface-hover transition-colors">
                                             <td class="p-3 font-medium text-900">{{ historico.mesNombre | titlecase }} {{ historico.anio }}</td>
-                                            <td class="p-3 text-right text-green-600 font-medium">{{ historico.totalIngresos | number: '1.2-2' }} €</td>
-                                            <td class="p-3 text-right text-red-600 font-medium">{{ historico.totalGastos | number: '1.2-2' }} €</td>
-                                            <td [class]="'p-3 text-right font-bold ' + (historico.balance >= 0 ? 'text-green-600' : 'text-red-600')">{{ historico.balance | number: '1.2-2' }} €</td>
+                                            <td class="p-3 text-right text-green-600 font-medium">{{ historico.totalIngresos | hideAmount:'currency' }}</td>
+                                            <td class="p-3 text-right text-red-600 font-medium">{{ historico.totalGastos | hideAmount:'currency' }}</td>
+                                            <td [class]="'p-3 text-right font-bold ' + (historico.balance >= 0 ? 'text-green-600' : 'text-red-600')">{{ historico.balance | hideAmount:'currency' }}</td>
                                         </tr>
                                     }
                                 </tbody>

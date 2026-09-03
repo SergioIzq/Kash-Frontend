@@ -18,11 +18,12 @@ import { DataViewModule } from 'primeng/dataview';
 import { LayoutService } from '@/layout/service/layout.service';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 import { IngresoProgramadoFormModalComponent } from '../components/ingreso-programado-form-modal.component';
+import { HideAmountPipe } from '@/shared/pipes/hide-amount.pipe';
 
 @Component({
     selector: 'app-ingresos-programados-list-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, TagModule, DataViewModule, BasePageTemplateComponent, IngresoProgramadoFormModalComponent, HelpGlossaryComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, TagModule, DataViewModule, BasePageTemplateComponent, IngresoProgramadoFormModalComponent, HelpGlossaryComponent, HideAmountPipe],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
@@ -113,7 +114,7 @@ import { IngresoProgramadoFormModalComponent } from '../components/ingreso-progr
                         <ng-template #body let-ingreso>
                             <tr>
                                 <td style="padding: 1rem">
-                                    <span class="font-bold text-green-600">{{ ingreso.importe | number: '1.2-2' : 'es-ES' }} €</span>
+                                    <span class="font-bold text-green-600">{{ ingreso.importe | hideAmount:'currency' }}</span>
                                 </td>
                                 <td>
                                     <p-tag [value]="ingreso.frecuencia" [severity]="getFrecuenciaSeverity(ingreso.frecuencia)" />
@@ -190,7 +191,7 @@ import { IngresoProgramadoFormModalComponent } from '../components/ingreso-progr
                                 @for (ingreso of ingresos; track ingreso.id) {
                                     <div class="surface-card rounded-xl border border-surface-200 dark:border-surface-700 border-l-4 border-l-green-500 shadow-sm p-4">
                                         <div class="flex justify-between items-center gap-3 pb-3 border-b border-surface-200 dark:border-surface-700">
-                                            <span class="font-bold text-green-500 text-lg whitespace-nowrap">{{ ingreso.importe | number: '1.2-2' : 'es-ES' }} €</span>
+                                            <span class="font-bold text-green-500 text-lg whitespace-nowrap">{{ ingreso.importe | hideAmount:'currency' }}</span>
                                             <p-tag [value]="ingreso.activo ? 'Activo' : 'Inactivo'" [severity]="ingreso.activo ? 'success' : 'danger'" />
                                         </div>
 

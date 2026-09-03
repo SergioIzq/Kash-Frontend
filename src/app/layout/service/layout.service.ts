@@ -7,6 +7,7 @@ export interface layoutConfig {
     surface?: string | undefined | null;
     darkTheme?: boolean;
     menuMode?: string;
+    hideAmounts?: boolean;
 }
 
 interface LayoutState {
@@ -63,6 +64,8 @@ export class LayoutService {
     isSidebarActive = computed(() => this.layoutState().overlayMenuActive || this.layoutState().staticMenuMobileActive);
 
     isDarkTheme = computed(() => this.layoutConfig().darkTheme);
+
+    isAmountsHidden = computed(() => this.layoutConfig().hideAmounts);
 
     getPrimary = computed(() => this.layoutConfig().primary);
 
@@ -138,7 +141,8 @@ export class LayoutService {
             primary: 'emerald',
             surface: null,
             darkTheme: false,
-            menuMode: 'static'
+            menuMode: 'static',
+            hideAmounts: false
         };
     }
 
@@ -170,6 +174,10 @@ export class LayoutService {
         } else {
             document.documentElement.classList.remove('app-dark');
         }
+    }
+
+    toggleAmountsVisibility(): void {
+        this.layoutConfig.update((cfg) => ({ ...cfg, hideAmounts: !cfg.hideAmounts }));
     }
 
     private onTransitionEnd() {

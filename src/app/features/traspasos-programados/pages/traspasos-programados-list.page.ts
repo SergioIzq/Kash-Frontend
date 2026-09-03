@@ -18,6 +18,7 @@ import { DataViewModule } from 'primeng/dataview';
 import { LayoutService } from '@/layout/service/layout.service';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 import { TraspasoProgramadoFormModalComponent } from '../components/traspaso-programado-form-modal.component';
+import { HideAmountPipe } from '@/shared/pipes/hide-amount.pipe';
 
 @Component({
     selector: 'app-traspasos-programados-list-page',
@@ -37,7 +38,8 @@ import { TraspasoProgramadoFormModalComponent } from '../components/traspaso-pro
         DataViewModule,
         BasePageTemplateComponent,
         TraspasoProgramadoFormModalComponent,
-        HelpGlossaryComponent
+        HelpGlossaryComponent,
+        HideAmountPipe
     ],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -170,7 +172,7 @@ import { TraspasoProgramadoFormModalComponent } from '../components/traspaso-pro
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="font-bold text-blue-600">{{ traspaso.importe | number: '1.2-2' : 'es-ES' }} €</span>
+                                    <span class="font-bold text-blue-600">{{ traspaso.importe | hideAmount:'currency' }}</span>
                                 </td>
                                 <td>
                                     <p-tag [value]="traspaso.frecuencia" [severity]="getFrecuenciaSeverity(traspaso.frecuencia)" />
@@ -266,7 +268,7 @@ import { TraspasoProgramadoFormModalComponent } from '../components/traspaso-pro
                                 @for (traspaso of traspasos; track traspaso.id) {
                                     <div class="surface-card rounded-xl border border-surface-200 dark:border-surface-700 border-l-4 border-l-blue-500 shadow-sm p-4">
                                         <div class="flex justify-between items-center gap-3 pb-3 border-b border-surface-200 dark:border-surface-700">
-                                            <span class="font-bold text-blue-500 text-lg whitespace-nowrap">{{ traspaso.importe | number: '1.2-2' : 'es-ES' }} €</span>
+                                            <span class="font-bold text-blue-500 text-lg whitespace-nowrap">{{ traspaso.importe | hideAmount:'currency' }}</span>
                                             <p-tag [value]="traspaso.activo ? 'Activo' : 'Inactivo'" [severity]="traspaso.activo ? 'success' : 'danger'" />
                                         </div>
 

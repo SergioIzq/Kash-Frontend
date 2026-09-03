@@ -19,6 +19,7 @@ import { InversionFormModalComponent } from '../components/inversion-form-modal.
 import { ImportExtractoModalComponent } from '../components/import-extracto-modal.component';
 import { BasePageComponent, BasePageTemplateComponent } from '@sergioizq/ngx-crud-ui';
 import { LayoutService } from '@/layout/service/layout.service';
+import { HideAmountPipe } from '@/shared/pipes/hide-amount.pipe';
 
 @Component({
     selector: 'app-inversiones-list-page',
@@ -38,7 +39,8 @@ import { LayoutService } from '@/layout/service/layout.service';
         DividerModule,
         InversionFormModalComponent,
         ImportExtractoModalComponent,
-        BasePageTemplateComponent
+        BasePageTemplateComponent,
+        HideAmountPipe
     ],
     providers: [DecimalPipe],
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -266,7 +268,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                             </div>
                         </div>
                         <div class="kpi-value">
-                            {{ resumen().valorTotal | number: '1.2-2' }} {{ monedaDisplay() }}
+                            {{ resumen().valorTotal | hideAmount:'currency':'' }} {{ monedaDisplay() }}
                         </div>
                         <div class="text-500 text-sm mt-auto pt-1">
                             {{ resumen().cantidadPosiciones }} posicion{{ resumen().cantidadPosiciones === 1 ? '' : 'es' }}
@@ -282,7 +284,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                             </div>
                         </div>
                         <div class="kpi-value">
-                            {{ resumen().valorInvertido | number: '1.2-2' }} {{ monedaDisplay() }}
+                            {{ resumen().valorInvertido | hideAmount:'currency':'' }} {{ monedaDisplay() }}
                         </div>
                         <div class="text-500 text-sm mt-auto pt-1">Precio medio de compra</div>
                     </div>
@@ -300,12 +302,12 @@ import { LayoutService } from '@/layout/service/layout.service';
                         <div class="kpi-value"
                              [class.gain]="resumen().gananciaAbsoluta >= 0"
                              [class.loss]="resumen().gananciaAbsoluta < 0">
-                            {{ resumen().gananciaAbsoluta >= 0 ? '+' : '' }}{{ resumen().gananciaAbsoluta | number: '1.2-2' }} {{ monedaDisplay() }}
+                            {{ resumen().gananciaAbsoluta >= 0 ? '+' : '' }}{{ resumen().gananciaAbsoluta | hideAmount:'currency':'' }} {{ monedaDisplay() }}
                         </div>
                         <div class="text-sm mt-auto pt-1"
                              [class.gain]="resumen().gananciaPorcentaje >= 0"
                              [class.loss]="resumen().gananciaPorcentaje < 0">
-                            {{ resumen().gananciaPorcentaje >= 0 ? '+' : '' }}{{ resumen().gananciaPorcentaje | number: '1.2-2' }}%
+                            {{ resumen().gananciaPorcentaje >= 0 ? '+' : '' }}{{ resumen().gananciaPorcentaje | hideAmount:'percent' }}
                             total
                         </div>
                     </div>
@@ -321,12 +323,12 @@ import { LayoutService } from '@/layout/service/layout.service';
                         <div class="kpi-value"
                              [class.gain]="resumen().variacion24hAbsoluta >= 0"
                              [class.loss]="resumen().variacion24hAbsoluta < 0">
-                            {{ resumen().variacion24hAbsoluta >= 0 ? '+' : '' }}{{ resumen().variacion24hAbsoluta | number: '1.2-2' }} {{ monedaDisplay() }}
+                            {{ resumen().variacion24hAbsoluta >= 0 ? '+' : '' }}{{ resumen().variacion24hAbsoluta | hideAmount:'currency':'' }} {{ monedaDisplay() }}
                         </div>
                         <div class="text-sm mt-auto pt-1"
                              [class.gain]="resumen().variacion24hPorcentaje >= 0"
                              [class.loss]="resumen().variacion24hPorcentaje < 0">
-                            {{ resumen().variacion24hPorcentaje >= 0 ? '+' : '' }}{{ resumen().variacion24hPorcentaje | number: '1.2-2' }}%
+                            {{ resumen().variacion24hPorcentaje >= 0 ? '+' : '' }}{{ resumen().variacion24hPorcentaje | hideAmount:'percent' }}
                             (24h)
                         </div>
                     </div>
@@ -343,12 +345,12 @@ import { LayoutService } from '@/layout/service/layout.service';
                                     <div class="text-2xl font-bold mb-1"
                                          [class.gain]="cd.rendimiento.gananciaAbsoluta >= 0"
                                          [class.loss]="cd.rendimiento.gananciaAbsoluta < 0">
-                                        {{ cd.rendimiento.gananciaAbsoluta >= 0 ? '+' : '' }}{{ cd.rendimiento.gananciaAbsoluta | number: '1.2-2' }} {{ monedaDisplay() }}
+                                        {{ cd.rendimiento.gananciaAbsoluta >= 0 ? '+' : '' }}{{ cd.rendimiento.gananciaAbsoluta | hideAmount:'currency':'' }} {{ monedaDisplay() }}
                                     </div>
                                     <div class="text-sm"
                                          [class.gain]="cd.rendimiento.gananciaPorcentaje >= 0"
                                          [class.loss]="cd.rendimiento.gananciaPorcentaje < 0">
-                                        {{ cd.rendimiento.gananciaPorcentaje >= 0 ? '+' : '' }}{{ cd.rendimiento.gananciaPorcentaje | number: '1.2-2' }}%
+                                        {{ cd.rendimiento.gananciaPorcentaje >= 0 ? '+' : '' }}{{ cd.rendimiento.gananciaPorcentaje | hideAmount:'percent' }}
                                         <span class="text-400 ml-1">({{ cd.rendimiento.label }})</span>
                                     </div>
                                 } @else {
@@ -517,7 +519,7 @@ import { LayoutService } from '@/layout/service/layout.service';
 
                                 <!-- Precio compra -->
                                 <td>
-                                    {{ pos.precioCompra | number: '1.2-4' }}
+                                    {{ pos.precioCompra | hideAmount:'currency':'':'1.2-4' }}
                                     <span class="text-400 text-xs ml-1">{{ pos.moneda }}</span>
                                 </td>
 
@@ -528,7 +530,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                                     } @else if (pos.precioActual !== null) {
                                         <span [class.gain]="pos.precioActual >= pos.precioCompra"
                                               [class.loss]="pos.precioActual < pos.precioCompra">
-                                            {{ pos.precioActual | number: '1.2-4' }}
+                                            {{ pos.precioActual | hideAmount:'currency':'':'1.2-4' }}
                                         </span>
                                         <span class="text-400 text-xs ml-1">{{ pos.moneda }}</span>
                                     } @else {
@@ -539,7 +541,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                                 <!-- Valor actual -->
                                 <td>
                                     @if (pos.valorActual !== null) {
-                                        <span class="font-semibold">{{ pos.valorActual | number: '1.2-2' }}</span>
+                                        <span class="font-semibold">{{ pos.valorActual | hideAmount:'currency':'' }}</span>
                                         <span class="text-400 text-xs ml-1">{{ pos.moneda }}</span>
                                     } @else {
                                         <span class="text-400">—</span>
@@ -553,12 +555,12 @@ import { LayoutService } from '@/layout/service/layout.service';
                                             <span class="font-bold"
                                                   [class.gain]="pos.gananciaAbsoluta >= 0"
                                                   [class.loss]="pos.gananciaAbsoluta < 0">
-                                                {{ pos.gananciaAbsoluta >= 0 ? '+' : '' }}{{ pos.gananciaAbsoluta | number: '1.2-2' }} {{ pos.moneda }}
+                                                {{ pos.gananciaAbsoluta >= 0 ? '+' : '' }}{{ pos.gananciaAbsoluta | hideAmount:'currency':'' }} {{ pos.moneda }}
                                             </span>
                                             <span class="text-sm"
                                                   [class.gain]="pos.gananciaPorcentaje! >= 0"
                                                   [class.loss]="pos.gananciaPorcentaje! < 0">
-                                                {{ pos.gananciaPorcentaje! >= 0 ? '+' : '' }}{{ pos.gananciaPorcentaje | number: '1.2-2' }}%
+                                                {{ pos.gananciaPorcentaje! >= 0 ? '+' : '' }}{{ pos.gananciaPorcentaje | hideAmount:'percent' }}
                                             </span>
                                         </div>
                                     } @else {
@@ -572,7 +574,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                                         <span [class.gain]="pos.variacion24h >= 0"
                                               [class.loss]="pos.variacion24h < 0"
                                               class="font-semibold">
-                                            {{ pos.variacion24h >= 0 ? '+' : '' }}{{ pos.variacion24h | number: '1.2-2' }}%
+                                            {{ pos.variacion24h >= 0 ? '+' : '' }}{{ pos.variacion24h | hideAmount:'percent' }}
                                         </span>
                                     } @else {
                                         <span class="text-400">—</span>
@@ -671,7 +673,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                                             </div>
                                             <div>
                                                 <div class="text-500 mb-1">P. Compra</div>
-                                                <div class="font-medium">{{ pos.precioCompra | number: '1.2-4' }} <span class="text-400 text-xs">{{ pos.moneda }}</span></div>
+                                                <div class="font-medium">{{ pos.precioCompra | hideAmount:'currency':'':'1.2-4' }} <span class="text-400 text-xs">{{ pos.moneda }}</span></div>
                                             </div>
                                             <div>
                                                 <div class="text-500 mb-1">P. Actual</div>
@@ -680,7 +682,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                                                         <p-skeleton width="4rem" height="1rem" />
                                                     } @else if (pos.precioActual !== null) {
                                                         <span [class.gain]="pos.precioActual >= pos.precioCompra" [class.loss]="pos.precioActual < pos.precioCompra">
-                                                            {{ pos.precioActual | number: '1.2-4' }}
+                                                            {{ pos.precioActual | hideAmount:'currency':'':'1.2-4' }}
                                                         </span>
                                                         <span class="text-400 text-xs ml-1">{{ pos.moneda }}</span>
                                                     } @else {
@@ -692,7 +694,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                                                 <div class="text-500 mb-1">Valor</div>
                                                 <div class="font-medium">
                                                     @if (pos.valorActual !== null) {
-                                                        {{ pos.valorActual | number: '1.2-2' }} <span class="text-400 text-xs">{{ pos.moneda }}</span>
+                                                        {{ pos.valorActual | hideAmount:'currency':'' }} <span class="text-400 text-xs">{{ pos.moneda }}</span>
                                                     } @else {
                                                         <span class="text-400">—</span>
                                                     }
@@ -703,7 +705,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                                                 <div class="font-medium">
                                                     @if (pos.gananciaAbsoluta !== null) {
                                                         <span [class.gain]="pos.gananciaAbsoluta >= 0" [class.loss]="pos.gananciaAbsoluta < 0">
-                                                            {{ pos.gananciaAbsoluta >= 0 ? '+' : '' }}{{ pos.gananciaAbsoluta | number: '1.2-2' }} {{ pos.moneda }}
+                                                            {{ pos.gananciaAbsoluta >= 0 ? '+' : '' }}{{ pos.gananciaAbsoluta | hideAmount:'currency':'' }} {{ pos.moneda }}
                                                         </span>
                                                     } @else {
                                                         <span class="text-400">—</span>
@@ -715,7 +717,7 @@ import { LayoutService } from '@/layout/service/layout.service';
                                                 <div class="font-medium">
                                                     @if (pos.variacion24h !== null) {
                                                         <span [class.gain]="pos.variacion24h >= 0" [class.loss]="pos.variacion24h < 0">
-                                                            {{ pos.variacion24h >= 0 ? '+' : '' }}{{ pos.variacion24h | number: '1.2-2' }}%
+                                                            {{ pos.variacion24h >= 0 ? '+' : '' }}{{ pos.variacion24h | hideAmount:'percent' }}
                                                         </span>
                                                     } @else {
                                                         <span class="text-400">—</span>
