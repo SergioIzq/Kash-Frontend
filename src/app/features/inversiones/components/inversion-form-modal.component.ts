@@ -1,4 +1,4 @@
-import { Component, inject, input, output, effect, ChangeDetectionStrategy, signal, computed } from '@angular/core';
+import { Component, inject, input, output, effect, ChangeDetectionStrategy, ChangeDetectorRef, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DrawerModule } from 'primeng/drawer';
@@ -290,6 +290,7 @@ function emptyForm(): InversionFormData {
 })
 export class InversionFormModalComponent {
     private readonly confirmationService = inject(ConfirmationService);
+    private readonly cdr = inject(ChangeDetectorRef);
 
     // Inputs / Outputs
     visible = input.required<boolean>();
@@ -396,7 +397,14 @@ export class InversionFormModalComponent {
                 icon: 'pi pi-exclamation-triangle',
                 acceptLabel: 'Sí, descartar',
                 rejectLabel: 'Seguir editando',
-                accept: () => this.closeDrawer()
+                accept: () => this.closeDrawer(),
+                reject: () => {
+                    // No hay campo `isVisible` propio que reabrir (el drawer usa [visible]
+                    // unidireccional sobre la signal del padre, que aquí nunca cambia).
+                    // markForCheck() es una salvaguarda por si el clic en el mask/Escape
+                    // ya inició el cierre visual de p-drawer antes de esta confirmación.
+                    this.cdr.markForCheck();
+                }
             });
         } else {
             this.closeDrawer();

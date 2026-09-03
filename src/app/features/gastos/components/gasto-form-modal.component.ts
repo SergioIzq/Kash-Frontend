@@ -1,4 +1,4 @@
-import { Component, inject, input, output, effect, ChangeDetectionStrategy, signal } from '@angular/core';
+import { Component, inject, input, output, effect, ChangeDetectionStrategy, ChangeDetectorRef, HostListener, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
@@ -365,6 +365,7 @@ interface GastoFormData extends Omit<Partial<Gasto>, 'fecha'> {
 })
 export class GastoFormModalComponent {
     private messageService = inject(MessageService);
+    private cdr = inject(ChangeDetectorRef);
     #confirmationService = inject(ConfirmationService);
     private conceptoStore = inject(ConceptoStore);
     private categoriaStore = inject(CategoriaStore);
@@ -1115,6 +1116,18 @@ export class GastoFormModalComponent {
         this.closeModal();
     }
 
+    // El drawer de PrimeNG tiene [closeOnEscape]="false", pero su propio contenedor sigue
+    // escuchando Escape internamente y llama a hide(false), que NO emite onHide ni
+    // visibleChange (ver design.md de este change). Sin este listener propio, Escape
+    // dejaría el drawer cerrado visualmente pero isVisible/gastoDialog en `true` para
+    // siempre. Reutilizamos la misma lógica de confirmación que "Cancelar".
+    @HostListener('document:keydown.escape')
+    onEscapePressed() {
+        if (this.isVisible) {
+            this.onCancel();
+        }
+    }
+
     onCancel() {
         if (this.hasUnsavedChanges()) {
             this.#confirmationService.confirm({
@@ -1132,8 +1145,11 @@ export class GastoFormModalComponent {
                     this.closeModal();
                 },
                 reject: () => {
-                    // Si rechaza, reabrimos el drawer
+                    // Si rechaza, reabrimos el drawer. Este callback lo dispara el
+                    // <p-confirmDialog> ajeno (BasePageTemplateComponent), así que sin
+                    // markForCheck() el drawer nunca recibiría el `true` actualizado.
                     this.isVisible = true;
+                    this.cdr.markForCheck();
                 }
             });
         } else {
@@ -1160,8 +1176,11 @@ export class GastoFormModalComponent {
                     this.closeModal();
                 },
                 reject: () => {
-                    // Si rechaza, reabrimos el drawer
+                    // Si rechaza, reabrimos el drawer. Este callback lo dispara el
+                    // <p-confirmDialog> ajeno (BasePageTemplateComponent), así que sin
+                    // markForCheck() el drawer nunca recibiría el `true` actualizado.
                     this.isVisible = true;
+                    this.cdr.markForCheck();
                 }
             });
         } else {
@@ -1189,5 +1208,9 @@ export class GastoFormModalComponent {
         this.isVisible = false;
         this.visibleChange.emit(false);
         this.submitted.set(false);
+        // El cierre puede originarse en el <p-confirmDialog> de BasePageTemplateComponent
+        // (otra rama del árbol, fuera de esta plantilla): sin este markForCheck() Angular
+        // no vuelve a comprobar esta vista OnPush y el drawer nunca recibe el cierre.
+        this.cdr.markForCheck();
     }
 }
