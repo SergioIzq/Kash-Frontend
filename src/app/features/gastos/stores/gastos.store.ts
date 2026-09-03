@@ -30,6 +30,11 @@ interface GastosState {
         sortColumn: string;
         sortOrder: string;
     };
+    // Estado independiente de `gastos`/`totalRecords` (que usa la tabla paginada de
+    // "Gestión de Gastos"): lo usa la tabla de "Movimientos rápidos" filtrada por
+    // periodo, para que ambas tablas puedan mostrar datos distintos sin pisarse.
+    movimientosPeriodo: Gasto[];
+    loadingMovimientosPeriodo: boolean;
 }
 
 const initialState: GastosState = {
@@ -48,7 +53,9 @@ const initialState: GastosState = {
         searchTerm: '',
         sortColumn: '',
         sortOrder: ''
-    }
+    },
+    movimientosPeriodo: [],
+    loadingMovimientosPeriodo: false
 };
 
 /**
@@ -201,23 +208,24 @@ export const GastosStore = signalStore(
                 )
             ),
 
-            // Cargar gastos por período
+            // Cargar gastos por período, para la tabla de "Movimientos rápidos" (independiente
+            // de `gastos`/`totalRecords`, que usa la tabla paginada de "Gestión de Gastos").
             loadGastosPorPeriodo: rxMethod<{ fechaInicio: string; fechaFin: string }>(
                 pipe(
-                    tap(() => patchState(store, { loading: true, error: null })),
+                    tap(() => patchState(store, { loadingMovimientosPeriodo: true, error: null })),
                     switchMap(({ fechaInicio, fechaFin }) =>
                         gastoService.getGastosPorPeriodo(fechaInicio, fechaFin).pipe(
                             tapResponse({
                                 next: (gastos) => {
                                     patchState(store, {
-                                        gastos,
-                                        loading: false,
+                                        movimientosPeriodo: gastos,
+                                        loadingMovimientosPeriodo: false,
                                         filters: { ...store.filters(), fechaInicio, fechaFin }
                                     });
                                 },
                                 error: (error: HttpErrorLike) => {
                                     patchState(store, {
-                                        loading: false,
+                                        loadingMovimientosPeriodo: false,
                                         error: error.userMessage || 'Error al cargar gastos'
                                     });
                                 }
@@ -331,6 +339,9 @@ export const GastosStore = signalStore(
                     tap((id) => {
                         patchState(store, (state) => ({
                             gastos: state.gastos.filter((g) => g.id !== id),
+                            // Un gasto borrado deja de pertenecer a cualquier periodo: se quita
+                            // también de la tabla de "Movimientos rápidos" sin esperar a un refetch.
+                            movimientosPeriodo: state.movimientosPeriodo.filter((g) => g.id !== id),
                             totalRecords: state.totalRecords - 1,
                             searchCache: new Map() // Invalidar caché
                         }));

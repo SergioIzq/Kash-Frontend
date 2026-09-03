@@ -30,6 +30,11 @@ interface IngresosState {
         sortColumn: string;
         sortOrder: string;
     };
+    // Estado independiente de `ingresos`/`totalRecords` (que usa la tabla paginada de
+    // "Gestión de Ingresos"): lo usa la tabla de "Movimientos rápidos" filtrada por
+    // periodo, para que ambas tablas puedan mostrar datos distintos sin pisarse.
+    movimientosPeriodo: Ingreso[];
+    loadingMovimientosPeriodo: boolean;
 }
 
 const initialState: IngresosState = {
@@ -48,7 +53,9 @@ const initialState: IngresosState = {
         searchTerm: '',
         sortColumn: '',
         sortOrder: ''
-    }
+    },
+    movimientosPeriodo: [],
+    loadingMovimientosPeriodo: false
 };
 
 /**
@@ -201,22 +208,24 @@ export const IngresosStore = signalStore(
             ),
 
             // Cargar ingresos por período
+            // Cargar ingresos por período, para la tabla de "Movimientos rápidos" (independiente
+            // de `ingresos`/`totalRecords`, que usa la tabla paginada de "Gestión de Ingresos").
             loadIngresosPorPeriodo: rxMethod<{ fechaInicio: string; fechaFin: string }>(
                 pipe(
-                    tap(() => patchState(store, { loading: true, error: null })),
+                    tap(() => patchState(store, { loadingMovimientosPeriodo: true, error: null })),
                     switchMap(({ fechaInicio, fechaFin }) =>
                         ingresoService.getIngresosPorPeriodo(fechaInicio, fechaFin).pipe(
                             tapResponse({
                                 next: (ingresos) => {
                                     patchState(store, {
-                                        ingresos,
-                                        loading: false,
+                                        movimientosPeriodo: ingresos,
+                                        loadingMovimientosPeriodo: false,
                                         filters: { ...store.filters(), fechaInicio, fechaFin }
                                     });
                                 },
                                 error: (error: HttpErrorLike) => {
                                     patchState(store, {
-                                        loading: false,
+                                        loadingMovimientosPeriodo: false,
                                         error: error.userMessage || 'Error al cargar ingresos'
                                     });
                                 }
@@ -330,6 +339,9 @@ export const IngresosStore = signalStore(
                     tap((id) => {
                         patchState(store, (state) => ({
                             ingresos: state.ingresos.filter((i) => i.id !== id),
+                            // Un ingreso borrado deja de pertenecer a cualquier periodo: se quita
+                            // también de la tabla de "Movimientos rápidos" sin esperar a un refetch.
+                            movimientosPeriodo: state.movimientosPeriodo.filter((i) => i.id !== id),
                             totalRecords: state.totalRecords - 1,
                             searchCache: new Map()
                         }));

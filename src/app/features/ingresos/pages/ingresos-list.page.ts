@@ -12,6 +12,7 @@ import { TagModule } from 'primeng/tag';
 import { InputIconModule } from 'primeng/inputicon';
 import { IconFieldModule } from 'primeng/iconfield';
 import { SkeletonModule } from 'primeng/skeleton';
+import { DatePickerModule } from 'primeng/datepicker';
 import { IngresosStore } from '../stores/ingresos.store';
 import { Ingreso, IngresoCreate } from '@/core/models';
 import { HttpErrorLike } from '@/core/models/error-response.model';
@@ -22,6 +23,7 @@ import { LayoutService } from '@/layout/service/layout.service';
 import { TransaccionesHabitualesChipsComponent, TransaccionHabitualSeleccionada, ExportarExcelDialogComponent, ExportarExcelFiltros } from '@/shared/components';
 import { IngresoService } from '@/core/services/api/ingreso.service';
 import { HideAmountPipe } from '@/shared/pipes/hide-amount.pipe';
+import { calcularRangoFecha, FiltroPeriodoRapido } from '@/shared/utils/rango-fecha.util';
 
 @Component({
     selector: 'app-ingresos-list-page',
@@ -39,6 +41,7 @@ import { HideAmountPipe } from '@/shared/pipes/hide-amount.pipe';
         IconFieldModule,
         SkeletonModule,
         DataViewModule,
+        DatePickerModule,
         IngresoFormModalComponent,
         BasePageTemplateComponent,
         HelpGlossaryComponent,
@@ -83,6 +86,117 @@ import { HideAmountPipe } from '@/shared/pipes/hide-amount.pipe';
                             <p-button label="Exportar" icon="pi pi-upload" severity="secondary" (onClick)="exportarDialogVisible.set(true)" />
                         </ng-template>
                     </p-toolbar>
+
+                    <div class="mb-6">
+                        <div class="flex flex-col md:flex-row md:items-center gap-3 mb-3">
+                            <h5 class="m-0 font-semibold text-lg">Movimientos</h5>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <p-button label="Hoy" size="small" [outlined]="filtroPeriodoActivo() !== 'hoy'" (onClick)="seleccionarFiltroPeriodo('hoy')" />
+                                <p-button label="Esta semana" size="small" [outlined]="filtroPeriodoActivo() !== 'semana'" (onClick)="seleccionarFiltroPeriodo('semana')" />
+                                <p-button label="Este mes" size="small" [outlined]="filtroPeriodoActivo() !== 'mes'" (onClick)="seleccionarFiltroPeriodo('mes')" />
+                                <p-datePicker
+                                    [ngModel]="rangoPersonalizado()"
+                                    (ngModelChange)="onRangoPersonalizadoChange($event)"
+                                    selectionMode="range"
+                                    dateFormat="dd/mm/yy"
+                                    [showIcon]="true"
+                                    [readonlyInput]="true"
+                                    placeholder="Rango personalizado"
+                                    appendTo="body"
+                                    styleClass="w-full md:w-auto"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <p-table
+                                [value]="ingresosStore.movimientosPeriodo()"
+                                [paginator]="true"
+                                [rows]="10"
+                                [loading]="ingresosStore.loadingMovimientosPeriodo()"
+                                [loadingIcon]="'none'"
+                                [tableStyle]="{ 'min-width': '75rem' }"
+                                styleClass="p-datatable-gridlines p-datatable-loading-icon-none"
+                                [rowHover]="true"
+                                dataKey="id"
+                                currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} movimientos"
+                                [showCurrentPageReport]="true"
+                                [rowsPerPageOptions]="[10, 20, 30]"
+                                sortField="fecha"
+                                [sortOrder]="-1"
+                            >
+                                <ng-template #header>
+                                    <tr>
+                                        <th pSortableColumn="fecha" style="min-width:10rem; padding: 1rem">
+                                            Fecha
+                                            <p-sortIcon field="fecha" />
+                                        </th>
+                                        <th pSortableColumn="personaNombre" style="min-width:12rem">
+                                            Persona
+                                            <p-sortIcon field="personaNombre" />
+                                        </th>
+                                        <th pSortableColumn="formaPagoNombre" style="min-width:12rem">
+                                            Forma de Pago
+                                            <p-sortIcon field="formaPagoNombre" />
+                                        </th>
+                                        <th pSortableColumn="clienteNombre" style="min-width:12rem">
+                                            Cliente
+                                            <p-sortIcon field="clienteNombre" />
+                                        </th>
+                                        <th pSortableColumn="conceptoNombre" style="min-width:14rem">
+                                            Concepto
+                                            <p-sortIcon field="conceptoNombre" />
+                                        </th>
+                                        <th pSortableColumn="cuentaNombre" style="min-width:12rem">
+                                            Cuenta
+                                            <p-sortIcon field="cuentaNombre" />
+                                        </th>
+                                        <th pSortableColumn="importe" style="min-width:10rem">
+                                            Importe
+                                            <p-sortIcon field="importe" />
+                                        </th>
+                                        <th style="min-width:10rem">Acciones</th>
+                                    </tr>
+                                </ng-template>
+
+                                <ng-template #body let-ingreso>
+                                    <tr>
+                                        <td style="padding: 1rem">{{ ingreso.fecha | date: 'dd/MM/yyyy' }}</td>
+                                        <td>{{ ingreso.personaNombre || '-' }}</td>
+                                        <td>{{ ingreso.formaPagoNombre || '-' }}</td>
+                                        <td>{{ ingreso.clienteNombre || '-' }}</td>
+                                        <td style="padding: 1rem">
+                                            <div class="flex flex-col">
+                                                <span class="font-semibold">{{ ingreso.conceptoNombre }}</span>
+                                                @if (ingreso.descripcion) {
+                                                    <small class="text-500">{{ ingreso.descripcion }}</small>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td>{{ ingreso.cuentaNombre || '-' }}</td>
+                                        <td>
+                                            <span class="font-bold text-green-500">+ {{ ingreso.importe | hideAmount:'currency' }}</span>
+                                        </td>
+                                        <td>
+                                            <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editIngreso(ingreso)" />
+                                            <p-button icon="pi pi-trash" severity="danger" [rounded]="true" [outlined]="true" (click)="deleteIngreso(ingreso)" />
+                                        </td>
+                                    </tr>
+                                </ng-template>
+
+                                <ng-template #emptymessage>
+                                    <tr>
+                                        <td colspan="8" style="padding: 2rem">
+                                            <div class="text-center py-6">
+                                                <i class="pi pi-calendar-times text-500 text-4xl mb-3"></i>
+                                                <p class="text-900 font-semibold mb-1">No hay movimientos en este periodo</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </ng-template>
+                            </p-table>
+                        </div>
+                    </div>
 
                     @if (!layout.isMobileView()) {
                     <p-table
@@ -357,6 +471,10 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
     sortColumn = signal<string>('fecha');
     sortOrder = signal<string>('desc');
 
+    /** Filtro activo de la tabla "Movimientos" (independiente de la tabla de gestión). */
+    filtroPeriodoActivo = signal<FiltroPeriodoRapido | 'rango'>('hoy');
+    rangoPersonalizado = signal<Date[] | null>(null);
+
     // Computed signal para totalRecords
     totalRecords = computed(() => this.ingresosStore.totalRecords());
 
@@ -378,6 +496,9 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
             if (lastUpdate) {
             }
         });
+
+        // Cargar el filtro por defecto ("Hoy") de la tabla de movimientos rápidos
+        this.cargarMovimientosPeriodo();
     }
 
     ngOnDestroy() {
@@ -403,6 +524,44 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
     refreshTable() {
         this.reloadIngresos();
         this.showInfo('Datos actualizados', 'Actualización');
+    }
+
+    /** Selecciona uno de los filtros rápidos ("Hoy" / "Esta semana" / "Este mes") de la tabla de Movimientos. */
+    seleccionarFiltroPeriodo(filtro: FiltroPeriodoRapido) {
+        this.filtroPeriodoActivo.set(filtro);
+        this.rangoPersonalizado.set(null);
+        this.cargarMovimientosPeriodo();
+    }
+
+    /** Selecciona un rango de fechas personalizado en la tabla de Movimientos. */
+    onRangoPersonalizadoChange(rango: Date[] | null) {
+        this.rangoPersonalizado.set(rango);
+        if (rango?.[0] && rango[1]) {
+            this.filtroPeriodoActivo.set('rango');
+            this.cargarMovimientosPeriodo();
+        }
+    }
+
+    /** Recarga la tabla de Movimientos con el filtro de periodo actualmente activo. */
+    private cargarMovimientosPeriodo() {
+        const filtro = this.filtroPeriodoActivo();
+        if (filtro === 'rango') {
+            const rango = this.rangoPersonalizado();
+            if (!rango?.[0] || !rango[1]) return;
+            this.ingresosStore.loadIngresosPorPeriodo({
+                fechaInicio: this.toIsoDateLocal(rango[0]),
+                fechaFin: this.toIsoDateLocal(rango[1])
+            });
+        } else {
+            this.ingresosStore.loadIngresosPorPeriodo(calcularRangoFecha(filtro));
+        }
+    }
+
+    private toIsoDateLocal(fecha: Date): string {
+        const year = fecha.getFullYear();
+        const month = String(fecha.getMonth() + 1).padStart(2, '0');
+        const day = String(fecha.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     }
 
     loadIngresosLazy(event: ListLazyLoadEvent) {
@@ -473,6 +632,9 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
                 this.ingresoDialog.set(false);
                 this.currentIngreso.set({});
                 // No reloadIngresos() - optimistic update already syncs UI
+                // Sí recargamos "Movimientos rápidos": si cambió la fecha, el ingreso puede
+                // entrar o salir del periodo filtrado, y solo el servidor sabe la verdad.
+                this.cargarMovimientosPeriodo();
             } catch (error) {
                 this.showError((error as HttpErrorLike).userMessage || 'Error al actualizar el ingreso');
             }
@@ -507,6 +669,7 @@ export class IngresosListPage extends BasePageComponent implements OnDestroy {
             this.ingresosStore.createIngreso(ingresoCreate, displayData).then(() => {
                 this.showSuccess('Ingreso creado correctamente');
                 this.habitualesRefresco.update((v) => v + 1);
+                this.cargarMovimientosPeriodo();
             });
             
             this.ingresoDialog.set(false);
