@@ -17,12 +17,13 @@ import { CuentaFormModalComponent } from '../components/cuenta-form-modal.compon
 import { BasePageComponent, BasePageTemplateComponent, HelpGlossaryComponent, GlossaryConfig, ListLazyLoadEvent } from '@sergioizq/ngx-crud-ui';
 import { DataViewModule } from 'primeng/dataview';
 import { LayoutService } from '@/layout/service/layout.service';
+import { HideAmountPipe } from '@/shared/pipes/hide-amount.pipe';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 
 @Component({
     selector: 'app-cuentas-list-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, DataViewModule, CuentaFormModalComponent, BasePageTemplateComponent, HelpGlossaryComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, DataViewModule, CuentaFormModalComponent, BasePageTemplateComponent, HelpGlossaryComponent, HideAmountPipe],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
@@ -111,7 +112,7 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
                                     </div>
                                 </td>
                                 <td>
-                                    <span [class]="'font-bold ' + (cuenta.saldo >= 0 ? 'text-green-600' : 'text-red-600')"> {{ cuenta.saldo | number: '1.2-2' : 'es-ES' }} € </span>
+                                    <span [class]="'font-bold ' + (cuenta.saldo >= 0 ? 'text-green-600' : 'text-red-600')"> {{ cuenta.saldo | hideAmount:'currency' }} </span>
                                 </td>
                                 <td>
                                     <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editCuenta(cuenta)" />
@@ -178,7 +179,7 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
                                             <span class="font-semibold text-base text-900 flex items-center gap-2 min-w-0">
                                                 <i class="pi pi-credit-card text-primary"></i><span class="truncate">{{ cuenta.nombre }}</span>
                                             </span>
-                                            <span [class]="'font-bold text-lg whitespace-nowrap ' + (cuenta.saldo >= 0 ? 'text-green-500' : 'text-red-500')">{{ cuenta.saldo | number: '1.2-2' : 'es-ES' }} €</span>
+                                            <span [class]="'font-bold text-lg whitespace-nowrap ' + (cuenta.saldo >= 0 ? 'text-green-500' : 'text-red-500')">{{ cuenta.saldo | hideAmount:'currency' }}</span>
                                         </div>
 
                                         <div class="flex justify-end gap-2 pt-3">

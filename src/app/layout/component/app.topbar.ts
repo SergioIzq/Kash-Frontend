@@ -73,6 +73,9 @@ import { AuthStore } from '../../core/stores/auth.store';
                 <button type="button" class="layout-topbar-action" (click)="toggleDarkMode()">
                     <i [ngClass]="{ 'pi ': true, 'pi-moon': layoutService.isDarkTheme(), 'pi-sun': !layoutService.isDarkTheme() }"></i>
                 </button>
+                <button type="button" class="layout-topbar-action" (click)="layoutService.toggleAmountsVisibility()" [title]="layoutService.isAmountsHidden() ? 'Mostrar importes' : 'Ocultar importes'">
+                    <i [ngClass]="{ 'pi ': true, 'pi-eye-slash': layoutService.isAmountsHidden(), 'pi-eye': !layoutService.isAmountsHidden() }"></i>
+                </button>
                 <div class="relative">
                     <button
                         class="layout-topbar-action layout-topbar-action-highlight"

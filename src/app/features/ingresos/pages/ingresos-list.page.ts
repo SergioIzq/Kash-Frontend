@@ -21,6 +21,7 @@ import { DataViewModule } from 'primeng/dataview';
 import { LayoutService } from '@/layout/service/layout.service';
 import { TransaccionesHabitualesChipsComponent, TransaccionHabitualSeleccionada, ExportarExcelDialogComponent, ExportarExcelFiltros } from '@/shared/components';
 import { IngresoService } from '@/core/services/api/ingreso.service';
+import { HideAmountPipe } from '@/shared/pipes/hide-amount.pipe';
 
 @Component({
     selector: 'app-ingresos-list-page',
@@ -42,7 +43,8 @@ import { IngresoService } from '@/core/services/api/ingreso.service';
         BasePageTemplateComponent,
         HelpGlossaryComponent,
         TransaccionesHabitualesChipsComponent,
-        ExportarExcelDialogComponent
+        ExportarExcelDialogComponent,
+        HideAmountPipe
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
@@ -166,7 +168,7 @@ import { IngresoService } from '@/core/services/api/ingreso.service';
                                 </td>
                                 <td>{{ ingreso.cuentaNombre || '-' }}</td>
                                 <td>
-                                    <span class="font-bold text-green-500">+ {{ ingreso.importe | number: '1.2-2' : 'es-ES' }} €</span>
+                                    <span class="font-bold text-green-500">+ {{ ingreso.importe | hideAmount:'currency' }}</span>
                                 </td>
                                 <td>
                                     <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editIngreso(ingreso)" />
@@ -247,7 +249,7 @@ import { IngresoService } from '@/core/services/api/ingreso.service';
                                                     <i class="pi pi-calendar" style="font-size: 0.75rem"></i>{{ ingreso.fecha | date: 'dd/MM/yyyy' }}
                                                 </span>
                                             </div>
-                                            <span class="font-bold text-green-500 text-lg whitespace-nowrap">+ {{ ingreso.importe | number: '1.2-2' : 'es-ES' }} €</span>
+                                            <span class="font-bold text-green-500 text-lg whitespace-nowrap">+ {{ ingreso.importe | hideAmount:'currency' }}</span>
                                         </div>
 
                                         <!-- Detalles -->

@@ -15,6 +15,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 
 import { Inversion, InversionCreate, TipoInversion, TIPOS_INVERSION_CONFIG } from '@/core/models/inversion.model';
+import { HideAmountPipe } from '@/shared/pipes/hide-amount.pipe';
 
 interface InversionFormData {
     id?: string;
@@ -68,7 +69,8 @@ function emptyForm(): InversionFormData {
         TooltipModule,
         TagModule,
         ConfirmDialogModule,
-        ToastModule
+        ToastModule,
+        HideAmountPipe
     ],
     providers: [ConfirmationService, MessageService],
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -232,7 +234,7 @@ function emptyForm(): InversionFormData {
                     <div class="surface-50 border-round p-3 flex justify-between align-items-center">
                         <span class="text-600 text-sm">Valor total invertido</span>
                         <span class="font-bold text-lg">
-                            {{ (formData().cantidad! * formData().precioCompra!) | number: '1.2-2' }} {{ formData().moneda }}
+                            {{ (formData().cantidad! * formData().precioCompra!) | hideAmount:'currency':formData().moneda }}
                         </span>
                     </div>
                 }

@@ -4,11 +4,13 @@ import { CardModule } from 'primeng/card';
 import { ChartModule } from 'primeng/chart';
 import { SkeletonModule } from 'primeng/skeleton';
 import { DashboardStore } from '../../stores/dashboard.store';
+import { LayoutService } from '../../../../layout/service/layout.service';
+import { HideAmountPipe } from '../../../../shared/pipes/hide-amount.pipe';
 
 @Component({
     selector: 'app-gastos-chart',
     standalone: true,
-    imports: [CommonModule, CardModule, ChartModule, SkeletonModule],
+    imports: [CommonModule, CardModule, ChartModule, SkeletonModule, HideAmountPipe],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
         <div class="card shadow-2 border-round p-4 h-full flex flex-col justify-between">
@@ -19,7 +21,7 @@ import { DashboardStore } from '../../stores/dashboard.store';
                         Gastos por Categoría
                     </h5>
                     @if (hasData()) {
-                        <span class="text-sm text-red-500">{{ totalGastado() | number:'1.2-2' }} € total</span>
+                        <span class="text-sm text-red-500">{{ totalGastado() | hideAmount:'currency' }} total</span>
                     }
                 </div>
                 <p class="text-600 text-sm m-0">
@@ -51,7 +53,7 @@ import { DashboardStore } from '../../stores/dashboard.store';
                 </div>
             } @else if (hasData()) {
                 <div class="flex justify-center mb-4" style="height: 280px">
-                    <p-chart type="doughnut" [data]="chartData()" [options]="chartOptions" styleClass="w-full" style="height: 100%"></p-chart>
+                    <p-chart type="doughnut" [data]="chartData()" [options]="chartOptions()" styleClass="w-full" style="height: 100%"></p-chart>
                 </div>
                 
                 <!-- Leyenda personalizada mejorada -->
@@ -64,14 +66,14 @@ import { DashboardStore } from '../../stores/dashboard.store';
                                     <span class="text-900 font-semibold text-sm">{{ item.categoria }}</span>
                                 </div>
                                 <div class="text-right">
-                                    <div class="text-red-600 font-bold text-lg">{{ item.total | number:'1.2-2' }} €</div>
+                                    <div class="text-red-600 font-bold text-lg">{{ item.total | hideAmount:'currency' }}</div>
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
                                 <div class="flex-1 surface-300 border-round overflow-hidden" style="height: 6px">
                                     <div [style.background-color]="item.color" class="h-full transition-all" [style.width.%]="item.porcentaje"></div>
                                 </div>
-                                <span class="text-600 text-sm font-medium min-w-12 text-right">{{ item.porcentaje | number:'1.1-1' }}%</span>
+                                <span class="text-600 text-sm font-medium min-w-12 text-right">{{ item.porcentaje | hideAmount:'percent':undefined:'1.1-1' }}</span>
                             </div>
                             <div class="text-500 text-xs mt-2 flex items-center gap-1">
                                 <i class="pi pi-list"></i>
@@ -96,6 +98,7 @@ import { DashboardStore } from '../../stores/dashboard.store';
 })
 export class GastosChartComponent {
     dashboardStore = inject(DashboardStore);
+    layoutService = inject(LayoutService);
 
     // Paleta de colores moderna para gastos (rojos, naranjas, amarillos)
     private readonly colors = [
@@ -111,43 +114,52 @@ export class GastosChartComponent {
         '#EA580C'  // orange-600
     ];
 
-    chartOptions = {
-        plugins: {
-            legend: {
-                display: false // Usamos leyenda personalizada
-            },
-            tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 12,
-                titleFont: {
-                    size: 14,
-                    weight: 'bold'
+    chartOptions = computed(() => {
+        const hidden = this.layoutService.isAmountsHidden();
+
+        return {
+            plugins: {
+                legend: {
+                    display: false // Usamos leyenda personalizada
                 },
-                bodyFont: {
-                    size: 13
-                },
-                callbacks: {
-                    label: (context: any) => {
-                        const label = context.label || '';
-                        const value = context.parsed || 0;
-                        const dataset = context.dataset.data;
-                        const transacciones = context.dataset.transacciones?.[context.dataIndex] || 0;
-                        const total = dataset.reduce((a: number, b: number) => a + b, 0);
-                        const percentage = ((value / total) * 100).toFixed(1);
-                        return [
-                            `${label}`,
-                            `Importe: ${value.toFixed(2)}€`,
-                            `Porcentaje: ${percentage}%`,
-                            `Transacciones: ${transacciones}`
-                        ];
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    padding: 12,
+                    titleFont: {
+                        size: 14,
+                        weight: 'bold'
+                    },
+                    bodyFont: {
+                        size: 13
+                    },
+                    callbacks: {
+                        label: (context: any) => {
+                            const label = context.label || '';
+                            const transacciones = context.dataset.transacciones?.[context.dataIndex] || 0;
+
+                            if (hidden) {
+                                return [`${label}`, `Importe: **** €`, `Porcentaje: **** %`, `Transacciones: ${transacciones}`];
+                            }
+
+                            const value = context.parsed || 0;
+                            const dataset = context.dataset.data;
+                            const total = dataset.reduce((a: number, b: number) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return [
+                                `${label}`,
+                                `Importe: ${value.toFixed(2)}€`,
+                                `Porcentaje: ${percentage}%`,
+                                `Transacciones: ${transacciones}`
+                            ];
+                        }
                     }
                 }
-            }
-        },
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '60%' // Hace el donut más ancho
-    };
+            },
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%' // Hace el donut más ancho
+        };
+    });
 
     hasData = computed(() => {
         const categorias = this.dashboardStore.topCategoriasGastos();

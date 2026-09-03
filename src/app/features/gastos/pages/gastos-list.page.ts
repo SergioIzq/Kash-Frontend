@@ -21,6 +21,7 @@ import { DataViewModule } from 'primeng/dataview';
 import { LayoutService } from '@/layout/service/layout.service';
 import { TransaccionesHabitualesChipsComponent, TransaccionHabitualSeleccionada, ExportarExcelDialogComponent, ExportarExcelFiltros } from '@/shared/components';
 import { GastoService } from '@/core/services/api/gasto.service';
+import { HideAmountPipe } from '@/shared/pipes/hide-amount.pipe';
 
 @Component({
     selector: 'app-gastos-list-page',
@@ -42,7 +43,8 @@ import { GastoService } from '@/core/services/api/gasto.service';
         BasePageTemplateComponent,
         HelpGlossaryComponent,
         TransaccionesHabitualesChipsComponent,
-        ExportarExcelDialogComponent
+        ExportarExcelDialogComponent,
+        HideAmountPipe
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
@@ -166,7 +168,7 @@ import { GastoService } from '@/core/services/api/gasto.service';
                                 </td>
                                 <td>{{ gasto.cuentaNombre || '-' }}</td>
                                 <td>
-                                    <span class="font-bold text-red-500">- {{ gasto.importe | number: '1.2-2' : 'es-ES' }} €</span>
+                                    <span class="font-bold text-red-500">- {{ gasto.importe | hideAmount:'currency' }}</span>
                                 </td>
                                 <td>
                                     <p-button icon="pi pi-pencil" class="mr-2" [rounded]="true" [outlined]="true" (click)="editGasto(gasto)" />
@@ -246,7 +248,7 @@ import { GastoService } from '@/core/services/api/gasto.service';
                                                     <i class="pi pi-calendar" style="font-size: 0.75rem"></i>{{ gasto.fecha | date: 'dd/MM/yyyy' }}
                                                 </span>
                                             </div>
-                                            <span class="font-bold text-red-500 text-lg whitespace-nowrap">- {{ gasto.importe | number: '1.2-2' : 'es-ES' }} €</span>
+                                            <span class="font-bold text-red-500 text-lg whitespace-nowrap">- {{ gasto.importe | hideAmount:'currency' }}</span>
                                         </div>
 
                                         <div class="grid grid-cols-2 gap-x-4 gap-y-3 py-3">

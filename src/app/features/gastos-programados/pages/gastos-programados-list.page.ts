@@ -18,11 +18,12 @@ import { DataViewModule } from 'primeng/dataview';
 import { LayoutService } from '@/layout/service/layout.service';
 import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 import { GastoProgramadoFormModalComponent } from '../components/gasto-programado-form-modal.component';
+import { HideAmountPipe } from '@/shared/pipes/hide-amount.pipe';
 
 @Component({
     selector: 'app-gastos-programados-list-page',
     standalone: true,
-    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, TagModule, DataViewModule, BasePageTemplateComponent, GastoProgramadoFormModalComponent, HelpGlossaryComponent],
+    imports: [CommonModule, FormsModule, ButtonModule, InputTextModule, ToastModule, TableModule, ToolbarModule, InputIconModule, IconFieldModule, SkeletonModule, TagModule, DataViewModule, BasePageTemplateComponent, GastoProgramadoFormModalComponent, HelpGlossaryComponent, HideAmountPipe],
     providers: [MessageService, ConfirmationService],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
@@ -113,7 +114,7 @@ import { GastoProgramadoFormModalComponent } from '../components/gasto-programad
                         <ng-template #body let-gasto>
                             <tr>
                                 <td style="padding: 1rem">
-                                    <span class="font-bold text-red-600">{{ gasto.importe | number: '1.2-2' : 'es-ES' }} €</span>
+                                    <span class="font-bold text-red-600">{{ gasto.importe | hideAmount:'currency' }}</span>
                                 </td>
                                 <td>
                                     <p-tag [value]="gasto.frecuencia" [severity]="getFrecuenciaSeverity(gasto.frecuencia)" />
@@ -190,7 +191,7 @@ import { GastoProgramadoFormModalComponent } from '../components/gasto-programad
                                 @for (gasto of gastos; track gasto.id) {
                                     <div class="surface-card rounded-xl border border-surface-200 dark:border-surface-700 border-l-4 border-l-red-500 shadow-sm p-4">
                                         <div class="flex justify-between items-center gap-3 pb-3 border-b border-surface-200 dark:border-surface-700">
-                                            <span class="font-bold text-red-500 text-lg whitespace-nowrap">{{ gasto.importe | number: '1.2-2' : 'es-ES' }} €</span>
+                                            <span class="font-bold text-red-500 text-lg whitespace-nowrap">{{ gasto.importe | hideAmount:'currency' }}</span>
                                             <p-tag [value]="gasto.activo ? 'Activo' : 'Inactivo'" [severity]="gasto.activo ? 'success' : 'danger'" />
                                         </div>
 

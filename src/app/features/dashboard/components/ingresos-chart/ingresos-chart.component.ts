@@ -4,11 +4,13 @@ import { CardModule } from 'primeng/card';
 import { ChartModule } from 'primeng/chart';
 import { SkeletonModule } from 'primeng/skeleton';
 import { DashboardStore } from '../../stores/dashboard.store';
+import { LayoutService } from '../../../../layout/service/layout.service';
+import { HideAmountPipe } from '../../../../shared/pipes/hide-amount.pipe';
 
 @Component({
     selector: 'app-ingresos-chart',
     standalone: true,
-    imports: [CommonModule, CardModule, ChartModule, SkeletonModule],
+    imports: [CommonModule, CardModule, ChartModule, SkeletonModule, HideAmountPipe],
     changeDetection: ChangeDetectionStrategy.OnPush,
     // 1. Aseguramos comportamiento de bloque
     styles: [`
@@ -44,7 +46,7 @@ import { DashboardStore } from '../../stores/dashboard.store';
             } @else if (hasData()) {
                 
                 <div class="w-full relative h-20rem"> 
-                    <p-chart type="line" [data]="chartData()" [options]="chartOptions" styleClass="w-full h-full"></p-chart>
+                    <p-chart type="line" [data]="chartData()" [options]="chartOptions()" styleClass="w-full h-full"></p-chart>
                 </div>
                 
                 @if (dashboardStore.resumen()?.comparativaMesAnterior) {
@@ -53,9 +55,9 @@ import { DashboardStore } from '../../stores/dashboard.store';
                             <div class="text-600 text-sm mb-2">Ingresos vs Mes anterior</div>
                             <div [class]="'font-bold text-lg flex items-center gap-2 ' + (dashboardStore.resumen()!.comparativaMesAnterior.diferenciaIngresos >= 0 ? 'text-green-600' : 'text-red-600')">
                                 <i [class]="'pi ' + (dashboardStore.resumen()!.comparativaMesAnterior.diferenciaIngresos >= 0 ? 'pi-arrow-up' : 'pi-arrow-down')"></i>
-                                {{ dashboardStore.resumen()!.comparativaMesAnterior.diferenciaIngresos | number:'1.2-2' }} €
+                                {{ dashboardStore.resumen()!.comparativaMesAnterior.diferenciaIngresos | hideAmount:'currency' }}
                                 <span class="text-sm text-600 font-normal">
-                                    ({{ dashboardStore.resumen()!.comparativaMesAnterior.porcentajeCambioIngresos | number:'1.1-1' }}%)
+                                    ({{ dashboardStore.resumen()!.comparativaMesAnterior.porcentajeCambioIngresos | hideAmount:'percent':undefined:'1.1-1' }})
                                 </span>
                             </div>
                         </div>
@@ -64,9 +66,9 @@ import { DashboardStore } from '../../stores/dashboard.store';
                             <div class="text-600 text-sm mb-2">Gastos vs Mes anterior</div>
                             <div [class]="'font-bold text-lg flex items-center gap-2 ' + (dashboardStore.resumen()!.comparativaMesAnterior.diferenciaGastos <= 0 ? 'text-green-600' : 'text-red-600')">
                                 <i [class]="'pi ' + (dashboardStore.resumen()!.comparativaMesAnterior.diferenciaGastos <= 0 ? 'pi-arrow-down' : 'pi-arrow-up')"></i>
-                                {{ Math.abs(dashboardStore.resumen()!.comparativaMesAnterior.diferenciaGastos) | number:'1.2-2' }} €
+                                {{ Math.abs(dashboardStore.resumen()!.comparativaMesAnterior.diferenciaGastos) | hideAmount:'currency' }}
                                 <span class="text-sm text-600 font-normal">
-                                    ({{ Math.abs(dashboardStore.resumen()!.comparativaMesAnterior.porcentajeCambioGastos) | number:'1.1-1' }}%)
+                                    ({{ Math.abs(dashboardStore.resumen()!.comparativaMesAnterior.porcentajeCambioGastos) | hideAmount:'percent':undefined:'1.1-1' }})
                                 </span>
                             </div>
                         </div>
@@ -88,69 +90,76 @@ import { DashboardStore } from '../../stores/dashboard.store';
 })
 export class IngresosChartComponent {
     dashboardStore = inject(DashboardStore);
+    layoutService = inject(LayoutService);
     Math = Math;
 
-    chartOptions = {
-        layout: {
-            padding: {
-                top: 10,
-                bottom: 10,
-                left: 10,
-                right: 15
-            }
-        },
-        plugins: {
-            legend: {
-                display: true,
-                position: 'top',
-                align: 'end', // Alinea la leyenda a la derecha para que no estorbe
-                labels: {
-                    usePointStyle: true,
-                    boxWidth: 8,
-                    padding: 15,
-                    font: { size: 11, weight: '500' }
+    chartOptions = computed(() => {
+        const hidden = this.layoutService.isAmountsHidden();
+
+        return {
+            layout: {
+                padding: {
+                    top: 10,
+                    bottom: 10,
+                    left: 10,
+                    right: 15
                 }
             },
-            tooltip: {
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                titleColor: '#1e293b',
-                bodyColor: '#475569',
-                borderColor: '#e2e8f0',
-                borderWidth: 1,
-                padding: 10,
-                callbacks: {
-                    label: (context: any) => {
-                        const label = context.dataset.label || '';
-                        const value = context.parsed.y || 0;
-                        return `${label}: ${value.toFixed(2)}€`;
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    align: 'end', // Alinea la leyenda a la derecha para que no estorbe
+                    labels: {
+                        usePointStyle: true,
+                        boxWidth: 8,
+                        padding: 15,
+                        font: { size: 11, weight: '500' }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    titleColor: '#1e293b',
+                    bodyColor: '#475569',
+                    borderColor: '#e2e8f0',
+                    borderWidth: 1,
+                    padding: 10,
+                    callbacks: {
+                        label: (context: any) => {
+                            const label = context.dataset.label || '';
+                            if (hidden) return `${label}: **** €`;
+                            const value = context.parsed.y || 0;
+                            return `${label}: ${value.toFixed(2)}€`;
+                        }
+                    }
+                }
+            },
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    grid: { display: false, drawBorder: false },
+                    ticks: { font: { size: 11 }, color: '#64748b' }
+                },
+                y: {
+                    beginAtZero: true,
+                    grace: '10%', // Añade un 10% de espacio arriba para que la curva no toque el techo
+                    border: { display: false },
+                    grid: { color: '#f8fafc', borderDash: [5, 5] },
+                    ticks: {
+                        padding: 10,
+                        color: '#94a3b8',
+                        callback: function (value: any) {
+                            if (hidden) return '****';
+                            if (value >= 1000) return (value / 1000).toFixed(1) + 'k';
+                            return value;
+                        },
+                        font: { size: 11 }
                     }
                 }
             }
-        },
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-            x: {
-                grid: { display: false, drawBorder: false },
-                ticks: { font: { size: 11 }, color: '#64748b' }
-            },
-            y: {
-                beginAtZero: true,
-                grace: '10%', // Añade un 10% de espacio arriba para que la curva no toque el techo
-                border: { display: false },
-                grid: { color: '#f8fafc', borderDash: [5, 5] },
-                ticks: {
-                    padding: 10,
-                    color: '#94a3b8',
-                    callback: function(value: any) {
-                        if (value >= 1000) return (value / 1000).toFixed(1) + 'k';
-                        return value;
-                    },
-                    font: { size: 11 }
-                }
-            }
-        }
-    };
+        };
+    });
 
     hasData = computed(() => {
         const historico = this.dashboardStore.historicoUltimos6Meses();

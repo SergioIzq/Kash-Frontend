@@ -4,11 +4,13 @@ import { CardModule } from 'primeng/card';
 import { ChartModule } from 'primeng/chart';
 import { SkeletonModule } from 'primeng/skeleton';
 import { DashboardStore } from '../../stores/dashboard.store';
+import { HideAmountPipe } from '../../../../shared/pipes/hide-amount.pipe';
+import { LayoutService } from '../../../../layout/service/layout.service';
 
 @Component({
     selector: 'app-resumen-financiero',
     standalone: true,
-    imports: [CommonModule, CardModule, ChartModule, SkeletonModule],
+    imports: [CommonModule, CardModule, ChartModule, SkeletonModule, HideAmountPipe],
     changeDetection: ChangeDetectionStrategy.OnPush,
     styles: [`
         :host {
@@ -45,12 +47,12 @@ import { DashboardStore } from '../../stores/dashboard.store';
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 flex-none">
                     <div class="p-3 border-round-xl bg-green-50 border border-green-200 flex flex-col items-center justify-center">
                         <span class="text-green-700 font-medium text-xs uppercase tracking-wider mb-1">Ingresos</span>
-                        <span class="text-green-800 font-bold text-xl">{{ totalIngresos() | number:'1.2-2' }} €</span>
+                        <span class="text-green-800 font-bold text-xl">{{ totalIngresos() | hideAmount:'currency' }}</span>
                     </div>
 
                     <div class="p-3 border-round-xl bg-red-50 border border-red-200 flex flex-col items-center justify-center">
                         <span class="text-red-700 font-medium text-xs uppercase tracking-wider mb-1">Gastos</span>
-                        <span class="text-red-800 font-bold text-xl">{{ totalGastos() | number:'1.2-2' }} €</span>
+                        <span class="text-red-800 font-bold text-xl">{{ totalGastos() | hideAmount:'currency' }}</span>
                     </div>
 
                     <div class="p-3 border-round-xl flex flex-col items-center justify-center"
@@ -59,13 +61,13 @@ import { DashboardStore } from '../../stores/dashboard.store';
                               [ngClass]="balanceNeto() >= 0 ? 'text-blue-700' : 'text-orange-700'">Balance</span>
                         <span class="font-bold text-xl"
                               [ngClass]="balanceNeto() >= 0 ? 'text-blue-800' : 'text-orange-800'">
-                             {{ balanceNeto() | number:'1.2-2' }} €
+                             {{ balanceNeto() | hideAmount:'currency' }}
                         </span>
                     </div>
                 </div>
 
                 <div class="w-full relative h-24rem md:h-30rem">
-                    <p-chart type="bar" [data]="chartData()" [options]="chartOptions" styleClass="w-full h-full"></p-chart>
+                    <p-chart type="bar" [data]="chartData()" [options]="chartOptions()" styleClass="w-full h-full"></p-chart>
                 </div>
 
             } @else {
@@ -84,88 +86,94 @@ import { DashboardStore } from '../../stores/dashboard.store';
 })
 export class ResumenFinancieroComponent {
     dashboardStore = inject(DashboardStore);
+    layoutService = inject(LayoutService);
 
-    chartOptions = {
-        // 1. Padding interno del Canvas para evitar cortes en los bordes
-        layout: {
-            padding: {
-                top: 10,
-                bottom: 10,
-                left: 10,
-                right: 15
-            }
-        },
-        interaction: {
-            mode: 'index',
-            intersect: false,
-        },
-        plugins: {
-            legend: {
-                display: true,
-                position: 'bottom',
-                labels: {
+    chartOptions = computed(() => {
+        const hidden = this.layoutService.isAmountsHidden();
+
+        return {
+            // 1. Padding interno del Canvas para evitar cortes en los bordes
+            layout: {
+                padding: {
+                    top: 10,
+                    bottom: 10,
+                    left: 10,
+                    right: 15
+                }
+            },
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: { size: 12, family: "'Inter', sans-serif" },
+                        color: '#64748b'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    titleColor: '#1e293b',
+                    bodyColor: '#475569',
+                    borderColor: '#e2e8f0',
+                    borderWidth: 1,
+                    padding: 12,
+                    boxPadding: 6,
                     usePointStyle: true,
-                    padding: 20,
-                    font: { size: 12, family: "'Inter', sans-serif" },
-                    color: '#64748b'
-                }
-            },
-            tooltip: {
-                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                titleColor: '#1e293b',
-                bodyColor: '#475569',
-                borderColor: '#e2e8f0',
-                borderWidth: 1,
-                padding: 12,
-                boxPadding: 6,
-                usePointStyle: true,
-                callbacks: {
-                    label: (context: any) => {
-                        let label = context.dataset.label || '';
-                        if (label) label += ': ';
-                        if (context.parsed.y !== null) {
-                            label += new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(context.parsed.y);
+                    callbacks: {
+                        label: (context: any) => {
+                            let label = context.dataset.label || '';
+                            if (label) label += ': ';
+                            if (context.parsed.y !== null) {
+                                label += hidden ? '**** €' : new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(context.parsed.y);
+                            }
+                            return label;
                         }
-                        return label;
                     }
-                }
-            }
-        },
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-            x: {
-                stacked: false, // Asegura que las barras no se apilen, sino que se agrupen
-                grid: {
-                    display: false,
-                    drawBorder: false
-                },
-                ticks: {
-                    color: '#64748b',
-                    font: { size: 12 }
                 }
             },
-            y: {
-                beginAtZero: true,
-                // 2. GRACE: Esta es la clave. Añade 20% de espacio extra arriba del valor máximo.
-                // Esto evita que la línea toque el techo del gráfico.
-                grace: '20%', 
-                border: { display: false },
-                grid: {
-                    color: '#f1f5f9',
-                    borderDash: [5, 5]
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    stacked: false, // Asegura que las barras no se apilen, sino que se agrupen
+                    grid: {
+                        display: false,
+                        drawBorder: false
+                    },
+                    ticks: {
+                        color: '#64748b',
+                        font: { size: 12 }
+                    }
                 },
-                ticks: {
-                    color: '#94a3b8',
-                    padding: 10,
-                    callback: (value: any) => {
-                        if (value >= 1000) return (value / 1000).toFixed(1) + 'k';
-                        return value;
+                y: {
+                    beginAtZero: true,
+                    // 2. GRACE: Esta es la clave. Añade 20% de espacio extra arriba del valor máximo.
+                    // Esto evita que la línea toque el techo del gráfico.
+                    grace: '20%',
+                    border: { display: false },
+                    grid: {
+                        color: '#f1f5f9',
+                        borderDash: [5, 5]
+                    },
+                    ticks: {
+                        color: '#94a3b8',
+                        padding: 10,
+                        callback: (value: any) => {
+                            if (hidden) return '****';
+                            if (value >= 1000) return (value / 1000).toFixed(1) + 'k';
+                            return value;
+                        }
                     }
                 }
             }
-        }
-    };
+        };
+    });
 
     hasData = computed(() => {
         const historico = this.dashboardStore.historicoUltimos6Meses();
