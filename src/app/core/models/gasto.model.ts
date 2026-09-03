@@ -1,3 +1,5 @@
+import { PaginatedList } from './common.model';
+
 export interface Gasto {
     id: string;
     importe: number;
@@ -23,6 +25,14 @@ export interface ResumenGastos {
     cantidad: number;
     gastos: Gasto[];
     porCategoria?: Record<string, number>;
+}
+
+// Respuesta de GET /gastos/periodo: el listado paginado del periodo junto con la suma del
+// importe de TODOS los registros que cumplen el filtro de fecha (no solo los de la página
+// actual). Espejo del `PeriodoResult<GastoDto>` del backend.
+export interface GastosPeriodoResponse {
+    pagina: PaginatedList<Gasto>;
+    sumaImporte: number;
 }
 
 // Combinación completa de campos de gasto que el usuario repite con frecuencia

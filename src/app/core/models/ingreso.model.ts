@@ -1,3 +1,5 @@
+import { PaginatedList } from './common.model';
+
 export interface Ingreso {
     id: string;
     importe: number;
@@ -23,6 +25,14 @@ export interface ResumenIngresos {
     cantidad: number;
     ingresos: Ingreso[];
     porCategoria?: Record<string, number>;
+}
+
+// Respuesta de GET /ingresos/periodo: el listado paginado del periodo junto con la suma del
+// importe de TODOS los registros que cumplen el filtro de fecha (no solo los de la página
+// actual). Espejo del `PeriodoResult<IngresoDto>` del backend.
+export interface IngresosPeriodoResponse {
+    pagina: PaginatedList<Ingreso>;
+    sumaImporte: number;
 }
 
 // Combinación completa de campos de ingreso que el usuario repite con frecuencia

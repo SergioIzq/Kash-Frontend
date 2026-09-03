@@ -35,6 +35,9 @@ interface GastosState {
     // periodo, para que ambas tablas puedan mostrar datos distintos sin pisarse.
     movimientosPeriodo: Gasto[];
     loadingMovimientosPeriodo: boolean;
+    // Suma del importe de TODOS los gastos del periodo filtrado (no solo los de
+    // `movimientosPeriodo`, que puede estar acotado por el pageSize solicitado).
+    sumaImporteMovimientosPeriodo: number;
 }
 
 const initialState: GastosState = {
@@ -55,7 +58,8 @@ const initialState: GastosState = {
         sortOrder: ''
     },
     movimientosPeriodo: [],
-    loadingMovimientosPeriodo: false
+    loadingMovimientosPeriodo: false,
+    sumaImporteMovimientosPeriodo: 0
 };
 
 /**
@@ -216,9 +220,10 @@ export const GastosStore = signalStore(
                     switchMap(({ fechaInicio, fechaFin }) =>
                         gastoService.getGastosPorPeriodo(fechaInicio, fechaFin).pipe(
                             tapResponse({
-                                next: (gastos) => {
+                                next: (response) => {
                                     patchState(store, {
-                                        movimientosPeriodo: gastos,
+                                        movimientosPeriodo: response.pagina.items,
+                                        sumaImporteMovimientosPeriodo: response.sumaImporte,
                                         loadingMovimientosPeriodo: false,
                                         filters: { ...store.filters(), fechaInicio, fechaFin }
                                     });
@@ -337,14 +342,20 @@ export const GastosStore = signalStore(
             deleteGasto: rxMethod<string>(
                 pipe(
                     tap((id) => {
-                        patchState(store, (state) => ({
-                            gastos: state.gastos.filter((g) => g.id !== id),
-                            // Un gasto borrado deja de pertenecer a cualquier periodo: se quita
-                            // también de la tabla de "Movimientos rápidos" sin esperar a un refetch.
-                            movimientosPeriodo: state.movimientosPeriodo.filter((g) => g.id !== id),
-                            totalRecords: state.totalRecords - 1,
-                            searchCache: new Map() // Invalidar caché
-                        }));
+                        patchState(store, (state) => {
+                            const gastoBorrado = state.movimientosPeriodo.find((g) => g.id === id);
+                            return {
+                                gastos: state.gastos.filter((g) => g.id !== id),
+                                // Un gasto borrado deja de pertenecer a cualquier periodo: se quita
+                                // también de la tabla de "Movimientos rápidos" sin esperar a un refetch.
+                                movimientosPeriodo: state.movimientosPeriodo.filter((g) => g.id !== id),
+                                // Si el gasto borrado pertenecía al periodo filtrado, se descuenta su
+                                // importe del sumatorio mostrado de forma optimista, igual que la fila.
+                                sumaImporteMovimientosPeriodo: gastoBorrado ? state.sumaImporteMovimientosPeriodo - gastoBorrado.importe : state.sumaImporteMovimientosPeriodo,
+                                totalRecords: state.totalRecords - 1,
+                                searchCache: new Map() // Invalidar caché
+                            };
+                        });
                     }),
                     switchMap((id) =>
                         gastoService.delete(id).pipe(

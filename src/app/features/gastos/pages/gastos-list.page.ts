@@ -108,6 +108,7 @@ import { calcularRangoFecha, FiltroPeriodoRapido } from '@/shared/utils/rango-fe
                             </div>
                         </div>
 
+                        @if (!layout.isMobileView()) {
                         <div class="overflow-x-auto">
                             <p-table
                                 [value]="gastosStore.movimientosPeriodo()"
@@ -195,6 +196,63 @@ import { calcularRangoFecha, FiltroPeriodoRapido } from '@/shared/utils/rango-fe
                                     </tr>
                                 </ng-template>
                             </p-table>
+                        </div>
+                        } @else {
+                        <p-dataView styleClass="kash-mobile-dataview" [value]="gastosStore.movimientosPeriodo()" [rows]="10" [paginator]="true" [loading]="gastosStore.loadingMovimientosPeriodo()" [showCurrentPageReport]="true" currentPageReportTemplate="{first}-{last} de {totalRecords}">
+                            <ng-template #list let-movimientos>
+                                <div class="flex flex-col gap-4 pt-4">
+                                    @for (gasto of movimientos; track gasto.id) {
+                                        <div class="surface-card rounded-xl border border-surface-200 dark:border-surface-700 border-l-4 border-l-red-500 shadow-sm p-4">
+                                            <div class="flex justify-between items-start gap-3 pb-3 border-b border-surface-200 dark:border-surface-700">
+                                                <div class="flex flex-col min-w-0">
+                                                    <span class="font-semibold text-base text-900 truncate">{{ gasto.conceptoNombre }}</span>
+                                                    <span class="text-xs text-500 flex items-center gap-1 mt-1">
+                                                        <i class="pi pi-calendar" style="font-size: 0.75rem"></i>{{ gasto.fecha | date: 'dd/MM/yyyy' }}
+                                                    </span>
+                                                </div>
+                                                <span class="font-bold text-red-500 text-lg whitespace-nowrap">- {{ gasto.importe | hideAmount:'currency' }}</span>
+                                            </div>
+
+                                            <div class="grid grid-cols-2 gap-x-4 gap-y-3 py-3">
+                                                <div class="flex flex-col gap-1 min-w-0">
+                                                    <span class="text-xs text-400 uppercase tracking-wide"><i class="pi pi-truck mr-1"></i>Proveedor</span>
+                                                    <span class="text-sm text-700 truncate">{{ gasto.proveedorNombre || '—' }}</span>
+                                                </div>
+                                                <div class="flex flex-col gap-1 min-w-0">
+                                                    <span class="text-xs text-400 uppercase tracking-wide"><i class="pi pi-id-card mr-1"></i>Persona</span>
+                                                    <span class="text-sm text-700 truncate">{{ gasto.personaNombre || '—' }}</span>
+                                                </div>
+                                                <div class="flex flex-col gap-1 min-w-0">
+                                                    <span class="text-xs text-400 uppercase tracking-wide"><i class="pi pi-credit-card mr-1"></i>Forma de Pago</span>
+                                                    <span class="text-sm text-700 truncate">{{ gasto.formaPagoNombre || '—' }}</span>
+                                                </div>
+                                                <div class="flex flex-col gap-1 min-w-0">
+                                                    <span class="text-xs text-400 uppercase tracking-wide"><i class="pi pi-wallet mr-1"></i>Cuenta</span>
+                                                    <span class="text-sm text-700 truncate">{{ gasto.cuentaNombre || '—' }}</span>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex justify-end gap-2 pt-3 border-t border-surface-200 dark:border-surface-700">
+                                                <p-button icon="pi pi-pencil" label="Editar" severity="secondary" [outlined]="true" size="small" (click)="editGasto(gasto)" />
+                                                <p-button icon="pi pi-trash" label="Eliminar" severity="danger" [outlined]="true" size="small" (click)="deleteGasto(gasto)" />
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </ng-template>
+
+                            <ng-template #empty>
+                                <div class="text-center py-6">
+                                    <i class="pi pi-calendar-times text-500 text-4xl mb-3"></i>
+                                    <p class="text-900 font-semibold mb-1">No hay movimientos en este periodo</p>
+                                </div>
+                            </ng-template>
+                        </p-dataView>
+                        }
+
+                        <div class="flex justify-end mt-3 pt-3 border-t surface-border">
+                            <span class="text-600 mr-2">Total del periodo:</span>
+                            <span class="font-bold text-red-500">- {{ gastosStore.sumaImporteMovimientosPeriodo() | hideAmount:'currency' }}</span>
                         </div>
                     </div>
 
