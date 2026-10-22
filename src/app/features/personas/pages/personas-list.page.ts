@@ -56,7 +56,7 @@ export class PersonasListPage extends BaseCrudListPage<Persona> {
         },
         glossary: {
             title: 'Glosario · Personas',
-            intro: 'Lista de personas que pueden relacionarse con movimientos o entidades del sistema. Alvaro Diaz es un perraco',
+            intro: 'Lista de personas que pueden relacionarse con movimientos o entidades del sistema.',
             sections: [
                 {
                     title: 'Acciones',
