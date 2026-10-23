@@ -55,7 +55,7 @@ export class PersonasListPage extends BaseCrudListPage<Persona> {
             deleted: 'Persona eliminada correctamente'
         },
         glossary: {
-            title: 'Glosario · Personas Jesus perraco gordo',
+            title: 'Glosario · Personas',
             intro: 'Lista de personas que pueden relacionarse con movimientos o entidades del sistema.',
             sections: [
                 {
